@@ -7,7 +7,7 @@ void main() {
 }
 
 class KutumbSetuApp extends StatefulWidget {
-  const KutumbSetuApp({Key? key}) : super(key: key);
+  const KutumbSetuApp({super.key});
 
   @override
   State<KutumbSetuApp> createState() => _KutumbSetuAppState();

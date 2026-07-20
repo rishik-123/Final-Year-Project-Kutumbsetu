@@ -33,7 +33,7 @@ class KutumbSetuTheme {
       cardTheme: CardThemeData(
         color: lightCard,
         elevation: 2,
-        shadowColor: Colors.black.withOpacity(0.05),
+        shadowColor: Colors.black.withValues(alpha: 0.05),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
         ),
@@ -89,7 +89,7 @@ class KutumbSetuTheme {
           borderSide: const BorderSide(color: Colors.redAccent, width: 1.5),
         ),
         hintStyle: GoogleFonts.inter(
-          color: lightTextSecondary.withOpacity(0.7),
+          color: lightTextSecondary.withValues(alpha: 0.7),
           fontSize: 15,
         ),
       ),
@@ -134,7 +134,7 @@ class KutumbSetuTheme {
       cardTheme: CardThemeData(
         color: darkCard,
         elevation: 4,
-        shadowColor: Colors.black.withOpacity(0.2),
+        shadowColor: Colors.black.withValues(alpha: 0.2),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
         ),
@@ -190,7 +190,7 @@ class KutumbSetuTheme {
           borderSide: const BorderSide(color: Colors.redAccent, width: 1.5),
         ),
         hintStyle: GoogleFonts.inter(
-          color: darkTextSecondary.withOpacity(0.7),
+          color: darkTextSecondary.withValues(alpha: 0.7),
           fontSize: 15,
         ),
       ),

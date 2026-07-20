@@ -2,16 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../widgets/mobile_input_form.dart';
 import '../widgets/otp_verification_form.dart';
+import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   final bool isDarkMode;
   final VoidCallback onToggleTheme;
 
   const LoginScreen({
-    Key? key,
+    super.key,
     required this.isDarkMode,
     required this.onToggleTheme,
-  }) : super(key: key);
+  });
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -115,6 +116,18 @@ class _LoginScreenState extends State<LoginScreen> {
     });
   }
 
+  void _navigateToRegister() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => RegisterScreen(
+          isDarkMode: widget.isDarkMode,
+          onToggleTheme: widget.onToggleTheme,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -178,7 +191,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             color: isDark ? const Color(0xFF2C2C2C) : Colors.white,
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.05),
+                                color: Colors.black.withValues(alpha: 0.05),
                                 blurRadius: 20,
                                 offset: const Offset(0, 10),
                               )
@@ -280,7 +293,64 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 20),
+
+                    // Registration Promo / Register Here Button
+                    Card(
+                      elevation: isDark ? 0 : 2,
+                      color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                        side: BorderSide(
+                          color: isDark ? Colors.grey.shade800 : theme.colorScheme.primary.withValues(alpha: 0.3),
+                          width: 1.5,
+                        ),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'New to KutumbSetu?',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                      color: isDark ? Colors.white : Colors.grey.shade800,
+                                    ),
+                                  ),
+                                  Text(
+                                    'Register your family profile now',
+                                    style: GoogleFonts.inter(
+                                      fontSize: 12,
+                                      color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            ElevatedButton.icon(
+                              onPressed: _navigateToRegister,
+                              icon: const Icon(Icons.person_add_alt_1_rounded, size: 18),
+                              label: const Text('Register Here'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: theme.colorScheme.primary,
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
 
                     // Verification Notice
                     Padding(

@@ -4,7 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 class MobileInputForm extends StatefulWidget {
   final Function(String) onSendOtp;
 
-  const MobileInputForm({Key? key, required this.onSendOtp}) : super(key: key);
+  const MobileInputForm({super.key, required this.onSendOtp});
 
   @override
   State<MobileInputForm> createState() => _MobileInputFormState();

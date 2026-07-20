@@ -10,12 +10,12 @@ class OtpVerificationForm extends StatefulWidget {
   final VoidCallback onResend;
 
   const OtpVerificationForm({
-    Key? key,
+    super.key,
     required this.phoneNumber,
     required this.onChangeMobile,
     required this.onVerify,
     required this.onResend,
-  }) : super(key: key);
+  });
 
   @override
   State<OtpVerificationForm> createState() => _OtpVerificationFormState();
@@ -122,12 +122,15 @@ class _OtpVerificationFormState extends State<OtpVerificationForm> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              'Enter OTP Sent to:',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+            Expanded(
+              child: Text(
+                'Enter OTP Sent to:',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                ),
               ),
             ),
+            const SizedBox(width: 8),
             TextButton(
               onPressed: widget.onChangeMobile,
               style: TextButton.styleFrom(

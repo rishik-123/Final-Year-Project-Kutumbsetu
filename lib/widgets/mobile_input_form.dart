@@ -3,8 +3,13 @@ import 'package:google_fonts/google_fonts.dart';
 
 class MobileInputForm extends StatefulWidget {
   final Function(String) onSendOtp;
+  final bool isLoading;
 
-  const MobileInputForm({super.key, required this.onSendOtp});
+  const MobileInputForm({
+    super.key,
+    required this.onSendOtp,
+    this.isLoading = false,
+  });
 
   @override
   State<MobileInputForm> createState() => _MobileInputFormState();
@@ -22,6 +27,7 @@ class _MobileInputFormState extends State<MobileInputForm> {
   }
 
   void _submit() {
+    if (widget.isLoading) return;
     if (_formKey.currentState!.validate()) {
       widget.onSendOtp('$_selectedCountryCode ${_phoneController.text}');
     }
@@ -71,13 +77,15 @@ class _MobileInputFormState extends State<MobileInputForm> {
                         fontWeight: FontWeight.bold,
                         color: isDark ? Colors.white : Colors.grey.shade800,
                       ),
-                      onChanged: (String? newValue) {
-                        if (newValue != null) {
-                          setState(() {
-                            _selectedCountryCode = newValue;
-                          });
-                        }
-                      },
+                      onChanged: widget.isLoading
+                          ? null
+                          : (String? newValue) {
+                              if (newValue != null) {
+                                setState(() {
+                                  _selectedCountryCode = newValue;
+                                });
+                              }
+                            },
                       items: <String>['+91', '+1', '+44', '+971']
                           .map<DropdownMenuItem<String>>((String value) {
                         return DropdownMenuItem<String>(
@@ -94,6 +102,7 @@ class _MobileInputFormState extends State<MobileInputForm> {
               Expanded(
                 child: TextFormField(
                   controller: _phoneController,
+                  enabled: !widget.isLoading,
                   keyboardType: TextInputType.phone,
                   maxLength: 10,
                   style: GoogleFonts.inter(
@@ -122,23 +131,32 @@ class _MobileInputFormState extends State<MobileInputForm> {
           ),
           const SizedBox(height: 24),
           ElevatedButton(
-            onPressed: _submit,
+            onPressed: widget.isLoading ? null : _submit,
             style: theme.elevatedButtonTheme.style?.copyWith(
               padding: WidgetStateProperty.all(
                 const EdgeInsets.symmetric(vertical: 16),
               ),
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  'Send OTP',
-                  style: theme.textTheme.labelLarge?.copyWith(fontSize: 16),
-                ),
-                const SizedBox(width: 8),
-                const Icon(Icons.arrow_forward_rounded, size: 20, color: Colors.white),
-              ],
-            ),
+            child: widget.isLoading
+                ? const SizedBox(
+                    height: 22,
+                    width: 22,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.5,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  )
+                : Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'Send OTP',
+                        style: theme.textTheme.labelLarge?.copyWith(fontSize: 16),
+                      ),
+                      const SizedBox(width: 8),
+                      const Icon(Icons.arrow_forward_rounded, size: 20, color: Colors.white),
+                    ],
+                  ),
           ),
         ],
       ),

@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "246467901200",
+    "project_id": "kutumbsetu-final-year-project",
+    "storage_bucket": "kutumbsetu-final-year-project.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:246467901200:android:50ef2a14d8d74b355d1795",
+        "android_client_info": {
+          "package_name": "com.kutumbsetu.kutumbsetu"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "246467901200-pkir013c3mv611l9vepdvbkh5nt0lvrj.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.kutumbsetu.kutumbsetu",
+            "certificate_hash": "cf78d315c9fd4f1ae241f3b41fa90f5e19c95031"
+          }
+        },
+        {
+          "client_id": "246467901200-o88cbk6eq2bs6v3t9epgs6tn1ls8lbu4.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBoKTfIA5tEoBQE4uzIx-6CMftC_WhIkIw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "246467901200-o88cbk6eq2bs6v3t9epgs6tn1ls8lbu4.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -8,6 +8,7 @@ class OtpVerificationForm extends StatefulWidget {
   final VoidCallback onChangeMobile;
   final Function(String) onVerify;
   final VoidCallback onResend;
+  final bool isVerifying;
 
   const OtpVerificationForm({
     super.key,
@@ -15,6 +16,7 @@ class OtpVerificationForm extends StatefulWidget {
     required this.onChangeMobile,
     required this.onVerify,
     required this.onResend,
+    this.isVerifying = false,
   });
 
   @override
@@ -73,7 +75,7 @@ class _OtpVerificationFormState extends State<OtpVerificationForm> {
   }
 
   void _resend() {
-    if (_canResend) {
+    if (_canResend && !widget.isVerifying) {
       _startTimer();
       widget.onResend();
       // Clear OTP fields
@@ -85,6 +87,7 @@ class _OtpVerificationFormState extends State<OtpVerificationForm> {
   }
 
   void _submit() {
+    if (widget.isVerifying) return;
     String otp = _controllers.map((c) => c.text).join();
     if (otp.length == _otpLength) {
       widget.onVerify(otp);
@@ -154,63 +157,67 @@ class _OtpVerificationFormState extends State<OtpVerificationForm> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: List.generate(_otpLength, (index) {
-            return SizedBox(
-              width: 48,
-              height: 58,
-              child: CallbackShortcuts(
-                bindings: <ShortcutActivator, VoidCallback>{
-                  const SingleActivator(LogicalKeyboardKey.backspace): () {
-                    // Custom backspace detection to shift focus backwards
-                    if (_controllers[index].text.isEmpty && index > 0) {
-                      _focusNodes[index - 1].requestFocus();
-                      _controllers[index - 1].clear();
-                    }
-                  },
-                },
-                child: Focus(
-                  onKeyEvent: (FocusNode node, KeyEvent event) {
-                    if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.backspace) {
-                      if (_controllers[index].text.isEmpty && index > 0) {
-                        _focusNodes[index - 1].requestFocus();
-                        _controllers[index - 1].clear();
-                        return KeyEventResult.handled;
-                      }
-                    }
-                    return KeyEventResult.ignored;
-                  },
-                  child: TextFormField(
-                    controller: _controllers[index],
-                    focusNode: _focusNodes[index],
-                    keyboardType: TextInputType.number,
-                    textAlign: TextAlign.center,
-                    maxLength: 1,
-                    inputFormatters: [
-                      FilteringTextInputFormatter.digitsOnly,
-                    ],
-                    style: GoogleFonts.poppins(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: isDark ? Colors.white : Colors.grey.shade800,
-                    ),
-                    decoration: InputDecoration(
-                      counterText: '',
-                      contentPadding: EdgeInsets.zero,
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(
-                          color: isDark ? Colors.grey.shade800 : Colors.grey.shade300,
-                          width: 1.5,
+            return Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 2.0),
+                child: SizedBox(
+                  height: 56,
+                  child: CallbackShortcuts(
+                    bindings: <ShortcutActivator, VoidCallback>{
+                      const SingleActivator(LogicalKeyboardKey.backspace): () {
+                        // Custom backspace detection to shift focus backwards
+                        if (_controllers[index].text.isEmpty && index > 0) {
+                          _focusNodes[index - 1].requestFocus();
+                          _controllers[index - 1].clear();
+                        }
+                      },
+                    },
+                    child: Focus(
+                      onKeyEvent: (FocusNode node, KeyEvent event) {
+                        if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.backspace) {
+                          if (_controllers[index].text.isEmpty && index > 0) {
+                            _focusNodes[index - 1].requestFocus();
+                            _controllers[index - 1].clear();
+                            return KeyEventResult.handled;
+                          }
+                        }
+                        return KeyEventResult.ignored;
+                      },
+                      child: TextFormField(
+                        controller: _controllers[index],
+                        focusNode: _focusNodes[index],
+                        keyboardType: TextInputType.number,
+                        textAlign: TextAlign.center,
+                        maxLength: 1,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                        ],
+                        style: GoogleFonts.poppins(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: isDark ? Colors.white : Colors.grey.shade800,
                         ),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(
-                          color: theme.colorScheme.primary,
-                          width: 2.0,
+                        decoration: InputDecoration(
+                          counterText: '',
+                          contentPadding: EdgeInsets.zero,
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(
+                              color: isDark ? Colors.grey.shade800 : Colors.grey.shade300,
+                              width: 1.5,
+                            ),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(
+                              color: theme.colorScheme.primary,
+                              width: 2.0,
+                            ),
+                          ),
                         ),
+                        onChanged: (value) => _onChanged(value, index),
                       ),
                     ),
-                    onChanged: (value) => _onChanged(value, index),
                   ),
                 ),
               ),
@@ -220,19 +227,28 @@ class _OtpVerificationFormState extends State<OtpVerificationForm> {
         const SizedBox(height: 24),
         // Verification button
         ElevatedButton(
-          onPressed: _submit,
+          onPressed: widget.isVerifying ? null : _submit,
           style: theme.elevatedButtonTheme.style,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                'Verify & Continue',
-                style: theme.textTheme.labelLarge,
-              ),
-              const SizedBox(width: 8),
-              const Icon(Icons.verified_user_rounded, size: 20, color: Colors.white),
-            ],
-          ),
+          child: widget.isVerifying
+              ? const SizedBox(
+                  height: 22,
+                  width: 22,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.5,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  ),
+                )
+              : Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      'Verify & Continue',
+                      style: theme.textTheme.labelLarge,
+                    ),
+                    const SizedBox(width: 8),
+                    const Icon(Icons.verified_user_rounded, size: 20, color: Colors.white),
+                  ],
+                ),
         ),
         const SizedBox(height: 20),
         // Countdown timer & Resend Action

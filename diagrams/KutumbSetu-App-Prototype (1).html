@@ -1,0 +1,1217 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KutumbSetu — Gujarati Darji Samaj</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=Noto+Sans+Gujarati:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ===================== DESIGN TOKENS ===================== */
+:root{
+  --saffron: #F57C00;
+  --saffron-deep: #C85F00;
+  --saffron-tint: #FFE3C2;
+  --forest: #2E7D32;
+  --forest-tint: #DCEFDD;
+  --peacock: #0288D1;
+  --peacock-tint: #DCEFFB;
+  --bg: #FAFAFA;
+  --card: #FFFFFF;
+  --text: #212121;
+  --text-soft: #6B6B6B;
+  --divider: #ECE7DE;
+  --gold: #C9A227;
+  --radius-lg: 20px;
+  --radius-md: 16px;
+  --radius-sm: 12px;
+  --shadow-card: 0 2px 14px rgba(33,26,15,0.06);
+  --shadow-float: 0 10px 30px rgba(197,105,0,0.22);
+  --font-head: 'Poppins', sans-serif;
+  --font-body: 'Inter', sans-serif;
+  --font-guj: 'Noto Sans Gujarati', sans-serif;
+}
+[data-theme="dark"]{
+  --bg: #121212;
+  --card: #1E1B18;
+  --text: #F2EFEA;
+  --text-soft: #A9A29A;
+  --divider: #322C25;
+  --saffron-tint: #3A2A16;
+  --forest-tint: #1A2E1C;
+  --peacock-tint: #16283A;
+  --shadow-card: 0 2px 14px rgba(0,0,0,0.35);
+}
+*{box-sizing:border-box;}
+body{
+  margin:0; background:#EDE6DA; font-family:var(--font-body); color:var(--text);
+  display:flex; align-items:flex-start; justify-content:center; min-height:100vh; padding:36px 16px;
+  background-image: radial-gradient(circle at 20% 10%, #F3ECDF 0%, #E7DECC 60%, #DCD1BA 100%);
+}
+h1,h2,h3,h4{ font-family:var(--font-head); margin:0; }
+.guj{ font-family:var(--font-guj); }
+
+/* ===================== PHONE FRAME ===================== */
+.app-wrap{ display:flex; flex-direction:column; align-items:center; gap:14px; }
+.toolbar{
+  display:flex; gap:10px; align-items:center; background:rgba(255,255,255,0.85); backdrop-filter:blur(8px);
+  padding:8px 14px; border-radius:999px; box-shadow:0 4px 16px rgba(0,0,0,0.08); font-size:13px; color:#5b4630;
+}
+.toolbar button{
+  border:none; background:var(--card); color:var(--text); font-family:var(--font-body); font-weight:600;
+  font-size:12.5px; padding:8px 14px; border-radius:999px; cursor:pointer; box-shadow:0 1px 4px rgba(0,0,0,0.12);
+  display:flex; align-items:center; gap:6px; transition:all .15s ease;
+}
+.toolbar button:hover{ transform:translateY(-1px); }
+.toolbar button.active{ background:var(--saffron); color:white; }
+
+.phone{
+  width:390px; height:844px; background:var(--bg); border-radius:52px; position:relative; overflow:hidden;
+  box-shadow:0 30px 60px -12px rgba(0,0,0,0.35), 0 0 0 10px #1b1b1b, 0 0 0 12px #333;
+  transition:background .3s ease;
+}
+.notch{
+  position:absolute; top:10px; left:50%; transform:translateX(-50%); width:120px; height:28px;
+  background:#1b1b1b; border-radius:20px; z-index:50;
+}
+.screens{ position:absolute; inset:0; }
+.screen{
+  position:absolute; inset:0; opacity:0; pointer-events:none; transform:translateY(6px);
+  transition:opacity .25s ease, transform .25s ease; overflow-y:auto; padding-bottom:100px;
+}
+.screen.active{ opacity:1; pointer-events:auto; transform:translateY(0); }
+.screen::-webkit-scrollbar{ display:none; }
+
+/* pattern header */
+.pattern-header{
+  position:relative; padding:56px 20px 22px; color:white; overflow:hidden;
+  background: linear-gradient(135deg, var(--saffron) 0%, var(--saffron-deep) 100%);
+  border-radius:0 0 28px 28px;
+}
+.pattern-header svg.pattern{ position:absolute; inset:0; width:100%; height:100%; opacity:0.16; }
+.pattern-header .content{ position:relative; z-index:2; }
+.greeting-row{ display:flex; justify-content:space-between; align-items:flex-start; }
+.greeting-row .hi{ font-size:13px; opacity:0.9; }
+.greeting-row .name{ font-family:var(--font-head); font-size:21px; font-weight:700; margin-top:2px; }
+.header-icon-btn{
+  width:38px; height:38px; border-radius:50%; background:rgba(255,255,255,0.18); display:flex; align-items:center;
+  justify-content:center; font-size:16px; position:relative; cursor:pointer; border:1px solid rgba(255,255,255,0.25);
+  user-select:none;
+}
+.header-icon-btn .dot{ position:absolute; top:6px; right:6px; width:7px; height:7px; border-radius:50%; background:#FF5252; border:1.5px solid var(--saffron-deep); }
+.header-icons{ display:flex; gap:8px; }
+
+.search-bar{
+  margin-top:16px; background:white; border-radius:16px; padding:12px 14px; display:flex; align-items:center; gap:10px;
+  box-shadow:0 6px 18px rgba(0,0,0,0.12); color:#8a8a8a; font-size:13.5px;
+}
+[data-theme="dark"] .search-bar{ background:#2A2621; color:#a29a8f; }
+
+/* generic content padding */
+.content{ padding:18px 20px 8px; }
+.section-title{ display:flex; align-items:center; justify-content:space-between; margin:22px 0 12px; }
+.section-title h3{ font-size:15.5px; }
+.section-title .link{ font-size:12px; color:var(--saffron); font-weight:600; cursor:pointer; }
+
+/* quick actions grid */
+.quick-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:14px 10px; margin-top:4px; }
+.quick-item{ display:flex; flex-direction:column; align-items:center; gap:7px; cursor:pointer; }
+.quick-icon{
+  width:54px; height:54px; border-radius:18px; display:flex; align-items:center; justify-content:center; font-size:22px;
+  box-shadow:var(--shadow-card);
+}
+.quick-item span{ font-size:10.5px; text-align:center; color:var(--text-soft); font-weight:600; line-height:1.2; }
+
+/* card */
+.card{
+  background:var(--card); border-radius:var(--radius-md); padding:14px; box-shadow:var(--shadow-card);
+  border:1px solid var(--divider);
+}
+
+/* horizontal scroller */
+.hscroll{ display:flex; gap:12px; overflow-x:auto; padding-bottom:6px; margin:0 -20px; padding-left:20px; padding-right:20px; }
+.hscroll::-webkit-scrollbar{ display:none; }
+
+.bday-card{ min-width:118px; background:var(--card); border-radius:var(--radius-md); padding:12px; text-align:center; box-shadow:var(--shadow-card); flex-shrink:0; }
+.avatar-ring{ width:52px; height:52px; border-radius:50%; margin:0 auto 8px; display:flex; align-items:center; justify-content:center;
+  font-family:var(--font-head); font-weight:700; color:white; font-size:17px; border:3px solid var(--saffron-tint); }
+.bday-card .nm{ font-size:11.5px; font-weight:700; }
+.bday-card .sub{ font-size:9.5px; color:var(--text-soft); margin-top:2px; }
+
+.event-row{ display:flex; gap:12px; align-items:center; padding:12px 0; border-bottom:1px solid var(--divider); }
+.event-row:last-child{ border-bottom:none; }
+.date-chip{ width:48px; height:48px; border-radius:12px; background:var(--forest-tint); color:var(--forest); display:flex; flex-direction:column;
+  align-items:center; justify-content:center; font-family:var(--font-head); flex-shrink:0; }
+.date-chip .d{ font-size:16px; font-weight:800; line-height:1; }
+.date-chip .m{ font-size:8.5px; font-weight:700; text-transform:uppercase; }
+.event-row .info .t{ font-size:13px; font-weight:700; }
+.event-row .info .l{ font-size:11px; color:var(--text-soft); margin-top:2px; }
+
+.family-strip{ display:flex; gap:12px; overflow-x:auto; margin:0 -20px; padding:0 20px 6px; }
+.family-strip::-webkit-scrollbar{ display:none; }
+.family-card{ min-width:150px; border-radius:var(--radius-md); overflow:hidden; box-shadow:var(--shadow-card); flex-shrink:0; background:var(--card); }
+.family-card .fimg{ height:78px; background:linear-gradient(135deg,var(--peacock),#045a8a); position:relative; }
+.family-card .fimg .badge{ position:absolute; bottom:8px; left:10px; background:rgba(255,255,255,0.92); color:var(--peacock); font-size:9px; font-weight:800; padding:2px 8px; border-radius:8px; }
+.family-card .fbody{ padding:10px; }
+.family-card .fbody .t{ font-size:12px; font-weight:700; }
+.family-card .fbody .s{ font-size:10px; color:var(--text-soft); }
+
+.stats-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-top:6px; }
+.stat-box{ background:var(--card); border-radius:14px; padding:10px 6px; text-align:center; box-shadow:var(--shadow-card); }
+.stat-box .n{ font-family:var(--font-head); font-weight:800; font-size:16px; color:var(--saffron); }
+.stat-box .l{ font-size:8.5px; color:var(--text-soft); font-weight:600; margin-top:2px; }
+
+/* ===================== POSTS & ADVERTISEMENTS ===================== */
+.post-card{
+  background:var(--card); border-radius:var(--radius-md); padding:14px; margin-bottom:14px;
+  box-shadow:var(--shadow-card); border:1px solid var(--divider);
+}
+.post-header{ display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+.post-avatar{
+  width:38px; height:38px; border-radius:50%; background:linear-gradient(135deg,var(--saffron),var(--saffron-deep));
+  color:white; font-weight:700; display:flex; align-items:center; justify-content:center; font-size:13px; flex-shrink:0;
+}
+.post-author{ font-size:13px; font-weight:700; }
+.post-time{ font-size:10px; color:var(--text-soft); }
+.post-badge{ margin-left:auto; background:var(--saffron-tint); color:var(--saffron-deep); font-size:9.5px; font-weight:700; padding:2px 7px; border-radius:6px; }
+.post-content{ font-size:12.5px; line-height:1.48; color:var(--text); margin-bottom:10px; }
+.post-actions{ display:flex; gap:18px; font-size:11.5px; color:var(--text-soft); border-top:1px solid var(--divider); padding-top:8px; }
+.post-action-btn{ cursor:pointer; display:flex; align-items:center; gap:4px; font-weight:600; }
+.post-action-btn:hover{ color:var(--saffron); }
+
+/* Advertisement Card */
+.ad-card{
+  background: linear-gradient(135deg, #FFFDE7 0%, #FFF59D 100%);
+  border: 2px dashed #F57F17; border-radius: var(--radius-md); padding: 14px 16px; margin-bottom: 14px;
+  box-shadow: 0 4px 14px rgba(245,127,23,0.18); color: #3E2723; position: relative; overflow: hidden;
+}
+[data-theme="dark"] .ad-card{
+  background: linear-gradient(135deg, #2D2115 0%, #42301A 100%);
+  border-color: #FFB300; color: #FFE082;
+}
+.ad-header-strip{ display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+.ad-badge{
+  background: #D84315; color: white; font-size: 9px; font-weight: 800;
+  padding: 3px 8px; border-radius: 6px; letter-spacing: 0.5px; text-transform: uppercase;
+}
+.ad-icon{ font-size: 24px; }
+.ad-title{ font-size: 15px; font-weight: 800; color: #BF360C; margin-bottom: 3px; display:flex; align-items:center; gap:6px; }
+[data-theme="dark"] .ad-title{ color: #FFB300; }
+.ad-tagline{ font-size: 11px; font-style: italic; opacity: 0.9; margin-bottom: 8px; font-weight: 700; color: #5D4037; }
+[data-theme="dark"] .ad-tagline{ color: #D7CCC8; }
+.ad-body{ font-size: 12px; line-height: 1.45; margin-bottom: 12px; }
+.ad-btn{
+  background: linear-gradient(135deg, #D84315, #BF360C); color: white; border: none; padding: 8px 16px; border-radius: 10px;
+  font-weight: 700; font-size: 11.5px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
+  box-shadow: 0 3px 8px rgba(191,54,12,0.3); text-decoration: none;
+}
+.ad-btn:hover{ opacity:0.9; }
+
+/* ===================== BOTTOM NAV ===================== */
+.bottom-nav{
+  position:absolute; left:14px; right:14px; bottom:14px; height:68px; background:var(--card); border-radius:24px;
+  display:flex; align-items:center; justify-content:space-around; box-shadow:0 10px 30px rgba(0,0,0,0.18);
+  border:1px solid var(--divider); z-index:40;
+}
+.nav-btn{ display:flex; flex-direction:column; align-items:center; gap:3px; cursor:pointer; color:var(--text-soft); position:relative; }
+.nav-btn .ic{ font-size:19px; }
+.nav-btn span{ font-size:9.5px; font-weight:700; }
+.nav-btn.active{ color:var(--saffron); }
+.nav-btn.active .ic{ transform:translateY(-2px); }
+.nav-btn.fab .ic{
+  width:46px; height:46px; border-radius:50%; background:linear-gradient(135deg,var(--saffron),var(--saffron-deep));
+  display:flex; align-items:center; justify-content:center; color:white; box-shadow:var(--shadow-float); margin-bottom:-14px;
+  font-size:20px;
+}
+
+/* ===================== FAMILY TREE SCREEN ===================== */
+.tree-toolbar{
+  padding:52px 16px 12px; background:linear-gradient(180deg, var(--forest) 0%, #1f5c22 100%); color:white; border-radius:0 0 24px 24px;
+}
+.tree-toolbar .row1{ display:flex; justify-content:space-between; align-items:center; }
+.tree-toolbar h2{ font-size:18px; }
+.tree-toolbar .sub{ font-size:11px; opacity:0.85; margin-top:1px; }
+.tree-search{ margin-top:12px; background:rgba(255,255,255,0.14); border:1px solid rgba(255,255,255,0.3); border-radius:14px; padding:9px 12px; display:flex; gap:8px; align-items:center; font-size:12.5px; color:rgba(255,255,255,0.9); }
+.tree-filters{ display:flex; gap:8px; margin-top:10px; overflow-x:auto; }
+.tree-filters::-webkit-scrollbar{ display:none; }
+.chip{ background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.3); color:white; font-size:11px; padding:6px 12px; border-radius:999px; white-space:nowrap; cursor:pointer; font-weight:600; }
+.chip.chip-solid{ background:white; color:var(--forest); }
+
+.tree-viewport{ position:relative; height:520px; overflow:hidden; background:
+  radial-gradient(circle at 30% 20%, #fbf7ee 0%, var(--bg) 55%); touch-action:none; cursor:grab; }
+.tree-viewport:active{ cursor:grabbing; }
+.tree-canvas{ position:absolute; top:0; left:0; width:900px; height:760px; transform-origin:0 0; }
+.tree-canvas svg{ position:absolute; top:0; left:0; overflow:visible; }
+.gen-band{ position:absolute; left:0; width:100%; display:flex; align-items:center; padding-left:6px; font-size:9.5px; font-weight:700; color:var(--text-soft); letter-spacing:0.5px; text-transform:uppercase; }
+.gen-band::after{ content:''; flex:1; height:1px; background:var(--divider); margin-left:8px; }
+
+.node{
+  position:absolute; width:104px; background:var(--card); border-radius:14px; padding:8px 6px 7px; text-align:center;
+  box-shadow:0 4px 12px rgba(0,0,0,0.1); border:2px solid transparent; cursor:pointer; transition:transform .15s ease, box-shadow .15s ease;
+}
+.node:hover{ transform:translateY(-2px) scale(1.02); box-shadow:0 8px 18px rgba(0,0,0,0.16); }
+.node.me{ border-color:var(--saffron); box-shadow:0 0 0 4px var(--saffron-tint); }
+.node .av{ width:40px; height:40px; border-radius:50%; margin:0 auto 5px; display:flex; align-items:center; justify-content:center;
+  font-family:var(--font-head); font-weight:700; color:white; font-size:15px; position:relative; }
+.node .verified{ position:absolute; bottom:-2px; right:-2px; width:15px; height:15px; background:var(--peacock); border-radius:50%; border:2px solid var(--card); display:flex; align-items:center; justify-content:center; font-size:8px; color:white; }
+.node .nm{ font-size:10.5px; font-weight:700; line-height:1.15; }
+.node .guj-nm{ font-size:9px; color:var(--text-soft); font-family:var(--font-guj); }
+.node .rel{ font-size:8px; color:var(--saffron); font-weight:700; margin-top:2px; text-transform:uppercase; letter-spacing:0.3px; }
+
+.tree-controls{ position:absolute; right:12px; bottom:12px; display:flex; flex-direction:column; gap:8px; z-index:10; }
+.tree-controls button{ width:38px; height:38px; border-radius:12px; background:var(--card); border:1px solid var(--divider); box-shadow:var(--shadow-card); font-size:16px; cursor:pointer; color:var(--text); }
+.minimap{ position:absolute; left:12px; bottom:12px; width:88px; height:64px; background:rgba(255,255,255,0.85); border:1px solid var(--divider); border-radius:10px; z-index:10; overflow:hidden; }
+[data-theme="dark"] .minimap{ background:rgba(30,27,24,0.85); }
+.minimap .viewbox{ position:absolute; border:1.5px solid var(--saffron); background:rgba(245,124,0,0.12); border-radius:2px; }
+.minimap-dot{ position:absolute; width:5px; height:5px; border-radius:50%; }
+
+.legend{ display:flex; gap:10px; padding:10px 20px 14px; font-size:9.5px; color:var(--text-soft); flex-wrap:wrap; }
+.legend .li{ display:flex; align-items:center; gap:5px; }
+.legend .swatch{ width:14px; height:3px; border-radius:2px; }
+
+.tree-tab-row{ display:flex; gap:8px; padding:14px 20px 4px; overflow-x:auto; }
+.tree-tab-row::-webkit-scrollbar{ display:none; }
+.tree-tab{ padding:8px 14px; border-radius:12px; font-size:11.5px; font-weight:700; white-space:nowrap; cursor:pointer; background:var(--card); border:1px solid var(--divider); color:var(--text-soft); }
+.tree-tab.active{ background:var(--forest); color:white; border-color:var(--forest); }
+
+.tree-stats-strip{ display:flex; gap:10px; padding:10px 20px 4px; overflow-x:auto; }
+.tree-stats-strip::-webkit-scrollbar{ display:none; }
+.tstat{ min-width:98px; background:var(--card); border-radius:14px; padding:10px; box-shadow:var(--shadow-card); flex-shrink:0; }
+.tstat .n{ font-family:var(--font-head); font-weight:800; color:var(--forest); font-size:15px; }
+.tstat .l{ font-size:9px; color:var(--text-soft); font-weight:600; }
+
+/* relationship finder */
+.finder-box{ margin:16px 20px; padding:14px; background:linear-gradient(135deg,var(--peacock-tint),var(--forest-tint)); border-radius:16px; }
+.finder-box h4{ font-size:12.5px; margin-bottom:8px; }
+.finder-selects{ display:flex; gap:8px; align-items:center; }
+.finder-selects select{ flex:1; padding:8px; border-radius:10px; border:1px solid var(--divider); font-size:11.5px; font-family:var(--font-body); background:var(--card); color:var(--text); }
+.finder-result{ margin-top:10px; font-size:11.5px; background:var(--card); border-radius:10px; padding:9px 10px; display:none; }
+.finder-result.show{ display:block; }
+
+/* bottom sheet */
+.sheet-backdrop{ position:absolute; inset:0; background:rgba(0,0,0,0.45); z-index:60; opacity:0; pointer-events:none; transition:opacity .2s ease; }
+.sheet-backdrop.show{ opacity:1; pointer-events:auto; }
+.sheet{
+  position:absolute; left:0; right:0; bottom:0; background:var(--card); border-radius:26px 26px 0 0; z-index:61;
+  transform:translateY(100%); transition:transform .28s cubic-bezier(.2,.8,.3,1); max-height:78%; overflow-y:auto; padding:10px 20px 26px;
+}
+.sheet.show{ transform:translateY(0); }
+.sheet-handle{ width:38px; height:4px; background:var(--divider); border-radius:4px; margin:8px auto 14px; }
+.sheet-header{ display:flex; gap:12px; align-items:center; }
+.sheet-header .av{ width:58px; height:58px; border-radius:16px; display:flex; align-items:center; justify-content:center; color:white; font-family:var(--font-head); font-weight:700; font-size:20px; }
+.sheet-header .nm{ font-size:16px; font-weight:700; }
+.sheet-header .rel{ font-size:11.5px; color:var(--saffron); font-weight:700; }
+.sheet-meta{ display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:16px 0; }
+.meta-item{ background:var(--bg); border-radius:12px; padding:9px 10px; }
+.meta-item .k{ font-size:8.5px; color:var(--text-soft); text-transform:uppercase; font-weight:700; }
+.meta-item .v{ font-size:12px; font-weight:600; margin-top:2px; }
+.sheet-actions{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.sheet-actions button{ padding:12px; border-radius:14px; border:none; font-weight:700; font-size:12.5px; cursor:pointer; font-family:var(--font-body); display:flex; align-items:center; justify-content:center; gap:6px; }
+.sheet-actions .primary{ background:var(--saffron); color:white; }
+.sheet-actions .ghost{ background:var(--bg); color:var(--text); border:1px solid var(--divider) !important; }
+
+/* directory */
+.filter-chip-row{ display:flex; gap:8px; overflow-x:auto; padding:2px 0 4px; }
+.filter-chip-row::-webkit-scrollbar{ display:none; }
+.fchip{ background:var(--card); border:1px solid var(--divider); padding:7px 13px; border-radius:999px; font-size:11px; font-weight:600; white-space:nowrap; cursor:pointer; color:var(--text-soft); }
+.fchip.on{ background:var(--peacock); color:white; border-color:var(--peacock); }
+.member-list-card{ display:flex; gap:12px; align-items:center; padding:13px 0; border-bottom:1px solid var(--divider); }
+.member-list-card:last-child{ border-bottom:none; }
+.member-list-card .av{ width:50px; height:50px; border-radius:14px; flex-shrink:0; display:flex; align-items:center; justify-content:center; color:white; font-family:var(--font-head); font-weight:700; }
+.member-list-card .info{ flex:1; min-width:0; }
+.member-list-card .nm{ font-size:13px; font-weight:700; display:flex; align-items:center; gap:5px; }
+.member-list-card .occ{ font-size:11px; color:var(--text-soft); margin-top:1px; }
+.member-list-card .loc{ font-size:10.5px; color:var(--saffron); margin-top:2px; font-weight:600; }
+.icon-btn-sm{ width:34px; height:34px; border-radius:10px; background:var(--bg); display:flex; align-items:center; justify-content:center; font-size:14px; border:1px solid var(--divider); cursor:pointer; flex-shrink:0; }
+
+/* events */
+.seg{ display:flex; background:var(--divider); border-radius:12px; padding:3px; margin:16px 20px 4px; }
+.seg button{ flex:1; border:none; background:transparent; padding:9px; border-radius:10px; font-weight:700; font-size:12px; cursor:pointer; color:var(--text-soft); font-family:var(--font-body); }
+.seg button.on{ background:var(--card); color:var(--saffron); box-shadow:0 1px 4px rgba(0,0,0,0.1); }
+.event-card{ background:var(--card); border-radius:18px; overflow:hidden; box-shadow:var(--shadow-card); margin-bottom:14px; }
+.event-card .banner{ height:96px; position:relative; display:flex; align-items:flex-end; padding:10px; color:white; }
+.event-card .banner .cat{ background:rgba(255,255,255,0.25); font-size:9px; font-weight:800; padding:3px 9px; border-radius:8px; text-transform:uppercase; letter-spacing:0.4px; }
+.event-card .body{ padding:12px 14px 14px; }
+.event-card .t{ font-size:14px; font-weight:700; }
+.event-card .meta{ display:flex; gap:14px; margin-top:8px; font-size:10.5px; color:var(--text-soft); }
+.event-card .meta span{ display:flex; align-items:center; gap:4px; }
+.event-card .foot{ display:flex; justify-content:space-between; align-items:center; margin-top:12px; }
+.event-card .attend{ font-size:10.5px; color:var(--text-soft); }
+.rsvp-btn{ background:var(--saffron); color:white; border:none; padding:8px 16px; border-radius:12px; font-weight:700; font-size:11.5px; cursor:pointer; }
+
+/* profile */
+.profile-cover{ height:120px; background:linear-gradient(135deg,var(--forest),#1c4a1f); border-radius:0 0 28px 28px; position:relative; }
+.profile-main{ padding:0 20px; margin-top:-46px; position:relative; z-index:2; }
+.profile-avatar{ width:92px; height:92px; border-radius:24px; border:4px solid var(--card); background:linear-gradient(135deg,var(--saffron),var(--saffron-deep)); display:flex; align-items:center; justify-content:center; color:white; font-family:var(--font-head); font-weight:800; font-size:32px; box-shadow:var(--shadow-card); }
+.profile-name-row{ display:flex; align-items:center; gap:8px; margin-top:10px; }
+.profile-name-row h2{ font-size:19px; }
+.verified-badge{ background:var(--peacock); color:white; font-size:9px; padding:3px 8px; border-radius:8px; font-weight:800; display:flex; align-items:center; gap:3px; }
+.profile-guj{ font-family:var(--font-guj); color:var(--text-soft); font-size:13px; margin-top:2px; }
+.profile-tags{ display:flex; gap:8px; margin-top:8px; flex-wrap:wrap; }
+.ptag{ background:var(--forest-tint); color:var(--forest); font-size:10.5px; font-weight:700; padding:5px 10px; border-radius:999px; }
+
+.id-card{
+  margin:18px 20px; border-radius:20px; padding:16px; position:relative; overflow:hidden; color:white;
+  background:linear-gradient(135deg, var(--peacock) 0%, #045a8a 100%);
+}
+.id-card .top{ display:flex; justify-content:space-between; align-items:flex-start; }
+.id-card .brand{ font-family:var(--font-head); font-weight:800; font-size:13px; letter-spacing:0.4px; }
+.id-card .qr{ width:44px; height:44px; background:white; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:20px; color:#000; }
+.id-card .idnum{ font-size:11px; opacity:0.85; margin-top:16px; letter-spacing:1.5px; font-family:var(--font-head); }
+.id-card .idname{ font-size:15px; font-weight:700; margin-top:4px; }
+
+.profile-tabs{ display:flex; gap:6px; margin:18px 20px 6px; background:var(--divider); border-radius:12px; padding:3px; }
+.profile-tabs button{ flex:1; border:none; background:transparent; padding:9px 4px; border-radius:10px; font-size:11.5px; font-weight:700; color:var(--text-soft); cursor:pointer; font-family:var(--font-body); }
+.profile-tabs button.on{ background:var(--card); color:var(--saffron); box-shadow:0 1px 4px rgba(0,0,0,0.1); }
+.detail-row{ display:flex; justify-content:space-between; padding:11px 0; border-bottom:1px solid var(--divider); font-size:12.5px; }
+.detail-row .k{ color:var(--text-soft); }
+.detail-row .v{ font-weight:600; }
+
+.fab-add{ position:absolute; right:20px; bottom:96px; width:52px; height:52px; border-radius:16px; background:linear-gradient(135deg,var(--saffron),var(--saffron-deep)); color:white; border:none; box-shadow:var(--shadow-float); font-size:24px; z-index:20; cursor:pointer; }
+
+@media (max-width:430px){
+  body{ padding:0; }
+  .toolbar{ display:none; }
+  .phone{ width:100vw; height:100vh; border-radius:0; box-shadow:none; }
+}
+</style>
+</head>
+<body>
+
+<div class="app-wrap">
+  <div class="toolbar">
+    <span style="font-weight:700;">KutumbSetu Prototype</span>
+    <button id="themeBtn" onclick="toggleTheme()">🌙 Dark mode</button>
+    <button id="langBtn" onclick="toggleLanguage()">🌐 ગુજરાતી (Gujarati)</button>
+    <button onclick="location.reload()">↺ Reset</button>
+  </div>
+
+  <div class="phone" id="phone">
+    <div class="notch"></div>
+
+    <div class="screens">
+
+      <!-- ============ HOME ============ -->
+      <section class="screen active" id="screen-home">
+        <div class="pattern-header">
+          <svg class="pattern" viewBox="0 0 400 220" preserveAspectRatio="xMidYMid slice">
+            <defs><pattern id="paisley" width="60" height="60" patternUnits="userSpaceOnUse">
+              <path d="M30 6 C42 6 50 16 50 28 C50 40 40 48 30 54 C20 48 10 40 10 28 C10 16 18 6 30 6 Z" fill="none" stroke="white" stroke-width="1.4"/>
+            </pattern></defs>
+            <rect width="400" height="220" fill="url(#paisley)"/>
+          </svg>
+          <div class="content">
+            <div class="greeting-row">
+              <div>
+                <div class="hi" data-en="Jay Shree Krishna 🙏" data-gu="જય શ્રી કૃષ્ણ 🙏">Jay Shree Krishna 🙏</div>
+                <div class="name" data-en="Rajeshbhai Chauhan" data-gu="રાજેશભાઈ ચૌહાણ">Rajeshbhai Chauhan</div>
+              </div>
+              <div class="header-icons">
+                <div class="header-icon-btn" onclick="toggleLanguage()" title="Language Switch">🌐</div>
+                <div class="header-icon-btn" onclick="openSheet('notif')">🔔<span class="dot"></span></div>
+                <div class="header-icon-btn" onclick="nav('profile')">👤</div>
+              </div>
+            </div>
+            <div class="search-bar" id="homeSearchBar" data-en="🔍 Search families, villages, members…" data-gu="🔍 પરિવાર, ગામ, સભ્યો શોધો…">🔍 Search families, villages, members…</div>
+          </div>
+        </div>
+
+        <div class="content">
+          <div class="section-title"><h3 data-en="Quick actions" data-gu="ઝડપી ક્રિયાઓ">Quick actions</h3></div>
+          <div class="quick-grid">
+            <div class="quick-item" onclick="nav('tree')"><div class="quick-icon" style="background:var(--forest-tint);color:var(--forest);">🌳</div><span data-en="Family Tree" data-gu="કુટુંબ વૃક્ષ">Family Tree</span></div>
+            <div class="quick-item" onclick="nav('community')"><div class="quick-icon" style="background:var(--peacock-tint);color:var(--peacock);">📇</div><span data-en="Directory" data-gu="સભ્યોની યાદી">Directory</span></div>
+            <div class="quick-item" onclick="openSheet('matrimony')"><div class="quick-icon" style="background:#FCE4EC;color:#C2185B;">💍</div><span data-en="Matrimony" data-gu="લગ્ન વિષયક">Matrimony</span></div>
+            <div class="quick-item" onclick="nav('events')"><div class="quick-icon" style="background:var(--saffron-tint);color:var(--saffron);">📅</div><span data-en="Events" data-gu="કાર્યક્રમો">Events</span></div>
+            <div class="quick-item" onclick="openSheet('donations')"><div class="quick-icon" style="background:#FFF3CD;color:var(--gold);">🪙</div><span data-en="Donations" data-gu="દાન પુણ્ય">Donations</span></div>
+            <div class="quick-item" onclick="openSheet('news')"><div class="quick-icon" style="background:#E1F5FE;color:var(--peacock);">📰</div><span data-en="News" data-gu="સમાચાર">News</span></div>
+            <div class="quick-item" onclick="openSheet('business')"><div class="quick-icon" style="background:#EDE7F6;color:#5E35B1;">🏪</div><span data-en="Business" data-gu="વ્યવસાય">Business</span></div>
+            <div class="quick-item" onclick="openSheet('more')"><div class="quick-icon" style="background:var(--bg);color:var(--text-soft);border:1px dashed var(--divider);">⋯</div><span data-en="More" data-gu="વધુ">More</span></div>
+          </div>
+
+          <div class="section-title"><h3 data-en="Birthdays today 🎂" data-gu="આજના જન્મદિવસ 🎂">Birthdays today 🎂</h3><span class="link" data-en="See all" data-gu="બધા જુઓ">See all</span></div>
+          <div class="hscroll">
+            <div class="bday-card"><div class="avatar-ring" style="background:var(--saffron);">HK</div><div class="nm" data-en="Hansaben K." data-gu="હંસાબેન કે.">Hansaben K.</div><div class="sub" data-en="Turns 58" data-gu="૫૮ વર્ષ પૂર્યા">Turns 58</div></div>
+            <div class="bday-card"><div class="avatar-ring" style="background:var(--peacock);">DP</div><div class="nm" data-en="Dev Parekh" data-gu="દેવ પારેખ">Dev Parekh</div><div class="sub" data-en="Turns 12" data-gu="૧૨ વર્ષ પૂર્યા">Turns 12</div></div>
+            <div class="bday-card"><div class="avatar-ring" style="background:var(--forest);">MJ</div><div class="nm" data-en="Mira Joshi" data-gu="મીરા જોષી">Mira Joshi</div><div class="sub" data-en="Turns 34" data-gu="૩૪ વર્ષ પૂર્યા">Turns 34</div></div>
+            <div class="bday-card"><div class="avatar-ring" style="background:#C2185B;">AS</div><div class="nm" data-en="Anilbhai S." data-gu="અનિલભાઈ એસ.">Anilbhai S.</div><div class="sub" data-en="Turns 61" data-gu="૬૧ વર્ષ પૂર્યા">Turns 61</div></div>
+          </div>
+
+          <div class="section-title"><h3 data-en="Upcoming events" data-gu="આગામી કાર્યક્રમો">Upcoming events</h3><span class="link" onclick="nav('events')" data-en="See all" data-gu="બધા જુઓ">See all</span></div>
+          <div class="card">
+            <div class="event-row"><div class="date-chip"><div class="d">18</div><div class="m" data-en="Jul" data-gu="જુલાઈ">Jul</div></div><div class="info"><div class="t" data-en="Samuh Lagna Sammelan" data-gu="સમૂહ લગ્ન સંમેલન 2026">Samuh Lagna Sammelan</div><div class="l" data-en="Community Hall, Ahmedabad" data-gu="સમાજ વાડી, અમદાવાદ">Community Hall, Ahmedabad</div></div></div>
+            <div class="event-row"><div class="date-chip"><div class="d">02</div><div class="m" data-en="Aug" data-gu="ઓગસ્ટ">Aug</div></div><div class="info"><div class="t" data-en="Blood Donation Camp" data-gu="રક્તદાન કેમ્પ">Blood Donation Camp</div><div class="l" data-en="Darji Samaj Bhavan, Surat" data-gu="દરજી સમાજ ભવન, સુરત">Darji Samaj Bhavan, Surat</div></div></div>
+            <div class="event-row"><div class="date-chip"><div class="d">15</div><div class="m" data-en="Aug" data-gu="ઓગસ્ટ">Aug</div></div><div class="info"><div class="t" data-en="Youth Sports Meet" data-gu="યુવા રમતગમત મહોત્સવ">Youth Sports Meet</div><div class="l" data-en="Rajkot Ground No. 3" data-gu="રાજકોટ ગ્રાઉન્ડ નં. ૩">Rajkot Ground No. 3</div></div></div>
+          </div>
+
+          <div class="section-title"><h3 data-en="Featured families" data-gu="મુખ્ય પરિવારો">Featured families</h3><span class="link" data-en="Explore" data-gu="જુઓ">Explore</span></div>
+          <div class="family-strip">
+            <div class="family-card"><div class="fimg"><div class="badge" data-en="240 members" data-gu="૨૪૦ સભ્યો">240 members</div></div><div class="fbody"><div class="t" data-en="Chauhan Parivar" data-gu="ચૌહાણ પરિવાર">Chauhan Parivar</div><div class="s" data-en="Vadodara · 6 gen." data-gu="વડોદરા · ૬ પેઢી">Vadodara · 6 gen.</div></div></div>
+            <div class="family-card"><div class="fimg" style="background:linear-gradient(135deg,var(--forest),#154417);"><div class="badge" style="color:var(--forest);" data-en="185 members" data-gu="૧૮૫ સભ્યો">185 members</div></div><div class="fbody"><div class="t" data-en="Parekh Parivar" data-gu="પારેખ પરિવાર">Parekh Parivar</div><div class="s" data-en="Surat · 5 gen." data-gu="સુરત · ૫ પેઢી">Surat · 5 gen.</div></div></div>
+            <div class="family-card"><div class="fimg" style="background:linear-gradient(135deg,var(--gold),#8a6b12);"><div class="badge" style="color:var(--gold);" data-en="312 members" data-gu="૩૧૨ સભ્યો">312 members</div></div><div class="fbody"><div class="t" data-en="Joshi Parivar" data-gu="જોષી પરિવાર">Joshi Parivar</div><div class="s" data-en="Rajkot · 7 gen." data-gu="રાજકોટ · ૭ પેઢી">Rajkot · 7 gen.</div></div></div>
+          </div>
+
+          <div class="section-title"><h3 data-en="Community at a glance" data-gu="સમાજ એક નજરે">Community at a glance</h3></div>
+          <div class="stats-grid">
+            <div class="stat-box"><div class="n">1,240</div><div class="l" data-en="Families" data-gu="પરિવારો">Families</div></div>
+            <div class="stat-box"><div class="n">18.6K</div><div class="l" data-en="Members" data-gu="સભ્યો">Members</div></div>
+            <div class="stat-box"><div class="n">86</div><div class="l" data-en="Villages" data-gu="ગામો">Villages</div></div>
+            <div class="stat-box"><div class="n">9</div><div class="l" data-en="Generations" data-gu="પેઢીઓ">Generations</div></div>
+          </div>
+
+          <!-- ===================== POSTS SECTION WITH ADS ===================== -->
+          <div class="section-title">
+            <h3 data-en="Community Posts & Feed" data-gu="સમાજ પોસ્ટ્સ અને ફીડ">Community Posts & Feed</h3>
+            <span class="link" data-en="20 Posts" data-gu="૨૦ પોસ્ટ્સ">20 Posts</span>
+          </div>
+
+          <div id="postsFeed">
+            <!-- POST 1 -->
+            <div class="post-card">
+              <div class="post-header">
+                <div class="post-avatar">RC</div>
+                <div><div class="post-author" data-en="Rajeshbhai Chauhan" data-gu="રાજેશભાઈ ચૌહાણ">Rajeshbhai Chauhan</div><div class="post-time" data-en="2 hours ago · Vadodara" data-gu="૨ કલાક પહેલા · વડોદરા">2 hours ago · Vadodara</div></div>
+                <div class="post-badge" data-en="Announcement" data-gu="જાહેરાત">Announcement</div>
+              </div>
+              <div class="post-content" data-en="Jay Shree Krishna to all samaj members! Welcome to our new digital platform KutumbSetu. Connect with family lineage, business directory, and upcoming events seamlessly." data-gu="તમામ સમાજ બંધુઓને જય શ્રી કૃષ્ણ! આપણા નવતર ડીજીટલ પ્લેટફોર્મ કુટુંબસેતુ પર આપનું સ્વાગત છે. પરિવારની વંશાવલી, બિઝનેસ ડિરેક્ટરી અને આગામી કાર્યક્રમો સાથે જોડાયેલા રહો.">Jay Shree Krishna to all samaj members! Welcome to our new digital platform KutumbSetu. Connect with family lineage, business directory, and upcoming events seamlessly.</div>
+              <div class="post-actions"><div class="post-action-btn">❤️ 42</div><div class="post-action-btn">💬 8</div><div class="post-action-btn">↗️ Share</div></div>
+            </div>
+
+            <!-- POST 2 -->
+            <div class="post-card">
+              <div class="post-header">
+                <div class="post-avatar" style="background:#F57C00;">DC</div>
+                <div><div class="post-author" data-en="Dineshbhai Chauhan" data-gu="દિનેશભાઈ ચૌહાણ">Dineshbhai Chauhan</div><div class="post-time" data-en="5 hours ago · Karamsad" data-gu="૫ કલાક પહેલા · કરમસદ">5 hours ago · Karamsad</div></div>
+                <div class="post-badge" data-en="Social Work" data-gu="સમાજ સેવા">Social Work</div>
+              </div>
+              <div class="post-content" data-en="Our Samaj Blood Donation Camp date has been confirmed for 2nd August at Surat. Requesting all youth members to register and donate blood for this noble cause. 🙏" data-gu="સુરત ખાતે ૨જી ઓગસ્ટે રક્તદાન કેમ્પનું આયોજન કરવામાં આવ્યું છે. તમામ યુવાનોને આ ભગીરથ કાર્યમાં સહભાગી થવા નમ્ર અપીલ છે. 🙏">Our Samaj Blood Donation Camp date has been confirmed for 2nd August at Surat. Requesting all youth members to register and donate blood for this noble cause. 🙏</div>
+              <div class="post-actions"><div class="post-action-btn">❤️ 68</div><div class="post-action-btn">💬 14</div><div class="post-action-btn">↗️ Share</div></div>
+            </div>
+
+            <!-- POST 3 -->
+            <div class="post-card">
+              <div class="post-header">
+                <div class="post-avatar" style="background:#388E3C;">KC</div>
+                <div><div class="post-author" data-en="Krupal Chauhan" data-gu="ક્રુપાલ ચૌહાણ">Krupal Chauhan</div><div class="post-time" data-en="Yesterday · Anand" data-gu="ગઈકાલે · આણંદ">Yesterday · Anand</div></div>
+                <div class="post-badge" data-en="Achievement" data-gu="સિદ્ધિ">Achievement</div>
+              </div>
+              <div class="post-content" data-en="Feeling proud to announce that my sister Nikita Chauhan has cleared Chartered Accountancy (CA) exams with distinction! Thanks to elder's blessings. 🎓✨" data-gu="ખૂબ આનંદ સાથે જણાવવાનું કે આપણી બહેન નિકિતા ચૌહાણે સીએ (CA) પરીક્ષા ઉત્કૃષ્ટ ગુણો સાથે ઉત્તીર્ણ કરી છે! વડીલોના આશીર્વાદ બદલ આભાર. 🎓✨">Feeling proud to announce that my sister Nikita Chauhan has cleared Chartered Accountancy (CA) exams with distinction! Thanks to elder's blessings. 🎓✨</div>
+              <div class="post-actions"><div class="post-action-btn">❤️ 115</div><div class="post-action-btn">💬 32</div><div class="post-action-btn">↗️ Share</div></div>
+            </div>
+
+            <!-- POST 4 -->
+            <div class="post-card">
+              <div class="post-header">
+                <div class="post-avatar" style="background:#0288D1;">ST</div>
+                <div><div class="post-author" data-en="Samaj Trust Committee" data-gu="સમાજ ટ્રસ્ટ કમિટી">Samaj Trust Committee</div><div class="post-time" data-en="1 day ago · Ahmedabad" data-gu="૧ દિવસ પહેલા · અમદાવાદ">1 day ago · Ahmedabad</div></div>
+                <div class="post-badge" data-en="Event" data-gu="કાર્યક્રમ">Event</div>
+              </div>
+              <div class="post-content" data-en="Samuh Lagna Sammelan 2026 registration form is now available online. Interested families can fill details directly in Matrimony tab or contact Trust Office." data-gu="સમૂહ લગ્ન સંમેલન ૨૦૨૬ માટેનું ફોર્મ ઓનલાઈન ઉપલબ્ધ છે. રસ ધરાવતા પરિવારો મેટ્રિમોની ટેબથી અથવા ટ્રસ્ટ કાર્યાલયનો સંપર્ક કરી શકે છે.">Samuh Lagna Sammelan 2026 registration form is now available online. Interested families can fill details directly in Matrimony tab or contact Trust Office.</div>
+              <div class="post-actions"><div class="post-action-btn">❤️ 54</div><div class="post-action-btn">💬 9</div><div class="post-action-btn">↗️ Share</div></div>
+            </div>
+
+            <!-- POST 5 -->
+            <div class="post-card">
+              <div class="post-header">
+                <div class="post-avatar" style="background:#00897B;">MB</div>
+                <div><div class="post-author" data-en="Dr. Meeraben Bavishi" data-gu="ડૉ. મીરાબેન બાવિષી">Dr. Meeraben Bavishi</div><div class="post-time" data-en="2 days ago · Vadodara" data-gu="૨ દિવસ પહેલા · વડોદરા">2 days ago · Vadodara</div></div>
+                <div class="post-badge" data-en="Health" data-gu="આરોગ્ય">Health</div>
+              </div>
+              <div class="post-content" data-en="Free health consultation and diabetic checkup for senior citizens every Sunday morning at Bavishi Clinic Vadodara. Jai Shree Krishna." data-gu="દર રવિવારે સવારે બાવિષી ક્લિનિક વડોદરા ખાતે સમાજના વડીલો માટે મફત ડાયાબિટીસ તપાસ અને આરોગ્ય માર્ગદર્શન શિબિર. જય શ્રી કૃષ્ણ.">Free health consultation and diabetic checkup for senior citizens every Sunday morning at Bavishi Clinic Vadodara. Jai Shree Krishna.</div>
+              <div class="post-actions"><div class="post-action-btn">❤️ 89</div><div class="post-action-btn">💬 21</div><div class="post-action-btn">↗️ Share</div></div>
+            </div>
+
+            <!-- POST 6 -->
+            <div class="post-card">
+              <div class="post-header">
+                <div class="post-avatar" style="background:#2E7D32;">AB</div>
+                <div><div class="post-author" data-en="Amitbhai Chauhan" data-gu="અમિતભાઈ ચૌહાણ">Amitbhai Chauhan</div><div class="post-time" data-en="2 days ago · Vadodara" data-gu="૨ દિવસ પહેલા · વડોદરા">2 days ago · Vadodara</div></div>
+                <div class="post-badge" data-en="Sports" data-gu="રમતગમત">Sports</div>
+              </div>
+              <div class="post-content" data-en="Calling all youth cricket teams of Gujarati Darji Samaj! Registration for 15th August Youth Sports Tournament in Rajkot is now open." data-gu="ગુજરાતી દરજી સમાજની તમામ ક્રિકેટ ટીમોનું ધ્યાન ખેંચવામાં આવે છે! ૧૫મી ઓગસ્ટ રાજકોટ યુવા સ્પોર્ટ્સ ટૂર્નામેન્ટનું રજીસ્ટ્રેશન શરૂ થઈ ગયું છે.">Calling all youth cricket teams of Gujarati Darji Samaj! Registration for 15th August Youth Sports Tournament in Rajkot is now open.</div>
+              <div class="post-actions"><div class="post-action-btn">❤️ 47</div><div class="post-action-btn">💬 11</div><div class="post-action-btn">↗️ Share</div></div>
+            </div>
+
+            <!-- POST 7 -->
+            <div class="post-card">
+              <div class="post-header">
+                <div class="post-avatar" style="background:#5E35B1;">KM</div>
+                <div><div class="post-author" data-en="Kiranbhai Mistry" data-gu="કિરણભાઈ મિસ્ત્રી">Kiranbhai Mistry</div><div class="post-time" data-en="3 days ago · Anand" data-gu="૩ દિવસ પહેલા · આણંદ">3 days ago · Anand</div></div>
+                <div class="post-badge" data-en="Business" data-gu="બિઝનેસ">Business</div>
+              </div>
+              <div class="post-content" data-en="Shree Textiles Anand has launched a special festival discount offer for all Samaj members. Visit our shop or directory profile to learn more." data-gu="શ્રી ટેક્સટાઈલ્સ આણંદ દ્વારા સમાજના તમામ પરિવારજનો માટે તહેવારો નિમિત્તે વિશેષ ડિસ્કાઉન્ટ ઓફર શરુ કરવામાં આવી છે.">Shree Textiles Anand has launched a special festival discount offer for all Samaj members. Visit our shop or directory profile to learn more.</div>
+              <div class="post-actions"><div class="post-action-btn">❤️ 38</div><div class="post-action-btn">💬 6</div><div class="post-action-btn">↗️ Share</div></div>
+            </div>
+
+            <!-- POST 8 -->
+            <div class="post-card">
+              <div class="post-header">
+                <div class="post-avatar" style="background:#AD8B73;">SB</div>
+                <div><div class="post-author" data-en="Savitaben Chauhan" data-gu="સવિતાબેન ચૌહાણ">Savitaben Chauhan</div><div class="post-time" data-en="3 days ago · Anand" data-gu="૩ દિવસ પહેલા · આણંદ">3 days ago · Anand</div></div>
+                <div class="post-badge" data-en="Satsang" data-gu="સત્સંગ">Satsang</div>
+              </div>
+              <div class="post-content" data-en="Monthly Mahila Satsang Mandal gathering this Thursday at Karamsad Darji Samaj Hall. All sisters are cordially invited." data-gu="આ ગુરુવારે કરમસદ દરજી સમાજ હોલ ખાતે માસિક મહિલા સત્સંગ મંડળનું સુંદર આયોજન છે. બહેનોને પધારવા ભાવભર્યું નિમંત્રણ.">Monthly Mahila Satsang Mandal gathering this Thursday at Karamsad Darji Samaj Hall. All sisters are cordially invited.</div>
+              <div class="post-actions"><div class="post-action-btn">❤️ 63</div><div class="post-action-btn">💬 15</div><div class="post-action-btn">↗️ Share</div></div>
+            </div>
+
+            <!-- POST 9 -->
+            <div class="post-card">
+              <div class="post-header">
+                <div class="post-avatar" style="background:#C2185B;">SV</div>
+                <div><div class="post-author" data-en="Sonalben Vaghela" data-gu="સોનલબેન વાઘેલા">Sonalben Vaghela</div><div class="post-time" data-en="4 days ago · Nadiad" data-gu="૪ દિવસ પહેલા · નડીયાદ">Sonalben Vaghela</div></div>
+                <div class="post-badge" data-en="Education" data-gu="શિક્ષણ">Education</div>
+              </div>
+              <div class="post-content" data-en="Free career counselling session for 10th and 12th students of our community. Join online zoom meeting this Saturday 6 PM." data-gu="આપણા સમાજના ધોરણ ૧૦ અને ૧૨ના વિદ્યાર્થીઓ માટે ફ્રી કેરિયર કાઉન્સેલિંગ સેશન. આ શનિવારે સાંજે ૬ વાગ્યે ઓનલાઈન ઝૂમ પર જોડાઓ.">Free career counselling session for 10th and 12th students of our community. Join online zoom meeting this Saturday 6 PM.</div>
+              <div class="post-actions"><div class="post-action-btn">❤️ 72</div><div class="post-action-btn">💬 18</div><div class="post-action-btn">↗️ Share</div></div>
+            </div>
+
+            <!-- POST 10 -->
+            <div class="post-card">
+              <div class="post-header">
+                <div class="post-avatar" style="background:#5E35B1;">AT</div>
+                <div><div class="post-author" data-en="Ashokbhai Trivedi" data-gu="અશોકભાઈ ત્રિવેદી">Ashokbhai Trivedi</div><div class="post-time" data-en="4 days ago · Rajkot" data-gu="૪ દિવસ પહેલા · રાજકોટ">Ashokbhai Trivedi</div></div>
+                <div class="post-badge" data-en="Notice" data-gu="નોટિસ">Notice</div>
+              </div>
+              <div class="post-content" data-en="Educational scholarship applications for higher studies are now open. Meritorious students can apply with marksheet documents in KutumbSetu app." data-gu="ઉચ્ચ અભ્યાસ માટેની સમાજ શિષ્યવૃત્તિ અરજીઓ શરૂ થઈ ગઈ છે. તેજસ્વી વિદ્યાર્થીઓ પોતાના માર્કશીટ ડોક્યુમેન્ટ્સ સાથે એપ્લિકેશનમાં અરજી કરી શકે છે.">Educational scholarship applications for higher studies are now open. Meritorious students can apply with marksheet documents in KutumbSetu app.</div>
+              <div class="post-actions"><div class="post-action-btn">❤️ 91</div><div class="post-action-btn">💬 24</div><div class="post-action-btn">↗️ Share</div></div>
+            </div>
+
+            <!-- ===================== ADVERTISEMENT #1 (AFTER 10 POSTS) ===================== -->
+            <div class="ad-card">
+              <div class="ad-header-strip">
+                <span class="ad-badge" data-en="📢 SPONSORED ADVERTISEMENT" data-gu="📢 પ્રાયોજિત જાહેરાત (SPONSORED)">📢 SPONSORED ADVERTISEMENT</span>
+                <span class="ad-icon">🏛️</span>
+              </div>
+              <div class="ad-title" data-en="LIC Life Insurance — Secure Your Family's Future" data-gu="એલ.આઈ.સી. જીવન વીમો — પરિવારનું સુરક્ષિત ભવિષ્ય">
+                LIC Life Insurance — Secure Your Family's Future
+              </div>
+              <div class="ad-tagline" data-en="“Zindagi Ke Saath Bhi, Zindagi Ke Baad Bhi”" data-gu="“જીવન સાથે પણ, જીવન પછી પણ”">
+                “Zindagi Ke Saath Bhi, Zindagi Ke Baad Bhi”
+              </div>
+              <div class="ad-body" data-en="Get complete life coverage, children's education & marriage plan, and guaranteed retirement pension with LIC Jeevan Anand Policy. Authorized LIC Advisor: Suresh Chauhan (Anand Branch)." data-gu="એલ.આઈ.સી. જીવન આનંદ પોલિસી સાથે મેળવો સંપૂર્ણ જીવન સુરક્ષા, બાળકોનું ઉચ્ચ શિક્ષણ તથા પેન્શન પ્લાન. અધિકૃત LIC એડવાઈઝર: સુરેશ ચૌહાણ (આણંદ બ્રાન્ચ).">
+                Get complete life coverage, children's education & marriage plan, and guaranteed retirement pension with LIC Jeevan Anand Policy. Authorized LIC Advisor: Suresh Chauhan (Anand Branch).
+              </div>
+              <a href="tel:+919876543210" class="ad-btn" data-en="📞 Call Authorized Agent: +91 98765 43210" data-gu="📞 એજન્ટ નો સંપર્ક કરો: +૯૧ ૯૮૭૬૫ ૪૩૨૧૦">
+                📞 Call Authorized Agent: +91 98765 43210
+              </a>
+            </div>
+
+            <!-- POST 11 -->
+            <div class="post-card">
+              <div class="post-header">
+                <div class="post-avatar" style="background:#C2185B;">RD</div>
+                <div><div class="post-author" data-en="Rinaben Darji" data-gu="રીનાબેન દરજી">Rinaben Darji</div><div class="post-time" data-en="5 days ago · Surat" data-gu="૫ દિવસ પહેલા · સુરત">Rinaben Darji</div></div>
+                <div class="post-badge" data-en="Fashion" data-gu="ફેશન">Fashion</div>
+              </div>
+              <div class="post-content" data-en="New festive bridal collection is ready at Royal Boutique Surat. Customized designer outfits for marriages and traditional functions." data-gu="રોયલ બુટીક સુરત ખાતે નવું તહેવાર અને લગ્ન પ્રસંગ કલેક્શન ઉપલબ્ધ છે. સમાજના પરિવારો માટે વિશેષ ડિઝાઇનર આઉટફિટ્સ.">New festive bridal collection is ready at Royal Boutique Surat. Customized designer outfits for marriages and traditional functions.</div>
+              <div class="post-actions"><div class="post-action-btn">❤️ 52</div><div class="post-action-btn">💬 7</div><div class="post-action-btn">↗️ Share</div></div>
+            </div>
+
+            <!-- POST 12 -->
+            <div class="post-card">
+              <div class="post-header">
+                <div class="post-avatar" style="background:#2E7D32;">PJ</div>
+                <div><div class="post-author" data-en="Parthbhai Joshi" data-gu="પાર્થભાઈ જોષી">Parthbhai Joshi</div><div class="post-time" data-en="5 days ago · Bengaluru" data-gu="૫ દિવસ પહેલા · બેંગલુરુ">Parthbhai Joshi</div></div>
+                <div class="post-badge" data-en="Technology" data-gu="ટેકનોલોજી">Technology</div>
+              </div>
+              <div class="post-content" data-en="Glad to help any samaj students preparing for IT/software jobs or engineering placements. Reach out on KutumbSetu messages!" data-gu="આપણા દરજી સમાજના જે પણ વિદ્યાર્થીઓ આઈટી / સોફ્ટવેર ક્ષેત્રે કારકિર્દી બનાવવા ઈચ્છતા હોય તેમને માર્ગદર્શન આપવા સહર્ષ તૈયાર છું. પર્સનલ મેસેજ કરો.">Glad to help any samaj students preparing for IT/software jobs or engineering placements. Reach out on KutumbSetu messages!</div>
+              <div class="post-actions"><div class="post-action-btn">❤️ 84</div><div class="post-action-btn">💬 19</div><div class="post-action-btn">↗️ Share</div></div>
+            </div>
+
+            <!-- POST 13 -->
+            <div class="post-card">
+              <div class="post-header">
+                <div class="post-avatar" style="background:#AD8B73;">JB</div>
+                <div><div class="post-author" data-en="Jasuben Bhatt" data-gu="જસુબેન ભટ્ટ">Jasuben Bhatt</div><div class="post-time" data-en="6 days ago · Petlad" data-gu="૬ દિવસ પહેલા · પેટલાદ">Jasuben Bhatt</div></div>
+                <div class="post-badge" data-en="Culture" data-gu="સંસ્કૃતિ">Culture</div>
+              </div>
+              <div class="post-content" data-en="Traditional Gujarati sweet recipes book compiled by Mahila Mandal is now printed. Pick your copy from Samaj Bhavan." data-gu="મહિલા મંડળ દ્વારા તૈયાર કરાયેલ પરંપરાગત વાનગી પુસ્તિકાનું વિમોચન કરવામાં આવ્યું છે. સમાજ ભવનમાંથી કોપી મેળવી શકશો.">Traditional Gujarati sweet recipes book compiled by Mahila Mandal is now printed. Pick your copy from Samaj Bhavan.</div>
+              <div class="post-actions"><div class="post-action-btn">❤️ 41</div><div class="post-action-btn">💬 5</div><div class="post-action-btn">↗️ Share</div></div>
+            </div>
+
+            <!-- POST 14 -->
+            <div class="post-card">
+              <div class="post-header">
+                <div class="post-avatar" style="background:#EF6C00;">NJ</div>
+                <div><div class="post-author" data-en="Nareshbhai Joshi" data-gu="નરેશભાઈ જોષી">Nareshbhai Joshi</div><div class="post-time" data-en="6 days ago · Petlad" data-gu="૬ દિવસ પહેલા · પેટલાદ">Nareshbhai Joshi</div></div>
+                <div class="post-badge" data-en="Agriculture" data-gu="ખેતીવાડી">Agriculture</div>
+              </div>
+              <div class="post-content" data-en="Organic farming training session organized for farmers of our surrounding villages this Sunday. Knowledge sharing on modern drip irrigation." data-gu="આપણા ગામડાના ખેડૂત મિત્રો માટે ઓર્ગેનિક ખેતી અને આધુનિક ટપક સિંચાઈ અંગે માર્ગદર્શન શિબિરનું આયોજન કરવામાં આવ્યું છે.">Organic farming training session organized for farmers of our surrounding villages this Sunday. Knowledge sharing on modern drip irrigation.</div>
+              <div class="post-actions"><div class="post-action-btn">❤️ 36</div><div class="post-action-btn">💬 4</div><div class="post-action-btn">↗️ Share</div></div>
+            </div>
+
+            <!-- POST 15 -->
+            <div class="post-card">
+              <div class="post-header">
+                <div class="post-avatar" style="background:#EF6C00;">RC</div>
+                <div><div class="post-author" data-en="Rekhaben Chauhan" data-gu="રેખાબેન ચૌહાણ">Rekhaben Chauhan</div><div class="post-time" data-en="1 week ago · Anand" data-gu="૧ અઠવાડિયા પહેલા · આણંદ">Rekhaben Chauhan</div></div>
+                <div class="post-badge" data-en="Bal Mela" data-gu="બાળ મેળો">Bal Mela</div>
+              </div>
+              <div class="post-content" data-en="Bal Mela and drawing competition organized for kids up to 14 years. Medals and certificates awarded to all participants." data-gu="૧૪ વર્ષ સુધીના બાળકો માટે ચિત્ર સ્પર્ધા અને બાળ મેળાનું આયોજન. તમામ સ્પર્ધક બાળકોને પ્રોત્સાહક ઈનામ એનાયત કરાયા.">Bal Mela and drawing competition organized for kids up to 14 years. Medals and certificates awarded to all participants.</div>
+              <div class="post-actions"><div class="post-action-btn">❤️ 79</div><div class="post-action-btn">💬 16</div><div class="post-action-btn">↗️ Share</div></div>
+            </div>
+
+            <!-- POST 16 -->
+            <div class="post-card">
+              <div class="post-header">
+                <div class="post-avatar" style="background:#F57C00;">SC</div>
+                <div><div class="post-author" data-en="Sureshbhai Chauhan" data-gu="સુરેશભાઈ ચૌહાણ">Sureshbhai Chauhan</div><div class="post-time" data-en="1 week ago · Anand" data-gu="૧ અઠવાડિયા પહેલા · આણંદ">Sureshbhai Chauhan</div></div>
+                <div class="post-badge" data-en="Trust Update" data-gu="ટ્રસ્ટ અપડેટ">Trust Update</div>
+              </div>
+              <div class="post-content" data-en="Community Hall renovation work is completed. AC dining facility and modern rooms are now open for marriage bookings." data-gu="સમાજ હોલ રિનોવેશન કામ પૂર્ણ થયું છે. એસી ડાઇનિંગ અને મોર્ડન રૂમ્સ લગ્ન પ્રસંગો માટે બુકિંગ અર્થે ખુલ્લા મૂકવામાં આવ્યા છે.">Community Hall renovation work is completed. AC dining facility and modern rooms are now open for marriage bookings.</div>
+              <div class="post-actions"><div class="post-action-btn">❤️ 67</div><div class="post-action-btn">💬 12</div><div class="post-action-btn">↗️ Share</div></div>
+            </div>
+
+            <!-- POST 17 -->
+            <div class="post-card">
+              <div class="post-header">
+                <div class="post-avatar" style="background:#F57C00;">KJ</div>
+                <div><div class="post-author" data-en="Kailashben Joshi" data-gu="કૈલાશબેન જોષી">Kailashben Joshi</div><div class="post-time" data-en="1 week ago · Nadiad" data-gu="૧ અઠવાડિયા પહેલા · નડીયાદ">Kailashben Joshi</div></div>
+                <div class="post-badge" data-en="Exhibition" data-gu="પ્રદર્શન">Exhibition</div>
+              </div>
+              <div class="post-content" data-en="Mahila Gruh Udyog exhibition showcasing home-made handicrafts, pickles and tailoring items. Do visit and encourage women entrepreneurs!" data-gu="મહિલા ગૃહ ઉદ્યોગ પ્રદર્શનમાં ગૃહ ઉદ્યોગ વસ્તુઓ, અથાણાં અને હેન્ડીક્રાફ્ટનું વેચાણ. બહેનોને પ્રોત્સાહિત કરવા ચોક્કસ પધારો.">Mahila Gruh Udyog exhibition showcasing home-made handicrafts, pickles and tailoring items. Do visit and encourage women entrepreneurs!</div>
+              <div class="post-actions"><div class="post-action-btn">❤️ 58</div><div class="post-action-btn">💬 8</div><div class="post-action-btn">↗️ Share</div></div>
+            </div>
+
+            <!-- POST 18 -->
+            <div class="post-card">
+              <div class="post-header">
+                <div class="post-avatar" style="background:#8D6E63;">MB</div>
+                <div><div class="post-author" data-en="Manilal Bhatt" data-gu="મણિલાલ ભટ્ટ">Manilal Bhatt</div><div class="post-time" data-en="2 weeks ago · Petlad" data-gu="૨ અઠવાડિયા પહેલા · પેટલાદ">Manilal Bhatt</div></div>
+                <div class="post-badge" data-en="History" data-gu="ઇતિહાસ">History</div>
+              </div>
+              <div class="post-content" data-en="7 Generations of Darji Samaj lineage records documented. Check Family Tree tab to trace your ancestors and village roots." data-gu="દરજી સમાજના ૭ પેઢીનો ઈતિહાસ વંશાવલી પોર્ટલ પર અપલોડ થયેલ છે. તમારા પૂર્વજો અને મૂળ ગામ જોવા માટે ફેમિલી ટ્રી જુઓ.">7 Generations of Darji Samaj lineage records documented. Check Family Tree tab to trace your ancestors and village roots.</div>
+              <div class="post-actions"><div class="post-action-btn">❤️ 102</div><div class="post-action-btn">💬 28</div><div class="post-action-btn">↗️ Share</div></div>
+            </div>
+
+            <!-- POST 19 -->
+            <div class="post-card">
+              <div class="post-header">
+                <div class="post-avatar" style="background:#388E3C;">VJ</div>
+                <div><div class="post-author" data-en="Dr. Vishal Joshi" data-gu="ડૉ. વિશાલ જોષી">Dr. Vishal Joshi</div><div class="post-time" data-en="2 weeks ago · Nadiad" data-gu="૨ અઠવાડિયા પહેલા · નડીયાદ">Dr. Vishal Joshi</div></div>
+                <div class="post-badge" data-en="Emergency" data-gu="ઈમરજન્સી">Emergency</div>
+              </div>
+              <div class="post-content" data-en="Samaj Emergency Helpline number is active 24x7 for medical emergencies and blood availability assistance." data-gu="મેડિકલ ઇમરજન્સી અને બ્લડ હેલ્પ અર્થે સમાજ ઈમરજન્સી હેલ્પલાઈન નંબર ૨૪ કલાક કાર્યરત છે.">Samaj Emergency Helpline number is active 24x7 for medical emergencies and blood availability assistance.</div>
+              <div class="post-actions"><div class="post-action-btn">❤️ 88</div><div class="post-action-btn">💬 14</div><div class="post-action-btn">↗️ Share</div></div>
+            </div>
+
+            <!-- POST 20 -->
+            <div class="post-card">
+              <div class="post-header">
+                <div class="post-avatar" style="background:#0288D1;">YB</div>
+                <div><div class="post-author" data-en="Yash Chauhan" data-gu="યશ ચૌહાણ">Yash Chauhan</div><div class="post-time" data-en="2 weeks ago · Vadodara" data-gu="૨ અઠવાડિયા પહેલા · વડોદરા">Yash Chauhan</div></div>
+                <div class="post-badge" data-en="Youth" data-gu="યુથ મોરચો">Youth</div>
+              </div>
+              <div class="post-content" data-en="Youth volunteers drive for upcoming Samaj Mahotsav 2026. Interested young boys and girls can join our WhatsApp volunteer group!" data-gu="આગામી સમાજ મહોત્સવ ૨૦૨૬ માટે યુવા સ્વયંસેવકો જોડાઓ. રસ ધરાવતા યુવક-યુવતીઓ વોટ્સએપ ગ્રુપમાં જોડાઈ શકે છે!">Youth volunteers drive for upcoming Samaj Mahotsav 2026. Interested young boys and girls can join our WhatsApp volunteer group!</div>
+              <div class="post-actions"><div class="post-action-btn">❤️ 61</div><div class="post-action-btn">💬 10</div><div class="post-action-btn">↗️ Share</div></div>
+            </div>
+
+            <!-- ===================== ADVERTISEMENT #2 (BUILDING / CONSTRUCTION AD) ===================== -->
+            <div class="ad-card" style="background: linear-gradient(135deg, #E0F2F1 0%, #B2DFDB 100%); border-color: #00796B;">
+              <div class="ad-header-strip">
+                <span class="ad-badge" style="background:#00796B;" data-en="📢 REAL ESTATE & BUILDING AD" data-gu="📢 રિયલ એસ્ટેટ અને બિલ્ડિંગ જાહેરાત">📢 REAL ESTATE & BUILDING AD</span>
+                <span class="ad-icon">🏗️</span>
+              </div>
+              <div class="ad-title" style="color:#004D40;" data-en="Shree Ram Heights & Developers — Luxury 2/3 BHK Apartments" data-gu="શ્રી રામ હાઈટ્સ અને ડેવલપર્સ — 2/3 BHK લક્ઝરી એપાર્ટમેન્ટ્સ">
+                Shree Ram Heights & Developers — Luxury 2/3 BHK Apartments
+              </div>
+              <div class="ad-tagline" style="color:#00695C;" data-en="“Build Your Dream Home in Vadodara & Surat with 100% Vastu Design”" data-gu="“વડોદરા અને સુરતમાં ૧૦૦% વાસ્તુ મુજબ તમારું સ્વપ્નનું ઘર બનાવો”">
+                “Build Your Dream Home in Vadodara & Surat with 100% Vastu Design”
+              </div>
+              <div class="ad-body" style="color:#004D40;" data-en="Modern amenities: Garden, Clubhouse, Solar Power & 24x7 Security. Special discount scheme for Samaj members! Builder: Rajeshbhai Chauhan Construction." data-gu="આધુનિક સુવિધાઓ: ગાર્ડન, ક્લબહાઉસ, સોલાર સિસ્ટમ અને સિક્યુરિટી. સમાજ પરિવાર માટે ખાસ ડિસ્કાઉન્ટ સ્કીમ! બિલ્ડર: રાજેશભાઈ ચૌહાણ કન્સ્ટ્રક્શન.">
+                Modern amenities: Garden, Clubhouse, Solar Power & 24x7 Security. Special discount scheme for Samaj members! Builder: Rajeshbhai Chauhan Construction.
+              </div>
+              <a href="tel:+919825012345" class="ad-btn" style="background:linear-gradient(135deg,#00796B,#004D40);" data-en="📲 Book Site Visit: +91 98250 12345" data-gu="📲 સાઈટ વિઝિટ બુક કરો: +૯૧ ૯૮૨૫૦ ૧૨૩૪૫">
+                📲 Book Site Visit: +91 98250 12345
+              </a>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ FAMILY TREE ============ -->
+      <section class="screen" id="screen-tree">
+        <div class="tree-toolbar">
+          <div class="row1">
+            <div><h2 data-en="🌳 Family Tree" data-gu="🌳 કુટુંબ વૃક્ષ">🌳 Family Tree</h2><div class="sub" data-en="Chauhan Parivar · Vadodara lineage" data-gu="ચૌહાણ પરિવાર · વડોદરા વંશાવલી">Chauhan Parivar · Vadodara lineage</div></div>
+            <div class="header-icon-btn" onclick="openSheet('treeSearch')">🔍</div>
+          </div>
+          <div class="tree-filters">
+            <div class="chip chip-solid" data-en="Full Tree" data-gu="સંપૂર્ણ વૃક્ષ">Full Tree</div>
+            <div class="chip" data-en="My Family" data-gu="મારો પરિવાર">My Family</div>
+            <div class="chip" data-en="Father's Side" data-gu="પિતૃ પક્ષ">Father's Side</div>
+            <div class="chip" data-en="Mother's Side" data-gu="માતૃ પક્ષ">Mother's Side</div>
+            <div class="chip" data-en="Spouse's Family" data-gu="મોસાળ / સસરા પક્ષ">Spouse's Family</div>
+            <div class="chip" data-en="Village-wise" data-gu="ગામ મુજબ">Village-wise</div>
+          </div>
+        </div>
+
+        <div class="tree-stats-strip">
+          <div class="tstat"><div class="n">240</div><div class="l" data-en="Total members" data-gu="કુલ સભ્યો">Total members</div></div>
+          <div class="tstat"><div class="n">6</div><div class="l" data-en="Generations" data-gu="પેઢીઓ">Generations</div></div>
+          <div class="tstat"><div class="n">1892</div><div class="l" data-en="Oldest record" data-gu="જૂનો રેકોર્ડ">Oldest record</div></div>
+          <div class="tstat"><div class="n">14</div><div class="l" data-en="Added this month" data-gu="આ મહિને ઉમેરાયેલ">Added this month</div></div>
+        </div>
+
+        <div class="finder-box">
+          <h4 data-en="🔗 Relationship Finder" data-gu="🔗 સંબંધ શોધક">🔗 Relationship Finder</h4>
+          <div class="finder-selects">
+            <select id="finderA"><option>Rajeshbhai (Me)</option><option>Kaka - Suresh</option><option>Foi - Kailash</option></select>
+            <span style="font-size:11px;color:var(--text-soft);" data-en="to" data-gu="સુધી">to</span>
+            <select id="finderB"><option>Cousin - Nikita</option><option>Dadaji - Chhotalal</option><option>Nephew - Yash</option></select>
+          </div>
+          <button class="rsvp-btn" style="margin-top:10px;width:100%;border-radius:10px;" onclick="findRelation()" data-en="Find connection" data-gu="સંબંધ શોધો">Find connection</button>
+          <div class="finder-result" id="finderResult"></div>
+        </div>
+
+        <div style="padding:0 20px 8px;"><h3 style="font-size:14px;" data-en="Interactive tree · pinch, drag & tap a member" data-gu="ઇન્ટરેક્ટિવ વૃક્ષ · ઝૂમ કરો અને ટેપ કરો">Interactive tree · pinch, drag &amp; tap a member</h3></div>
+
+        <div class="tree-viewport" id="treeViewport">
+          <div class="tree-canvas" id="treeCanvas">
+            <div class="gen-band" style="top:6px;" data-en="Grandparents" data-gu="દાદા - દાદી પેઢી">Grandparents</div>
+            <div class="gen-band" style="top:186px;" data-en="Parents & siblings" data-gu="માતા-પિતા અને કાકા">Parents &amp; siblings</div>
+            <div class="gen-band" style="top:366px;" data-en="Your generation" data-gu="આપણી પેઢી">Your generation</div>
+            <div class="gen-band" style="top:546px;" data-en="Children" data-gu="બાળકોની પેઢી">Children</div>
+
+            <svg width="900" height="760">
+              <!-- marriage lines -->
+              <line x1="150" y1="90" x2="270" y2="90" stroke="#0288D1" stroke-width="3"/>
+              <line x1="530" y1="90" x2="650" y2="90" stroke="#0288D1" stroke-width="3"/>
+              <line x1="90" y1="270" x2="210" y2="270" stroke="#0288D1" stroke-width="3"/>
+              <line x1="350" y1="270" x2="470" y2="270" stroke="#0288D1" stroke-width="3"/>
+              <line x1="610" y1="270" x2="730" y2="270" stroke="#0288D1" stroke-width="3"/>
+              <line x1="470" y1="450" x2="590" y2="450" stroke="#0288D1" stroke-width="3"/>
+              <!-- sibling lines (dashed saffron) -->
+              <path d="M150 220 L150 210 L650 210 L650 220" fill="none" stroke="#F57C00" stroke-width="2" stroke-dasharray="5 4"/>
+              <path d="M90 400 L90 392 L730 392 L730 400" fill="none" stroke="#F57C00" stroke-width="2" stroke-dasharray="5 4"/>
+              <path d="M470 580 L470 572 L590 572 L590 580" fill="none" stroke="#F57C00" stroke-width="2" stroke-dasharray="5 4"/>
+              <!-- descent lines (forest green) -->
+              <path d="M210 108 L210 230" fill="none" stroke="#2E7D32" stroke-width="2.5"/>
+              <path d="M670 108 L670 230" fill="none" stroke="#2E7D32" stroke-width="2.5"/>
+              <path d="M410 288 L410 400 L410 410" fill="none" stroke="#2E7D32" stroke-width="2.5"/>
+              <path d="M410 288 L610 288 L610 400" fill="none" stroke="#2E7D32" stroke-width="2.5" opacity="0"/>
+              <path d="M410 400 L410 410 L90 410 L90 410" fill="none" stroke="#2E7D32" stroke-width="2.5" opacity="0"/>
+              <path d="M280 400 L280 392" fill="none" stroke="#2E7D32" stroke-width="2.5"/>
+              <path d="M530 468 L530 552" fill="none" stroke="#2E7D32" stroke-width="2.5"/>
+              <path d="M410 400 L280 400" fill="none" stroke="#2E7D32" stroke-width="2.5"/>
+              <path d="M410 400 L410 288" fill="none" stroke="#2E7D32" stroke-width="2.5"/>
+              <path d="M150 288 L150 380 L90 380 L90 392" fill="none" stroke="#2E7D32" stroke-width="2.5"/>
+              <path d="M150 288 L150 380 L210 380 L210 392" fill="none" stroke="#2E7D32" stroke-width="2.5"/>
+              <path d="M670 288 L670 380 L730 380 L730 392" fill="none" stroke="#2E7D32" stroke-width="2.5"/>
+              <path d="M470 468 L470 552" fill="none" stroke="#2E7D32" stroke-width="2.5"/>
+            </svg>
+
+            <!-- Grandparents row -->
+            <div class="node" style="top:56px; left:100px;" onclick="openMember('dada')"><div class="av" style="background:#8D6E63;">CL<span class="verified">✓</span></div><div class="nm" data-en="Chhotalal" data-gu="છોટાલાલ">Chhotalal</div><div class="guj-nm">છોટાલાલ</div><div class="rel" data-en="Dadaji" data-gu="દાદાજી">Dadaji</div></div>
+            <div class="node" style="top:56px; left:220px;" onclick="openMember('dadi')"><div class="av" style="background:#AD8B73;">SB</div><div class="nm" data-en="Savitaben" data-gu="સવિતાબેન">Savitaben</div><div class="guj-nm">સવિતાબેન</div><div class="rel" data-en="Dadiji" data-gu="દાદીજી">Dadiji</div></div>
+            <div class="node" style="top:56px; left:480px;" onclick="openMember('nana')"><div class="av" style="background:#8D6E63;">MB</div><div class="nm" data-en="Manilal" data-gu="મણિલાલ">Manilal</div><div class="guj-nm">મણિલાલ</div><div class="rel" data-en="Nanaji" data-gu="નાનાજી">Nanaji</div></div>
+            <div class="node" style="top:56px; left:600px;" onclick="openMember('nani')"><div class="av" style="background:#AD8B73;">JB</div><div class="nm" data-en="Jasuben" data-gu="જસુબેન">Jasuben</div><div class="guj-nm">જસુબેન</div><div class="rel" data-en="Naniji" data-gu="નાનીજી">Naniji</div></div>
+
+            <!-- Parents' generation -->
+            <div class="node" style="top:236px; left:40px;" onclick="openMember('kaka')"><div class="av" style="background:#F57C00;">SC</div><div class="nm" data-en="Suresh Kaka" data-gu="સુરેશ કાકા">Suresh Kaka</div><div class="rel" data-en="Uncle" data-gu="કાકા">Uncle</div></div>
+            <div class="node" style="top:236px; left:160px;" onclick="openMember('kaki')"><div class="av" style="background:#EF6C00;">RC</div><div class="nm" data-en="Rekha Kaki" data-gu="રેખા કાકી">Rekha Kaki</div><div class="rel" data-en="Aunt" data-gu="કાકી">Aunt</div></div>
+            <div class="node me" style="top:236px; left:300px;" onclick="openMember('papa')"><div class="av" style="background:#F57C00;">DC<span class="verified">✓</span></div><div class="nm" data-en="Dineshbhai" data-gu="દિનેશભાઈ">Dineshbhai</div><div class="rel" data-en="Papa" data-gu="પિતાજી">Papa</div></div>
+            <div class="node me" style="top:236px; left:420px;" onclick="openMember('mummy')"><div class="av" style="background:#EF6C00;">HC<span class="verified">✓</span></div><div class="nm" data-en="Hemaben" data-gu="હેમાબેન">Hemaben</div><div class="rel" data-en="Mummy" data-gu="માતાજી">Mummy</div></div>
+            <div class="node" style="top:236px; left:560px;" onclick="openMember('foi')"><div class="av" style="background:#F57C00;">KJ</div><div class="nm" data-en="Kailash Foi" data-gu="કૈલાશ ફોઈ">Kailash Foi</div><div class="rel" data-en="Aunt" data-gu="ફોઈ">Aunt</div></div>
+            <div class="node" style="top:236px; left:680px;" onclick="openMember('fua')"><div class="av" style="background:#EF6C00;">NJ</div><div class="nm" data-en="Naresh Fua" data-gu="નરેશ ફૂઆ">Naresh Fua</div><div class="rel" data-en="Uncle" data-gu="ફૂઆ">Uncle</div></div>
+
+            <!-- Your generation -->
+            <div class="node" style="top:416px; left:40px;" onclick="openMember('cousin1')"><div class="av" style="background:#2E7D32;">NR</div><div class="nm" data-en="Nikita" data-gu="નિકિતા">Nikita</div><div class="rel" data-en="Cousin" data-gu="બહેન">Cousin</div></div>
+            <div class="node" style="top:416px; left:160px;" onclick="openMember('cousin2')"><div class="av" style="background:#388E3C;">KR</div><div class="nm" data-en="Krupal" data-gu="ક્રુપાલ">Krupal</div><div class="rel" data-en="Cousin" data-gu="ભાઈ">Cousin</div></div>
+            <div class="node" style="top:416px; left:300px;" onclick="openMember('sibling')"><div class="av" style="background:#2E7D32;">AB</div><div class="nm" data-en="Amitbhai" data-gu="અમિતભાઈ">Amitbhai</div><div class="rel" data-en="Brother" data-gu="મોટો ભાઈ">Brother</div></div>
+            <div class="node me" style="top:416px; left:420px;" onclick="openMember('me')"><div class="av" style="background:linear-gradient(135deg,#F57C00,#C85F00);">RC<span class="verified">✓</span></div><div class="nm" data-en="Rajeshbhai" data-gu="રાજેશભાઈ">Rajeshbhai</div><div class="rel" data-en="You" data-gu="તમે">You</div></div>
+            <div class="node me" style="top:416px; left:540px;" onclick="openMember('spouse')"><div class="av" style="background:#0288D1;">PP<span class="verified">✓</span></div><div class="nm" data-en="Priyaben" data-gu="પ્રિયાબેન">Priyaben</div><div class="rel" data-en="Spouse" data-gu="પત્ની">Spouse</div></div>
+            <div class="node" style="top:416px; left:680px;" onclick="openMember('cousin3')"><div class="av" style="background:#388E3C;">VJ</div><div class="nm" data-en="Vishal" data-gu="વિશાલ">Vishal</div><div class="rel" data-en="Cousin" data-gu="ભાઈ">Cousin</div></div>
+
+            <!-- Children -->
+            <div class="node" style="top:596px; left:250px;" onclick="openMember('nephew')"><div class="av" style="background:#0288D1;">YB</div><div class="nm" data-en="Yash" data-gu="યશ">Yash</div><div class="rel" data-en="Nephew" data-gu="ભત્રીજો">Nephew</div></div>
+            <div class="node" style="top:596px; left:420px;" onclick="openMember('child1')"><div class="av" style="background:#F57C00;">DR</div><div class="nm" data-en="Dhruvi" data-gu="ધ્રુવી">Dhruvi</div><div class="rel" data-en="Daughter" data-gu="પુત્રી">Daughter</div></div>
+            <div class="node" style="top:596px; left:500px;" onclick="openMember('child2')"><div class="av" style="background:#F57C00;">AR</div><div class="nm" data-en="Arjun" data-gu="અર્જુન">Arjun</div><div class="rel" data-en="Son" data-gu="પુત્ર">Son</div></div>
+          </div>
+
+          <div class="minimap" id="minimap">
+            <div class="minimap-dot" style="top:6px;left:12px;background:#8D6E63;"></div>
+            <div class="minimap-dot" style="top:6px;left:24px;background:#8D6E63;"></div>
+            <div class="minimap-dot" style="top:6px;left:52px;background:#8D6E63;"></div>
+            <div class="minimap-dot" style="top:6px;left:64px;background:#8D6E63;"></div>
+            <div class="minimap-dot" style="top:24px;left:4px;background:#F57C00;"></div>
+            <div class="minimap-dot" style="top:24px;left:16px;background:#F57C00;"></div>
+            <div class="minimap-dot" style="top:24px;left:30px;background:#F57C00;"></div>
+            <div class="minimap-dot" style="top:24px;left:42px;background:#F57C00;"></div>
+            <div class="minimap-dot" style="top:24px;left:56px;background:#F57C00;"></div>
+            <div class="minimap-dot" style="top:24px;left:70px;background:#F57C00;"></div>
+            <div class="minimap-dot" style="top:42px;left:4px;background:#2E7D32;"></div>
+            <div class="minimap-dot" style="top:42px;left:16px;background:#2E7D32;"></div>
+            <div class="minimap-dot" style="top:42px;left:30px;background:#2E7D32;"></div>
+            <div class="minimap-dot" style="top:42px;left:42px;background:#2E7D32;"></div>
+            <div class="minimap-dot" style="top:42px;left:56px;background:#2E7D32;"></div>
+            <div class="minimap-dot" style="top:42px;left:70px;background:#2E7D32;"></div>
+            <div class="viewbox" id="viewboxIndicator"></div>
+          </div>
+
+          <div class="tree-controls">
+            <button onclick="zoomTree(1.2)">＋</button>
+            <button onclick="zoomTree(0.8)">－</button>
+            <button onclick="resetTree()">⟲</button>
+          </div>
+        </div>
+
+        <div class="legend">
+          <div class="li"><div class="swatch" style="background:#0288D1;"></div><span data-en="Marriage" data-gu="લગ્ન સંબંધ">Marriage</span></div>
+          <div class="li"><div class="swatch" style="background:#2E7D32;"></div><span data-en="Blood line" data-gu="લોહીનો સંબંધ">Blood line</span></div>
+          <div class="li"><div class="swatch" style="background:#F57C00;border-top:2px dashed #F57C00;height:0;"></div><span data-en="Siblings" data-gu="ભાઈ-બહેન">Siblings</span></div>
+          <div class="li"><div class="swatch" style="background:var(--saffron);border-radius:50%;width:8px;height:8px;"></div><span data-en="You are here" data-gu="તમે અહીં છો">You are here</span></div>
+        </div>
+
+        <button class="fab-add" onclick="openSheet('addMember')">＋</button>
+      </section>
+
+      <!-- ============ COMMUNITY / DIRECTORY ============ -->
+      <section class="screen" id="screen-community">
+        <div class="pattern-header" style="background:linear-gradient(135deg,var(--peacock),#045a8a);">
+          <svg class="pattern" viewBox="0 0 400 220" preserveAspectRatio="xMidYMid slice"><rect width="400" height="220" fill="url(#paisley)"/></svg>
+          <div class="content">
+            <div class="greeting-row"><div><div class="hi" data-en="Community" data-gu="સમાજ">Community</div><div class="name" data-en="Member Directory" data-gu="સભ્યોની ડિરેક્ટરી">Member Directory</div></div></div>
+            <div class="search-bar" data-en="🔍 Search by name, village, profession…" data-gu="🔍 નામ, ગામ અથવા વ્યવસાય શોધો…">🔍 Search by name, village, profession…</div>
+          </div>
+        </div>
+        <div class="content">
+          <div class="filter-chip-row">
+            <div class="fchip on" data-en="All" data-gu="બધા">All</div>
+            <div class="fchip" data-en="Village" data-gu="ગામ">Village</div>
+            <div class="fchip" data-en="City" data-gu="શહેર">City</div>
+            <div class="fchip" data-en="Profession" data-gu="વ્યવસાય">Profession</div>
+            <div class="fchip" data-en="Education" data-gu="અભ્યાસ">Education</div>
+            <div class="fchip" data-en="Blood Group" data-gu="બ્લડ ગ્રુપ">Blood Group</div>
+          </div>
+          <div class="card" style="margin-top:14px;">
+            <div class="member-list-card"><div class="av" style="background:#F57C00;">KM</div><div class="info"><div class="nm" data-en="Kiranbhai Mistry" data-gu="કિરણભાઈ મિસ્ત્રી">Kiranbhai Mistry <span style="color:var(--peacock);font-size:11px;">✓</span></div><div class="occ" data-en="Textile Merchant" data-gu="ટેક્સટાઈલ મર્ચેન્ટ">Textile Merchant</div><div class="loc" data-en="📍 Anand, Gujarat" data-gu="📍 આણંદ, ગુજરાત">📍 Anand, Gujarat</div></div><div class="icon-btn-sm" onclick="openMember('kaka')">🌳</div></div>
+            <div class="member-list-card"><div class="av" style="background:#0288D1;">SV</div><div class="info"><div class="nm" data-en="Sonalben Vaghela" data-gu="સોનલબેન વાઘેલા">Sonalben Vaghela</div><div class="occ" data-en="School Principal" data-gu="શાળા આચાર્યા">School Principal</div><div class="loc" data-en="📍 Nadiad, Gujarat" data-gu="📍 નડીયાદ, ગુજરાત">📍 Nadiad, Gujarat</div></div><div class="icon-btn-sm">💬</div></div>
+            <div class="member-list-card"><div class="av" style="background:#2E7D32;">PJ</div><div class="info"><div class="nm" data-en="Parthbhai Joshi" data-gu="પાર્થભાઈ જોષી">Parthbhai Joshi <span style="color:var(--peacock);font-size:11px;">✓</span></div><div class="occ" data-en="Software Engineer" data-gu="સોફ્ટવેર એન્જિનિયર">Software Engineer</div><div class="loc" data-en="📍 Bengaluru" data-gu="📍 બેંગલુરુ">📍 Bengaluru</div></div><div class="icon-btn-sm">💬</div></div>
+            <div class="member-list-card"><div class="av" style="background:#C2185B;">RD</div><div class="info"><div class="nm" data-en="Rinaben Darji" data-gu="રીનાબેન દરજી">Rinaben Darji</div><div class="occ" data-en="Boutique Owner" data-gu="બુટીક ઓનર">Boutique Owner</div><div class="loc" data-en="📍 Surat, Gujarat" data-gu="📍 સુરત, ગુજરાત">📍 Surat, Gujarat</div></div><div class="icon-btn-sm">💬</div></div>
+            <div class="member-list-card"><div class="av" style="background:#5E35B1;">AT</div><div class="info"><div class="nm" data-en="Ashokbhai Trivedi" data-gu="અશોકભાઈ ત્રિવેદી">Ashokbhai Trivedi</div><div class="occ" data-en="Retired Professor" data-gu="નિવૃત્ત પ્રોફેસર">Retired Professor</div><div class="loc" data-en="📍 Rajkot, Gujarat" data-gu="📍 રાજકોટ, ગુજરાત">📍 Rajkot, Gujarat</div></div><div class="icon-btn-sm">💬</div></div>
+            <div class="member-list-card"><div class="av" style="background:#00897B;">MB</div><div class="info"><div class="nm" data-en="Meeraben Bavishi" data-gu="મીરાબેન બાવિષી">Meeraben Bavishi <span style="color:var(--peacock);font-size:11px;">✓</span></div><div class="occ" data-en="Doctor · MBBS" data-gu="ડોક્ટર · એમ.બી.બી.એસ.">Doctor · MBBS</div><div class="loc" data-en="📍 Vadodara, Gujarat" data-gu="📍 વડોદરા, ગુજરાત">📍 Vadodara, Gujarat</div></div><div class="icon-btn-sm">💬</div></div>
+          </div>
+
+          <div class="section-title"><h3 data-en="Business directory" data-gu="બિઝનેસ ડિરેક્ટરી">Business directory</h3><span class="link" onclick="openSheet('business')" data-en="View all" data-gu="બધા જુઓ">View all</span></div>
+          <div class="family-strip">
+            <div class="family-card"><div class="fimg" style="background:linear-gradient(135deg,#5E35B1,#341f6e);"><div class="badge" style="color:#5E35B1;">4.8 ★</div></div><div class="fbody"><div class="t" data-en="Shree Textiles" data-gu="શ્રી ટેક્સટાઈલ્સ">Shree Textiles</div><div class="s" data-en="Surat · Fabric & Tailoring" data-gu="સુરત · કાપડ અને ટેલરિંગ">Surat · Fabric &amp; Tailoring</div></div></div>
+            <div class="family-card"><div class="fimg" style="background:linear-gradient(135deg,#00897B,#004d40);"><div class="badge" style="color:#00897B;">4.6 ★</div></div><div class="fbody"><div class="t" data-en="Bavishi Clinic" data-gu="બાવિષી ક્લિનિક">Bavishi Clinic</div><div class="s" data-en="Vadodara · Healthcare" data-gu="વડોદરા · હેલ્થકેર">Vadodara · Healthcare</div></div></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ EVENTS ============ -->
+      <section class="screen" id="screen-events">
+        <div class="pattern-header" style="background:linear-gradient(135deg,var(--saffron),#8a4a00);">
+          <svg class="pattern" viewBox="0 0 400 220" preserveAspectRatio="xMidYMid slice"><rect width="400" height="220" fill="url(#paisley)"/></svg>
+          <div class="content"><div class="greeting-row"><div><div class="hi" data-en="Community" data-gu="સમાજ">Community</div><div class="name" data-en="Events & Gatherings" data-gu="કાર્યક્રમો અને સંમેલનો">Events &amp; Gatherings</div></div><div class="header-icon-btn">📷</div></div></div>
+        </div>
+        <div class="seg">
+          <button class="on" onclick="setSeg(this)" data-en="Upcoming" data-gu="આગામી">Upcoming</button>
+          <button onclick="setSeg(this)" data-en="Past" data-gu="ભૂતકાળના">Past</button>
+          <button onclick="setSeg(this)" data-en="My RSVPs" data-gu="મારા RSVP">My RSVPs</button>
+        </div>
+        <div class="content" style="padding-top:6px;">
+          <div class="event-card">
+            <div class="banner" style="background:linear-gradient(135deg,#F57C00,#8a4a00);"><div class="cat" data-en="Festival" data-gu="મહોત્સવ">Festival</div></div>
+            <div class="body">
+              <div class="t" data-en="Samuh Lagna Sammelan 2026" data-gu="સમૂહ લગ્ન સંમેલન ૨૦૨૬">Samuh Lagna Sammelan 2026</div>
+              <div class="meta"><span>📅 18 Jul, 10:00 AM</span><span data-en="📍 Ahmedabad" data-gu="📍 અમદાવાદ">📍 Ahmedabad</span></div>
+              <div class="foot"><div class="attend" data-en="👥 340 attending" data-gu="👥 ૩૪૦ સભ્યો હાજર">👥 340 attending</div><button class="rsvp-btn" onclick="this.innerText='Going ✓'" data-en="RSVP" data-gu="હાજરી નોંધાવો">RSVP</button></div>
+            </div>
+          </div>
+          <div class="event-card">
+            <div class="banner" style="background:linear-gradient(135deg,#C2185B,#6a0d33);"><div class="cat" data-en="Health" data-gu="આરોગ્ય">Health</div></div>
+            <div class="body">
+              <div class="t" data-en="Blood Donation Camp" data-gu="રક્તદાન કેમ્પ">Blood Donation Camp</div>
+              <div class="meta"><span>📅 02 Aug, 9:00 AM</span><span data-en="📍 Surat" data-gu="📍 સુરત">📍 Surat</span></div>
+              <div class="foot"><div class="attend" data-en="👥 128 attending" data-gu="👥 ૧૨૮ સભ્યો હાજર">👥 128 attending</div><button class="rsvp-btn" onclick="this.innerText='Going ✓'" data-en="RSVP" data-gu="હાજરી નોંધાવો">RSVP</button></div>
+            </div>
+          </div>
+          <div class="event-card">
+            <div class="banner" style="background:linear-gradient(135deg,#0288D1,#045a8a);"><div class="cat" data-en="Sports" data-gu="રમતગમત">Sports</div></div>
+            <div class="body">
+              <div class="t" data-en="Youth Sports Meet" data-gu="યુવા સ્પોર્ટ્સ મીટ">Youth Sports Meet</div>
+              <div class="meta"><span>📅 15 Aug, 7:30 AM</span><span data-en="📍 Rajkot" data-gu="📍 રાજકોટ">📍 Rajkot</span></div>
+              <div class="foot"><div class="attend" data-en="👥 96 attending · QR check-in" data-gu="👥 ૯૬ સભ્યો હાજર · QR ચેક-ઈન">👥 96 attending · QR check-in</div><button class="rsvp-btn" onclick="this.innerText='Going ✓'" data-en="RSVP" data-gu="હાજરી નોંધાવો">RSVP</button></div>
+            </div>
+          </div>
+          <div class="event-card">
+            <div class="banner" style="background:linear-gradient(135deg,#2E7D32,#154417);"><div class="cat" data-en="Meeting" data-gu="મીટિંગ">Meeting</div></div>
+            <div class="body">
+              <div class="t" data-en="Samaj Trust · Annual Election" data-gu="સમાજ ટ્રસ્ટ · વાર્ષિક ચૂંટણી">Samaj Trust · Annual Election</div>
+              <div class="meta"><span>📅 29 Aug, 5:00 PM</span><span data-en="📍 Community Bhavan, Rajkot" data-gu="📍 સમાજ ભવન, રાજકોટ">📍 Community Bhavan, Rajkot</span></div>
+              <div class="foot"><div class="attend" data-en="👥 Minutes attached" data-gu="👥 વિગતો સાથે">👥 Minutes attached</div><button class="rsvp-btn" onclick="this.innerText='Going ✓'" data-en="RSVP" data-gu="હાજરી નોંધાવો">RSVP</button></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ PROFILE ============ -->
+      <section class="screen" id="screen-profile">
+        <div class="profile-cover"></div>
+        <div class="profile-main">
+          <div class="profile-avatar">RC</div>
+          <div class="profile-name-row"><h2 data-en="Rajeshbhai Chauhan" data-gu="રાજેશભાઈ ચૌહાણ">Rajeshbhai Chauhan</h2><div class="verified-badge" data-en="✓ Verified" data-gu="✓ પ્રમાણિત">✓ Verified</div></div>
+          <div class="profile-guj guj">રાજેશભાઈ ચૌહાણ</div>
+          <div class="profile-tags"><div class="ptag" data-en="Chauhan Parivar" data-gu="ચૌહાણ પરિવાર">Chauhan Parivar</div><div class="ptag" data-en="Vadodara" data-gu="વડોદરા">Vadodara</div><div class="ptag" data-en="Software Architect" data-gu="સોફ્ટવેર આર્કિટેક્ટ">Software Architect</div></div>
+        </div>
+
+        <div class="id-card">
+          <div class="top"><div class="brand">KUTUMB<br>SETU</div><div class="qr">▦</div></div>
+          <div class="idnum">GDS-2026-0417</div>
+          <div class="idname" data-en="Digital Community ID · Chauhan Parivar" data-gu="ડિજિટલ સમાજ આઈડી · ચૌહાણ પરિવાર">Digital Community ID · Chauhan Parivar</div>
+        </div>
+
+        <div class="profile-tabs">
+          <button class="on" onclick="setPTab(this,'about')" data-en="About" data-gu="માહિતી">About</button>
+          <button onclick="setPTab(this,'family')" data-en="Family" data-gu="પરિવાર">Family</button>
+          <button onclick="setPTab(this,'contrib')" data-en="Contributions" data-gu="યોગદાન">Contributions</button>
+        </div>
+
+        <div class="content" id="pAbout">
+          <div class="card">
+            <div class="detail-row"><div class="k" data-en="Occupation" data-gu="વ્યવસાય">Occupation</div><div class="v" data-en="Software Architect" data-gu="સોફ્ટવેર આર્કિટેક્ટ">Software Architect</div></div>
+            <div class="detail-row"><div class="k" data-en="Education" data-gu="અભ્યાસ">Education</div><div class="v" data-en="B.E. Computer Engineering" data-gu="બી.ઈ. કમ્પ્યુટર">B.E. Computer Engineering</div></div>
+            <div class="detail-row"><div class="k" data-en="Village" data-gu="વતન / ગામ">Village</div><div class="v" data-en="Karamsad" data-gu="કરમસદ">Karamsad</div></div>
+            <div class="detail-row"><div class="k" data-en="City" data-gu="હાલ રહેઠાણ">City</div><div class="v" data-en="Vadodara, Gujarat" data-gu="વડોદરા, ગુજરાત">Vadodara, Gujarat</div></div>
+            <div class="detail-row"><div class="k" data-en="Blood Group" data-gu="બ્લડ ગ્રુપ">Blood Group</div><div class="v">B+</div></div>
+            <div class="detail-row"><div class="k" data-en="Contact" data-gu="સંપર્ક">Contact</div><div class="v">+91 98••• •••42</div></div>
+          </div>
+        </div>
+
+        <div class="content" id="pFamily" style="display:none;">
+          <div class="section-title"><h3 data-en="Family tree preview" data-gu="કુટુંબ વૃક્ષ ઝલક">Family tree preview</h3><span class="link" onclick="nav('tree')" data-en="Open full tree" data-gu="સંપૂર્ણ વૃક્ષ ખોલો">Open full tree</span></div>
+          <div class="card">
+            <div class="member-list-card"><div class="av" style="background:#F57C00;">DC</div><div class="info"><div class="nm" data-en="Dineshbhai Chauhan" data-gu="દિનેશભાઈ ચૌહાણ">Dineshbhai Chauhan</div><div class="occ" data-en="Father" data-gu="પિતાજી">Father</div></div></div>
+            <div class="member-list-card"><div class="av" style="background:#EF6C00;">HC</div><div class="info"><div class="nm" data-en="Hemaben Chauhan" data-gu="હેમાબેન ચૌહાણ">Hemaben Chauhan</div><div class="occ" data-en="Mother" data-gu="માતાજી">Mother</div></div></div>
+            <div class="member-list-card"><div class="av" style="background:#0288D1;">PP</div><div class="info"><div class="nm" data-en="Priyaben Chauhan" data-gu="પ્રિયાબેન ચૌહાણ">Priyaben Chauhan</div><div class="occ" data-en="Spouse" data-gu="પત્ની">Spouse</div></div></div>
+            <div class="member-list-card"><div class="av" style="background:#2E7D32;">AB</div><div class="info"><div class="nm" data-en="Amitbhai Chauhan" data-gu="અમિતભાઈ ચૌહાણ">Amitbhai Chauhan</div><div class="occ" data-en="Brother" data-gu="મોટો ભાઈ">Brother</div></div></div>
+          </div>
+        </div>
+
+        <div class="content" id="pContrib" style="display:none;">
+          <div class="card">
+            <div class="detail-row"><div class="k" data-en="🏆 Scholarship Fund" data-gu="🏆 શિષ્યવૃત્તિ ફંડ">🏆 Scholarship Fund</div><div class="v" data-en="₹25,000 donated" data-gu="₹૨૫,૦૦૦ દાન">₹25,000 donated</div></div>
+            <div class="detail-row"><div class="k" data-en="🎓 Mentorship" data-gu="🎓 માર્ગદર્શન">🎓 Mentorship</div><div class="v" data-en="6 students guided" data-gu="૬ વિદ્યાર્થીઓને માર્ગદર્શન">6 students guided</div></div>
+            <div class="detail-row"><div class="k" data-en="🩸 Blood Camps" data-gu="🩸 રક્તદાન કેમ્પ">🩸 Blood Camps</div><div class="v" data-en="4 camps organized" data-gu="૪ કેમ્પનું આયોજન">4 camps organized</div></div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- BOTTOM NAV -->
+    <nav class="bottom-nav">
+      <div class="nav-btn active" data-nav="home" onclick="nav('home')"><div class="ic">🏠</div><span data-en="Home" data-gu="હોમ">Home</span></div>
+      <div class="nav-btn" data-nav="tree" onclick="nav('tree')"><div class="ic">🌳</div><span data-en="Tree" data-gu="વૃક્ષ">Tree</span></div>
+      <div class="nav-btn fab" data-nav="community" onclick="nav('community')"><div class="ic">👥</div></div>
+      <div class="nav-btn" data-nav="events" onclick="nav('events')"><div class="ic">📅</div><span data-en="Events" data-gu="કાર્યક્રમ">Events</span></div>
+      <div class="nav-btn" data-nav="profile" onclick="nav('profile')"><div class="ic">👤</div><span data-en="Profile" data-gu="પ્રોફાઈલ">Profile</span></div>
+    </nav>
+
+    <!-- SHEET -->
+    <div class="sheet-backdrop" id="sheetBackdrop" onclick="closeSheet()"></div>
+    <div class="sheet" id="sheet">
+      <div class="sheet-handle"></div>
+      <div id="sheetContent"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ---------- LANGUAGE TOGGLE LOGIC ---------- */
+let currentLang = 'en';
+
+function toggleLanguage(){
+  currentLang = currentLang === 'en' ? 'gu' : 'en';
+  
+  // Update toolbar button text
+  const langBtn = document.getElementById('langBtn');
+  if(langBtn){
+    langBtn.innerHTML = currentLang === 'en' ? '🌐 ગુજરાતી (Gujarati)' : '🌐 English';
+  }
+
+  // Update all elements with data-en & data-gu attributes
+  document.querySelectorAll('[data-en]').forEach(el => {
+    const text = el.getAttribute('data-' + currentLang);
+    if(text !== null){
+      el.innerText = text;
+    }
+  });
+
+  // Re-render sheet if open
+  if(document.getElementById('sheet').classList.contains('show') && currentMemberId){
+    openMember(currentMemberId);
+  }
+}
+
+/* ---------- NAV ---------- */
+function nav(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-'+name).classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active', b.dataset.nav===name));
+}
+
+/* ---------- THEME ---------- */
+function toggleTheme(){
+  const html = document.documentElement;
+  const dark = html.getAttribute('data-theme') === 'dark';
+  html.setAttribute('data-theme', dark ? 'light' : 'dark');
+  document.getElementById('themeBtn').innerHTML = dark ? '🌙 Dark mode' : '☀️ Light mode';
+}
+
+/* ---------- MEMBER DATA & SHEET ---------- */
+let currentMemberId = null;
+const memberData = {
+  me:{name:'Rajeshbhai Chauhan', guj:'રાજેશભાઈ ચૌહાણ', rel:'You', relGuj:'તમે', color:'linear-gradient(135deg,#F57C00,#C85F00)', village:'Karamsad', villageGuj:'કરમસદ', city:'Vadodara', cityGuj:'વડોદરા', occ:'Software Architect', occGuj:'સોફ્ટવેર આર્કિટેક્ટ', year:'1988'},
+  papa:{name:'Dineshbhai Chauhan', guj:'દિનેશભાઈ ચૌહાણ', rel:'Father', relGuj:'પિતાજી', color:'#F57C00', village:'Karamsad', villageGuj:'કરમસદ', city:'Vadodara', cityGuj:'વડોદરા', occ:'Retired Bank Manager', occGuj:'નિવૃત્ત બેંક મેનેજર', year:'1958'},
+  mummy:{name:'Hemaben Chauhan', guj:'હેમાબેન ચૌહાણ', rel:'Mother', relGuj:'માતાજી', color:'#EF6C00', village:'Karamsad', villageGuj:'કરમસદ', city:'Vadodara', cityGuj:'વડોદરા', occ:'Homemaker', occGuj:'ગૃહિણી', year:'1961'},
+  dada:{name:'Chhotalal Chauhan', guj:'છોટાલાલ ચૌહાણ', rel:'Grandfather', relGuj:'દાદાજી', color:'#8D6E63', village:'Karamsad', villageGuj:'કરમસદ', city:'Anand', cityGuj:'આણંદ', occ:'Farmer', occGuj:'ખેડૂત', year:'1928'},
+  dadi:{name:'Savitaben Chauhan', guj:'સવિતાબેન ચૌહાણ', rel:'Grandmother', relGuj:'દાદીજી', color:'#AD8B73', village:'Karamsad', villageGuj:'કરમસદ', city:'Anand', cityGuj:'આણંદ', occ:'Homemaker', occGuj:'ગૃહિણી', year:'1932'},
+  nana:{name:'Manilal Bhatt', guj:'મણિલાલ ભટ્ટ', rel:'Maternal Grandfather', relGuj:'નાનાજી', color:'#8D6E63', village:'Petlad', villageGuj:'પેટલાદ', city:'Anand', cityGuj:'આણંદ', occ:'Merchant', occGuj:'વેપારી', year:'1926'},
+  nani:{name:'Jasuben Bhatt', guj:'જસુબેન ભટ્ટ', rel:'Maternal Grandmother', relGuj:'નાનીજી', color:'#AD8B73', village:'Petlad', villageGuj:'પેટલાદ', city:'Anand', cityGuj:'આણંદ', occ:'Homemaker', occGuj:'ગૃહિણી', year:'1930'},
+  kaka:{name:'Sureshbhai Chauhan', guj:'સુરેશભાઈ ચૌહાણ', rel:'Uncle (Paternal)', relGuj:'કાકા', color:'#F57C00', village:'Karamsad', villageGuj:'કરમસદ', city:'Anand', cityGuj:'આણંદ', occ:'Textile Merchant', occGuj:'ટેક્સટાઈલ વેપારી', year:'1960'},
+  kaki:{name:'Rekhaben Chauhan', guj:'રેખાબેન ચૌહાણ', rel:'Aunt (Paternal)', relGuj:'કાકી', color:'#EF6C00', village:'Karamsad', villageGuj:'કરમસદ', city:'Anand', cityGuj:'આણંદ', occ:'Teacher', occGuj:'શિક્ષિકા', year:'1963'},
+  foi:{name:'Kailashben Joshi', guj:'કૈલાશબેન જોષી', rel:"Aunt (Foi)", relGuj:'ફોઈ', color:'#F57C00', village:'Petlad', villageGuj:'પેટલાદ', city:'Nadiad', cityGuj:'નડીયાદ', occ:'Homemaker', occGuj:'ગૃહિણી', year:'1965'},
+  fua:{name:'Nareshbhai Joshi', guj:'નરેશભાઈ જોષી', rel:"Uncle (Fua)", relGuj:'ફૂઆ', color:'#EF6C00', village:'Petlad', villageGuj:'પેટલાદ', city:'Nadiad', cityGuj:'નડીયાદ', occ:'Farmer', occGuj:'ખેડૂત', year:'1962'},
+  cousin1:{name:'Nikita Chauhan', guj:'નિકિતા ચૌહાણ', rel:'Cousin', relGuj:'બહેન', color:'#2E7D32', village:'Karamsad', villageGuj:'કરમસદ', city:'Anand', cityGuj:'આણંદ', occ:'CA', occGuj:'સીએ (CA)', year:'1990'},
+  cousin2:{name:'Krupal Chauhan', guj:'ક્રુપાલ ચૌહાણ', rel:'Cousin', relGuj:'ભાઈ', color:'#388E3C', village:'Karamsad', villageGuj:'કરમસદ', city:'Anand', cityGuj:'આણંદ', occ:'Marketing Manager', occGuj:'માર્કેટિંગ મેનેજર', year:'1993'},
+  cousin3:{name:'Vishal Joshi', guj:'વિશાલ જોષી', rel:'Cousin', relGuj:'ભાઈ', color:'#388E3C', village:'Petlad', villageGuj:'પેટલાદ', city:'Nadiad', cityGuj:'નડીયાદ', occ:'Doctor', occGuj:'ડોક્ટર', year:'1991'},
+  sibling:{name:'Amitbhai Chauhan', guj:'અમિતભાઈ ચૌહાણ', rel:'Brother', relGuj:'મોટો ભાઈ', color:'#2E7D32', village:'Karamsad', villageGuj:'કરમસદ', city:'Vadodara', cityGuj:'વડોદરા', occ:'Civil Engineer', occGuj:'સિવિલ એન્જિનિયર', year:'1985'},
+  spouse:{name:'Priyaben Chauhan', guj:'પ્રિયાબેન ચૌહાણ', rel:'Spouse', relGuj:'પત્ની', color:'#0288D1', village:'Anklav', villageGuj:'આંકલાવ', city:'Vadodara', cityGuj:'વડોદરા', occ:'Interior Designer', occGuj:'ઇન્ટિરિયર ડિઝાઇનર', year:'1990'},
+  nephew:{name:'Yash Chauhan', guj:'યશ ચૌહાણ', rel:'Nephew', relGuj:'ભત્રીજો', color:'#0288D1', village:'Karamsad', villageGuj:'કરમસદ', city:'Vadodara', cityGuj:'વડોદરા', occ:'Student', occGuj:'વિદ્યાર્થી', year:'2014'},
+  child1:{name:'Dhruvi Chauhan', guj:'ધ્રુવી ચૌહાણ', rel:'Daughter', relGuj:'પુત્રી', color:'#F57C00', village:'Karamsad', villageGuj:'કરમસદ', city:'Vadodara', cityGuj:'વડોદરા', occ:'Student', occGuj:'વિદ્યાર્થી', year:'2016'},
+  child2:{name:'Arjun Chauhan', guj:'અર્જુન ચૌહાણ', rel:'Son', relGuj:'પુત્ર', color:'#F57C00', village:'Karamsad', villageGuj:'કરમસદ', city:'Vadodara', cityGuj:'વડોદરા', occ:'Student', occGuj:'વિદ્યાર્થી', year:'2019'},
+};
+
+function openMember(id){
+  currentMemberId = id;
+  const m = memberData[id];
+  if(!m) return;
+  const bg = m.color.startsWith('linear') ? m.color : m.color;
+  const isGuj = currentLang === 'gu';
+
+  document.getElementById('sheetContent').innerHTML = `
+    <div class="sheet-header">
+      <div class="av" style="background:${bg};">${m.name.split(' ').map(w=>w[0]).slice(0,2).join('')}</div>
+      <div>
+        <div class="nm">${isGuj ? m.guj : m.name}</div>
+        <div class="guj" style="font-size:12px;color:var(--text-soft);">${isGuj ? m.name : m.guj}</div>
+        <div class="rel">${isGuj ? m.relGuj : m.rel}</div>
+      </div>
+    </div>
+    <div class="sheet-meta">
+      <div class="meta-item"><div class="k">${isGuj ? 'ગામ' : 'Village'}</div><div class="v">${isGuj ? m.villageGuj : m.village}</div></div>
+      <div class="meta-item"><div class="k">${isGuj ? 'શહેર' : 'City'}</div><div class="v">${isGuj ? m.cityGuj : m.city}</div></div>
+      <div class="meta-item"><div class="k">${isGuj ? 'વ્યવસાય' : 'Occupation'}</div><div class="v">${isGuj ? m.occGuj : m.occ}</div></div>
+      <div class="meta-item"><div class="k">${isGuj ? 'જન્મ સાલ' : 'Born'}</div><div class="v">${m.year}</div></div>
+    </div>
+    <div class="sheet-actions">
+      <button class="primary">${isGuj ? '👁️ સંપૂર્ણ પ્રોફાઇલ' : '👁 View full profile'}</button>
+      <button class="ghost">${isGuj ? '🌳 ફેમિલી ટ્રી જુઓ' : '🌳 Navigate to tree'}</button>
+      <button class="ghost">${isGuj ? '💬 સંપર્ક કરો' : '💬 Contact member'}</button>
+      <button class="ghost">${isGuj ? '↗️ શેર કરો' : '↗ Share profile'}</button>
+    </div>
+  `;
+  showSheet();
+}
+
+function openSheet(type){
+  currentMemberId = null;
+  const isGuj = currentLang === 'gu';
+  const map = {
+    notif: `<h3 style="padding:0 0 10px;">${isGuj ? 'નોટિફિકેશન્સ' : 'Notifications'}</h3>
+      <div class="detail-row"><div class="k">${isGuj ? '🎂 આજે ૩ જન્મદિવસ છે' : '🎂 3 birthdays today'}</div></div>
+      <div class="detail-row"><div class="k">${isGuj ? '📅 નવો કાર્યક્રમ: રક્તદાન કેમ્પ' : '📅 New event: Blood Camp'}</div></div>
+      <div class="detail-row"><div class="k">${isGuj ? '🌳 ટ્રી ફેરફાર પેન્ડિંગ છે' : '🌳 2 tree changes pending approval'}</div></div>
+      <div class="detail-row"><div class="k">${isGuj ? '💍 ૧ નવી મેટ્રિમોની પ્રોફાઈલ' : '💍 1 new matrimony interest'}</div></div>`,
+    matrimony: `<h3 style="padding:0 0 10px;">${isGuj ? 'લગ્ન વિષયક (મેટ્રિમોની)' : 'Matrimony'}</h3>
+      <p style="font-size:12.5px;color:var(--text-soft);">${isGuj ? 'દરજી સમાજના યુવક-યુવતીઓ માટે મેટ્રિમોની પોર્ટલ. શિક્ષણ, વ્યવસાય અને કૌટુંબિક પૃષ્ઠભૂમિથી ફિલ્ટર કરો.' : 'Modern matchmaking within the samaj — filter by education, profession & family background.'}</p>
+      <div class="sheet-actions"><button class="primary">${isGuj ? 'પ્રોફાઇલ્સ જુઓ' : 'Browse profiles'}</button><button class="ghost">${isGuj ? 'સેવ કરેલ પ્રોફાઇલ' : 'Saved profiles'}</button></div>`,
+    donations: `<h3 style="padding:0 0 10px;">${isGuj ? 'દાન ફંડ' : 'Donations'}</h3>
+      <div class="detail-row"><div class="k">🎓 ${isGuj ? 'શિષ્યવૃત્તિ ફંડ' : 'Scholarship Fund'}</div><div class="v">₹8.2L</div></div>
+      <div class="detail-row"><div class="k">🛕 ${isGuj ? 'મંદિર/સમાજ ભવન ફંડ' : 'Temple Fund'}</div><div class="v">₹14.6L</div></div>
+      <div class="detail-row"><div class="k">🚑 ${isGuj ? 'ઇમરજન્સી રાહત ફંડ' : 'Emergency Relief'}</div><div class="v">₹3.1L</div></div>
+      <div class="sheet-actions" style="margin-top:12px;"><button class="primary">${isGuj ? 'દાન આપો' : 'Donate now'}</button><button class="ghost">${isGuj ? 'મારી પહોંચ' : 'My receipts'}</button></div>`,
+    news: `<h3 style="padding:0 0 10px;">${isGuj ? 'સમાચાર અને નોટિસ' : 'News & Notices'}</h3>
+      <div class="detail-row"><div class="k">📌 ${isGuj ? 'ટ્રસ્ટ વાર્ષિક ચૂંટણી નોટિસ' : 'Trust election notice — pinned'}</div></div>
+      <div class="detail-row"><div class="k">📝 ${isGuj ? 'વાર્ષિક સાધારણ સભા મિનિટ્સ' : 'AGM minutes uploaded'}</div></div>
+      <div class="detail-row"><div class="k">📢 ${isGuj ? 'નવી શિષ્યવૃત્તિ ફોર્મ શરૂ' : 'New scholarship applications open'}</div></div>`,
+    business: `<h3 style="padding:0 0 10px;">${isGuj ? 'બિઝનેસ ડિરેક્ટરી' : 'Business Directory'}</h3><p style="font-size:12.5px;color:var(--text-soft);">${isGuj ? 'સમાજના સભ્યોના વ્યવસાયો શોધો અને પ્રોત્સાહિત કરો.' : 'Discover and support businesses run by community members — searchable by category, city and ratings.'}</p>`,
+    more: `<h3 style="padding:0 0 10px;">${isGuj ? 'વધુ વિકલ્પો' : 'More'}</h3>
+      <div class="detail-row"><div class="k">⚙️ ${isGuj ? 'સેટિંગ્સ' : 'Settings'}</div></div>
+      <div class="detail-row"><div class="k">🛡️ ${isGuj ? 'એડમિન પોર્ટલ' : 'Admin Portal'}</div></div>
+      <div class="detail-row"><div class="k">🌗 ${isGuj ? 'લાઈટ / ડાર્ક મોડ' : 'Light / Dark mode'}</div></div>
+      <div class="detail-row"><div class="k">❓ ${isGuj ? 'મદદ અને સપોર્ટ' : 'Help & Support'}</div></div>`,
+    treeSearch: `<h3 style="padding:0 0 10px;">${isGuj ? 'વૃક્ષમાં શોધો' : 'Search the tree'}</h3>
+      <div class="search-bar" style="box-shadow:none;border:1px solid var(--divider);">${isGuj ? '🔍 ઉદા. "નિકિતા" કે "કરમસદ"…' : '🔍 Try "Nikita" or "Karamsad"…'}</div>`,
+    addMember: `<h3 style="padding:0 0 10px;">${isGuj ? 'નવા સભ્ય ઉમેરો' : 'Add family member'}</h3><p style="font-size:12.5px;color:var(--text-soft);">${isGuj ? 'નવા પરિવારજનની વિગતો ભરો. એડમિન ચકાસણી બાદ વંશાવલીમાં દેખાશે.' : 'Requires admin or family-head permission. Fill in relation, name and details.'}</p>
+      <div class="sheet-actions"><button class="primary">${isGuj ? 'આગળ વધો' : 'Continue'}</button><button class="ghost">${isGuj ? 'રદ કરો' : 'Cancel'}</button></div>`,
+  };
+  document.getElementById('sheetContent').innerHTML = map[type] || '';
+  showSheet();
+}
+
+function showSheet(){
+  document.getElementById('sheetBackdrop').classList.add('show');
+  document.getElementById('sheet').classList.add('show');
+}
+function closeSheet(){
+  document.getElementById('sheetBackdrop').classList.remove('show');
+  document.getElementById('sheet').classList.remove('show');
+}
+
+/* ---------- TREE PAN & ZOOM ---------- */
+let scale=0.62, tx=-40, ty=10, dragging=false, sx=0, sy=0, otx=0, oty=0;
+const canvas = document.getElementById('treeCanvas');
+const viewport = document.getElementById('treeViewport');
+function applyTransform(){ canvas.style.transform = `translate(${tx}px,${ty}px) scale(${scale})`; updateMinimap(); }
+function zoomTree(f){ scale = Math.min(1.4, Math.max(0.4, scale*f)); applyTransform(); }
+function resetTree(){ scale=0.62; tx=-40; ty=10; applyTransform(); }
+function updateMinimap(){
+  const vb = document.getElementById('viewboxIndicator');
+  const w = viewport.clientWidth, h = viewport.clientHeight;
+  const cw = 900*scale, ch=760*scale;
+  const left = Math.max(0, -tx/cw)*88;
+  const top = Math.max(0, -ty/ch)*64;
+  vb.style.left = left+'px'; vb.style.top=top+'px';
+  vb.style.width = Math.min(88, (w/cw)*88)+'px';
+  vb.style.height = Math.min(64, (h/ch)*64)+'px';
+}
+viewport.addEventListener('pointerdown', e=>{ dragging=true; sx=e.clientX; sy=e.clientY; otx=tx; oty=ty; viewport.setPointerCapture(e.pointerId); });
+viewport.addEventListener('pointermove', e=>{ if(!dragging) return; tx = otx + (e.clientX-sx); ty = oty + (e.clientY-sy); applyTransform(); });
+viewport.addEventListener('pointerup', ()=> dragging=false);
+viewport.addEventListener('wheel', e=>{ e.preventDefault(); zoomTree(e.deltaY<0 ? 1.08 : 0.93); }, {passive:false});
+applyTransform();
+
+/* ---------- RELATIONSHIP FINDER ---------- */
+function findRelation(){
+  const a = document.getElementById('finderA').value;
+  const b = document.getElementById('finderB').value;
+  const el = document.getElementById('finderResult');
+  const isGuj = currentLang === 'gu';
+  if(isGuj){
+    el.innerHTML = `<b>${a}</b> → <b>${b}</b><br>માર્ગ: ${a.split(' ')[0]} → દિનેશભાઈ (પિતા) → સુરેશભાઈ (કાકા) → ${b.split(' ')[0]}<br><span style="color:var(--text-soft);">સંબંધ: પિતરાઈ ભાઈ-બહેન</span>`;
+  } else {
+    el.innerHTML = `<b>${a}</b> → <b>${b}</b><br>Path: ${a.split(' ')[0]} → Dineshbhai (Papa) → Sureshbhai (Kaka) → ${b.split(' ')[0]}<br><span style="color:var(--text-soft);">Relation: First cousin</span>`;
+  }
+  el.classList.add('show');
+}
+
+/* ---------- EVENTS SEGMENT ---------- */
+function setSeg(btn){ btn.parentElement.querySelectorAll('button').forEach(b=>b.classList.remove('on')); btn.classList.add('on'); }
+
+/* ---------- PROFILE TABS ---------- */
+function setPTab(btn, tab){
+  btn.parentElement.querySelectorAll('button').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  document.getElementById('pAbout').style.display = tab==='about' ? 'block':'none';
+  document.getElementById('pFamily').style.display = tab==='family' ? 'block':'none';
+  document.getElementById('pContrib').style.display = tab==='contrib' ? 'block':'none';
+}
+</script>
+</body>
+</html>

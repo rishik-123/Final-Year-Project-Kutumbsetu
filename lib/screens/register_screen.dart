@@ -221,9 +221,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
             children: [
               const Icon(Icons.developer_mode_rounded, color: Colors.orange),
               const SizedBox(width: 8),
-              Text(
-                'Development Mode',
-                style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+              Expanded(
+                child: Text(
+                  'Development Mode',
+                  style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+                ),
               ),
             ],
           ),

@@ -1,44 +1,32 @@
-import 'package:firebase_core/firebase_core.dart';
-import 'firebase_options.dart';
 import 'package:flutter/material.dart';
-import 'theme.dart';
-import 'screens/login_screen.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'providers/theme_provider.dart';
+import 'routes/app_router.dart';
+import 'theme/app_theme.dart';
 
-void main()async{
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  runApp(const KutumbSetuApp());
+  runApp(
+    const ProviderScope(
+      child: KutumbSetuApp(),
+    ),
+  );
 }
 
-class KutumbSetuApp extends StatefulWidget {
+class KutumbSetuApp extends ConsumerWidget {
   const KutumbSetuApp({super.key});
 
   @override
-  State<KutumbSetuApp> createState() => _KutumbSetuAppState();
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    final themeMode = ref.watch(themeModeProvider);
 
-class _KutumbSetuAppState extends State<KutumbSetuApp> {
-  // Application-wide Theme State (Default to Light)
-  bool _isDarkMode = false;
-
-  void _toggleTheme() {
-    setState(() {
-      _isDarkMode = !_isDarkMode;
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'KutumbSetu',
+    return MaterialApp.router(
+      title: 'KutumbSetu Member Directory',
       debugShowCheckedModeBanner: false,
       theme: KutumbSetuTheme.lightTheme,
       darkTheme: KutumbSetuTheme.darkTheme,
-      themeMode: _isDarkMode ? ThemeMode.dark : ThemeMode.light,
-      home: LoginScreen(
-        isDarkMode: _isDarkMode,
-        onToggleTheme: _toggleTheme,
-      ),
+      themeMode: themeMode,
+      routerConfig: appRouter,
     );
   }
 }

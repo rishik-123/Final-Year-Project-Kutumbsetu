@@ -115,30 +115,41 @@ class _MemberDirectoryScreenState
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      // Subtitle tag
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: const Row(
-                          children: [
-                            Icon(Icons.groups_rounded,
-                                color: Colors.white, size: 14),
-                            SizedBox(width: 4),
-                            Text(
-                              'Gujarati Patidar Samaj',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                letterSpacing: 0.5,
-                              ),
+                      Row(
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 20),
+                            onPressed: () => context.pop(),
+                            constraints: const BoxConstraints(),
+                            padding: const EdgeInsets.only(right: 8),
+                            tooltip: 'Back to Home',
+                          ),
+                          // Subtitle tag
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(20),
                             ),
-                          ],
-                        ),
+                            child: const Row(
+                              children: [
+                                Icon(Icons.groups_rounded,
+                                    color: Colors.white, size: 14),
+                                SizedBox(width: 4),
+                                Text(
+                                  'Gujarati Patidar Samaj',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
 
                       // Light/Dark Theme Toggle
@@ -267,13 +278,11 @@ class _MemberDirectoryScreenState
                           // Grouped A-Z List with Headers
                           final letters = groupedMap.keys.toList()..sort();
 
-                          return ListView.builder(
+                          return ListView(
                             controller: _scrollController,
                             padding: const EdgeInsets.only(
                                 bottom: 24, left: 4, right: 32),
-                            itemCount: letters.length,
-                            itemBuilder: (context, letterIndex) {
-                              final letter = letters[letterIndex];
+                            children: letters.map((letter) {
                               final letterMembers = groupedMap[letter] ?? [];
 
                               return Column(
@@ -337,7 +346,7 @@ class _MemberDirectoryScreenState
                                   ),
                                 ],
                               );
-                            },
+                            }).toList(),
                           );
                         },
                         loading: () => const Center(

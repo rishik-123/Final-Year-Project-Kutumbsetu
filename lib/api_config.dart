@@ -7,12 +7,22 @@ class ApiConfig {
   /// `adb reverse tcp:5000 tcp:5000`
   static const bool useAdbReverseForPhysicalAndroid = true;
 
+  /// If you are using a tunneling service like ngrok to expose your local backend publicly
+  /// (which allows connecting even when your device is on mobile data or a different network),
+  /// enter the public URL here (e.g., 'https://xxxx-xx-xx-xx.ngrok-free.app').
+  /// Leave empty to use local network/emulator detection.
+  static const String publicTunnelUrl = '';
+
   /// Alternatively, enter your computer's local Wi-Fi IP address here (e.g., '192.168.1.15')
-  /// if your physical device is connected to the same Wi-Fi network:
-  static const String localWifiIp = '10.110.9.208';
+  /// if your physical device is connected to the same Wi-Fi network.
+  /// Your current local Wi-Fi IP address on the network is: '192.168.0.101'
+  static const String localWifiIp = '192.168.0.101';
 
   /// Base API URL pointing to the local Node.js Express server.
   static String get baseUrl {
+    if (publicTunnelUrl.isNotEmpty) {
+      return '$publicTunnelUrl/api';
+    }
     if (localWifiIp.isNotEmpty) {
       return 'http://$localWifiIp:5000/api';
     }

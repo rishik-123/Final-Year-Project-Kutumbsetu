@@ -1,29 +1,47 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../api_config.dart';
+import '../providers/theme_provider.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:image_picker/image_picker.dart';
 
-class RegisterScreen extends StatefulWidget {
-  final bool isDarkMode;
-  final VoidCallback onToggleTheme;
+class RegisterScreen extends ConsumerStatefulWidget {
+  final String? prefilledPhone;
 
   const RegisterScreen({
     super.key,
-    required this.isDarkMode,
-    required this.onToggleTheme,
+    this.prefilledPhone,
   });
 
   @override
-  State<RegisterScreen> createState() => _RegisterScreenState();
+  ConsumerState<RegisterScreen> createState() => _RegisterScreenState();
 }
 
-class _RegisterScreenState extends State<RegisterScreen> {
+class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
   final FirebaseAuth _auth = FirebaseAuth.instance;
+
+  bool get isDarkMode => ref.watch(themeModeProvider) == ThemeMode.dark;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.prefilledPhone != null && widget.prefilledPhone!.isNotEmpty) {
+      String phone = widget.prefilledPhone!;
+      if (phone.startsWith('+91')) {
+        phone = phone.substring(3);
+      }
+      _mobileController.text = phone;
+      _isOtpVerified = true;
+      _isOtpSent = true;
+    }
+  }
 
   // Form Field Controllers & Scroll Controller
   final ScrollController _scrollController = ScrollController();
@@ -33,7 +51,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final TextEditingController _mobileController = TextEditingController();
   final TextEditingController _nativePlaceController = TextEditingController();
   final TextEditingController _currentCityController = TextEditingController();
+  final TextEditingController _occupationController = TextEditingController();
+  final TextEditingController _educationController = TextEditingController();
   final TextEditingController _otpController = TextEditingController();
+  final TextEditingController _familyIdController = TextEditingController();
+  final TextEditingController _familyHeadPhoneController = TextEditingController();
+  final TextEditingController _motherNameController = TextEditingController();
+  final TextEditingController _spouseNameController = TextEditingController();
 
   // Selected State variables
   String _selectedGender = 'Male';
@@ -41,7 +65,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
   String _selectedMaritalStatus = 'Single';
   String _selectedState = 'Maharashtra';
   String _selectedAvatar = 'avatar_male_1';
+  String _selectedBloodGroup = 'B+';
+  String _selectedRelationshipToHead = 'Self';
   bool _acceptedTerms = false;
+
+  final List<String> _bloodGroups = ['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'];
 
   // OTP & Firebase Auth State
   bool _isOtpSent = false;
@@ -88,7 +116,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _mobileController.dispose();
     _nativePlaceController.dispose();
     _currentCityController.dispose();
+    _occupationController.dispose();
+    _educationController.dispose();
     _otpController.dispose();
+    _familyIdController.dispose();
+    _familyHeadPhoneController.dispose();
+    _motherNameController.dispose();
+    _spouseNameController.dispose();
     super.dispose();
   }
 
@@ -105,7 +139,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       lastDate: lastDate,
       builder: (context, child) {
         return Theme(
-          data: widget.isDarkMode
+          data: isDarkMode
               ? ThemeData.dark().copyWith(
                   colorScheme: const ColorScheme.dark(
                     primary: Color(0xFFE67E22),
@@ -132,11 +166,38 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
   }
 
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      final ImagePicker picker = ImagePicker();
+      final XFile? image = await picker.pickImage(
+        source: source,
+        maxWidth: 512,
+        maxHeight: 512,
+        imageQuality: 75,
+      );
+
+      if (image != null) {
+        final bytes = await image.readAsBytes();
+        final base64Str = 'data:image/jpeg;base64,${base64Encode(bytes)}';
+        setState(() {
+          _selectedAvatar = base64Str;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error picking image: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to capture photo: $e')),
+        );
+      }
+    }
+  }
+
   // Avatar Picker Dialog
   void _openAvatarPicker() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: widget.isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
+      backgroundColor: isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -147,14 +208,53 @@ class _RegisterScreenState extends State<RegisterScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                'Select Profile Photo / Avatar',
+                'Upload Profile Photo',
                 style: GoogleFonts.poppins(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: widget.isDarkMode ? Colors.white : Colors.black87,
+                  color: isDarkMode ? Colors.white : Colors.black87,
                 ),
               ),
               const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      _pickImage(ImageSource.camera);
+                    },
+                    icon: const Icon(Icons.camera_alt_rounded, color: Colors.white),
+                    label: const Text('Open Camera', style: TextStyle(color: Colors.white)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFE67E22),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    ),
+                  ),
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      _pickImage(ImageSource.gallery);
+                    },
+                    icon: const Icon(Icons.photo_library_rounded, color: Colors.white),
+                    label: const Text('From Gallery', style: TextStyle(color: Colors.white)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF2E7D32),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              Text(
+                'Or select a template avatar:',
+                style: GoogleFonts.inter(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey,
+                ),
+              ),
+              const SizedBox(height: 12),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
@@ -163,21 +263,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   _avatarChoice('avatar_male_2', Icons.face_4_rounded, Colors.teal),
                   _avatarChoice('avatar_generic', Icons.account_circle_rounded, Colors.orange),
                 ],
-              ),
-              const SizedBox(height: 20),
-              ElevatedButton.icon(
-                onPressed: () {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Custom gallery photo selected for profile.')),
-                  );
-                },
-                icon: const Icon(Icons.photo_library_rounded),
-                label: const Text('Upload from Gallery'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF2E7D32),
-                  minimumSize: const Size(double.infinity, 48),
-                ),
               ),
             ],
           ),
@@ -517,8 +602,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
           'city': _currentCityController.text.trim(),
           'state': _selectedState,
           'maritalStatus': _selectedMaritalStatus,
-          'occupation': '',
+          'occupation': _occupationController.text.trim(),
+          'education': _educationController.text.trim(),
+          'bloodGroup': _selectedBloodGroup,
           'profilePhoto': _selectedAvatar,
+          'familyId': _familyIdController.text.trim(),
+          'familyName': _surnameController.text.trim(),
+          'relationshipToHead': _selectedRelationshipToHead,
+          'motherName': _motherNameController.text.trim(),
+          'spouseName': _spouseNameController.text.trim(),
+          'familyHeadPhone': _familyHeadPhoneController.text.trim().isNotEmpty
+              ? (_familyHeadPhoneController.text.trim().startsWith('+')
+                  ? _familyHeadPhoneController.text.trim()
+                  : '+91${_familyHeadPhoneController.text.trim()}')
+              : '',
         }),
       );
 
@@ -535,7 +632,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           context: context,
           barrierDismissible: false,
           builder: (BuildContext dialogContext) {
-            final isDark = widget.isDarkMode;
+            final isDark = isDarkMode;
             return AlertDialog(
               backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
@@ -630,7 +727,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = widget.isDarkMode;
+    final isDark = isDarkMode;
 
     final bgGradient = LinearGradient(
       colors: isDark
@@ -759,7 +856,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             ),
                           ),
                           IconButton(
-                            onPressed: widget.onToggleTheme,
+                            onPressed: () {
+                              ref.read(themeModeProvider.notifier).toggleTheme();
+                            },
                             icon: Icon(
                               isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
                               color: isDark ? Colors.white : Colors.grey.shade700,
@@ -783,15 +882,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                     CircleAvatar(
                                       radius: 46,
                                       backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.15),
-                                      child: Icon(
-                                        _selectedAvatar == 'avatar_female_1'
-                                            ? Icons.face_3_rounded
-                                            : _selectedAvatar == 'avatar_male_2'
-                                                ? Icons.face_4_rounded
-                                                : Icons.face_rounded,
-                                        size: 56,
-                                        color: theme.colorScheme.primary,
-                                      ),
+                                      backgroundImage: (_selectedAvatar.startsWith('data:image') || _selectedAvatar.length > 100)
+                                          ? MemoryImage(base64Decode(_selectedAvatar.split(',').last))
+                                          : null,
+                                      child: (_selectedAvatar.startsWith('data:image') || _selectedAvatar.length > 100)
+                                          ? null
+                                          : Icon(
+                                              _selectedAvatar == 'avatar_female_1'
+                                                  ? Icons.face_3_rounded
+                                                  : _selectedAvatar == 'avatar_male_2'
+                                                      ? Icons.face_4_rounded
+                                                      : Icons.face_rounded,
+                                              size: 56,
+                                              color: theme.colorScheme.primary,
+                                            ),
                                     ),
                                     Positioned(
                                       bottom: 0,
@@ -894,6 +998,33 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 ),
                               ],
                             ),
+                            const SizedBox(height: 16),
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(
+                                  child: _buildTextField(
+                                    controller: _occupationController,
+                                    label: 'Occupation',
+                                    hint: 'e.g. Software Architect',
+                                    icon: Icons.work_rounded,
+                                    validator: (val) => val == null || val.trim().isEmpty ? 'Occupation is required' : null,
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: _buildTextField(
+                                    controller: _educationController,
+                                    label: 'Education',
+                                    hint: 'e.g. B.E. Computer Engineering',
+                                    icon: Icons.school_rounded,
+                                    validator: (val) => val == null || val.trim().isEmpty ? 'Education is required' : null,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            _buildBloodGroupField(isDark),
                           ] else ...[
                             // Stacked responsive layout on mobile (Date of Birth placed high up right after Full Name & Surname!)
                             _buildTextField(
@@ -904,7 +1035,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               validator: (val) => val == null || val.trim().isEmpty ? 'Full Name is required' : null,
                             ),
                             const SizedBox(height: 16),
-
+ 
                             _buildTextField(
                               controller: _surnameController,
                               label: 'Surname / Family Name',
@@ -913,11 +1044,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               validator: (val) => val == null || val.trim().isEmpty ? 'Surname is required' : null,
                             ),
                             const SizedBox(height: 16),
-
+ 
                             // Date of Birth prominently near top
                             _buildDobField(isDark, theme),
                             const SizedBox(height: 16),
-
+ 
                             _buildTextField(
                               controller: _fatherNameController,
                               label: "Father's Name",
@@ -926,12 +1057,85 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               validator: (val) => val == null || val.trim().isEmpty ? "Father's Name is required" : null,
                             ),
                             const SizedBox(height: 16),
-
+ 
                             _buildGenderField(isDark, theme),
                             const SizedBox(height: 16),
-
+ 
                             _buildMaritalStatusField(isDark),
+                            const SizedBox(height: 16),
+
+                            _buildTextField(
+                              controller: _occupationController,
+                              label: 'Occupation',
+                              hint: 'e.g. Software Architect',
+                              icon: Icons.work_rounded,
+                              validator: (val) => val == null || val.trim().isEmpty ? 'Occupation is required' : null,
+                            ),
+                            const SizedBox(height: 16),
+
+                            _buildTextField(
+                              controller: _educationController,
+                              label: 'Education',
+                              hint: 'e.g. B.E. Computer Engineering',
+                              icon: Icons.school_rounded,
+                              validator: (val) => val == null || val.trim().isEmpty ? 'Education is required' : null,
+                            ),
+                            const SizedBox(height: 16),
+
+                            _buildBloodGroupField(isDark),
                           ],
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Section 1.5: Family Details Card
+                      _buildSectionCard(
+                        title: 'Family Details',
+                        icon: Icons.family_restroom_rounded,
+                        isDark: isDark,
+                        children: [
+                          _buildTextField(
+                            controller: _familyIdController,
+                            label: 'Family ID',
+                            hint: 'e.g. CHAUHAN-001',
+                            icon: Icons.qr_code_rounded,
+                            validator: (val) => val == null || val.trim().isEmpty ? 'Family ID is required' : null,
+                          ),
+                          const SizedBox(height: 16),
+                          _buildRelationshipToHeadField(isDark),
+                          const SizedBox(height: 16),
+                          _buildTextField(
+                            controller: _familyHeadPhoneController,
+                            label: 'Family Head Phone Number',
+                            hint: '10-digit number',
+                            icon: Icons.contact_phone_rounded,
+                            keyboardType: TextInputType.phone,
+                            maxLength: 10,
+                            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                            validator: (val) {
+                              if (val == null || val.trim().isEmpty) {
+                                return 'Family Head Phone Number is required';
+                              }
+                              if (val.trim().length != 10) {
+                                return 'Enter 10 digits';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 16),
+                          _buildTextField(
+                            controller: _motherNameController,
+                            label: "Mother's Full Name (Optional)",
+                            hint: 'e.g. Suman Devi',
+                            icon: Icons.person_2_rounded,
+                          ),
+                          const SizedBox(height: 16),
+                          _buildTextField(
+                            controller: _spouseNameController,
+                            label: 'Spouse Name (Optional)',
+                            hint: 'e.g. Aarti Chauhan',
+                            icon: Icons.favorite_border_rounded,
+                          ),
                         ],
                       ),
                       const SizedBox(height: 16),
@@ -1223,7 +1427,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     List<TextInputFormatter>? inputFormatters,
     String? Function(String?)? validator,
   }) {
-    final isDark = widget.isDarkMode;
+    final isDark = isDarkMode;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1387,6 +1591,44 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
+  // Helper widget for Blood Group dropdown
+  Widget _buildBloodGroupField(bool isDark) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Blood Group',
+          style: GoogleFonts.inter(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: isDark ? Colors.grey.shade300 : Colors.grey.shade800,
+          ),
+        ),
+        const SizedBox(height: 8),
+        DropdownButtonFormField<String>(
+          initialValue: _selectedBloodGroup,
+          decoration: const InputDecoration(
+            prefixIcon: Icon(Icons.bloodtype_rounded),
+            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          ),
+          items: _bloodGroups.map((group) {
+            return DropdownMenuItem(
+              value: group,
+              child: Text(group),
+            );
+          }).toList(),
+          onChanged: (val) {
+            if (val != null) {
+              setState(() {
+                _selectedBloodGroup = val;
+              });
+            }
+          },
+        ),
+      ],
+    );
+  }
+
   // Helper widget for State dropdown
   Widget _buildStateField(bool isDark) {
     return Column(
@@ -1417,6 +1659,56 @@ class _RegisterScreenState extends State<RegisterScreen> {
             if (val != null) {
               setState(() {
                 _selectedState = val;
+              });
+            }
+          },
+        ),
+      ],
+    );
+  }
+
+  // Helper widget for Relationship dropdown
+  Widget _buildRelationshipToHeadField(bool isDark) {
+    final List<String> options = [
+      'Self',
+      'Son',
+      'Daughter',
+      'Father',
+      'Mother',
+      'Husband',
+      'Wife',
+      'Grandfather',
+      'Grandmother',
+      'Other'
+    ];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Relationship to Family Head',
+          style: GoogleFonts.inter(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: isDark ? Colors.grey.shade300 : Colors.grey.shade800,
+          ),
+        ),
+        const SizedBox(height: 8),
+        DropdownButtonFormField<String>(
+          value: _selectedRelationshipToHead,
+          decoration: const InputDecoration(
+            prefixIcon: Icon(Icons.people_rounded),
+            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          ),
+          items: options.map((opt) {
+            return DropdownMenuItem(
+              value: opt,
+              child: Text(opt),
+            );
+          }).toList(),
+          onChanged: (val) {
+            if (val != null) {
+              setState(() {
+                _selectedRelationshipToHead = val;
               });
             }
           },

@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../constants/app_colors.dart';
@@ -67,7 +68,15 @@ class MemberCard extends ConsumerWidget {
                         height: 54,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          gradient: AppColors.avatarGradient,
+                          image: (member.avatarUrl.startsWith('data:image') || member.avatarUrl.length > 100)
+                              ? DecorationImage(
+                                  image: MemoryImage(base64Decode(member.avatarUrl.split(',').last)),
+                                  fit: BoxFit.cover,
+                                )
+                              : null,
+                          gradient: (member.avatarUrl.startsWith('data:image') || member.avatarUrl.length > 100)
+                              ? null
+                              : AppColors.avatarGradient,
                           boxShadow: [
                             BoxShadow(
                               color: AppColors.accentBlue.withValues(alpha: 0.3),
@@ -76,16 +85,18 @@ class MemberCard extends ConsumerWidget {
                             ),
                           ],
                         ),
-                        child: Center(
-                          child: Text(
-                            member.initials,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 18,
-                            ),
-                          ),
-                        ),
+                        child: (member.avatarUrl.startsWith('data:image') || member.avatarUrl.length > 100)
+                            ? null
+                            : Center(
+                                child: Text(
+                                  member.initials,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 18,
+                                  ),
+                                ),
+                              ),
                       ),
                     ),
                     const SizedBox(width: 12),

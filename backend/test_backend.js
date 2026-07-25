@@ -51,7 +51,7 @@ const cleanupDatabase = async () => {
   const testPhone = '+919999999999';
   
   console.log(`Deleting test user: ${testPhone}`);
-  await mongoose.connection.db.collection('users').deleteMany({ phoneNumber: testPhone });
+  await mongoose.connection.db.collection('directory').deleteMany({ phoneNumber: testPhone });
   
   console.log(`Deleting test OTPs for: ${testPhone}`);
   await mongoose.connection.db.collection('otp_verifications').deleteMany({ phone: testPhone });

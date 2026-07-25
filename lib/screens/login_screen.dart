@@ -1,6 +1,10 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../api_config.dart';
+import '../providers/theme_provider.dart';
+import '../providers/auth_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -8,21 +12,14 @@ import '../widgets/mobile_input_form.dart';
 import '../widgets/otp_verification_form.dart';
 import 'register_screen.dart';
 
-class LoginScreen extends StatefulWidget {
-  final bool isDarkMode;
-  final VoidCallback onToggleTheme;
-
-  const LoginScreen({
-    super.key,
-    required this.isDarkMode,
-    required this.onToggleTheme,
-  });
+class LoginScreen extends ConsumerStatefulWidget {
+  const LoginScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _LoginScreenState extends ConsumerState<LoginScreen> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
   // Navigation/Auth State: 'phone' or 'otp'
@@ -167,11 +164,21 @@ class _LoginScreenState extends State<LoginScreen> {
       final data = jsonDecode(response.body);
 
       if (response.statusCode == 200 && data['success'] == true) {
+        // Fetch registered user profile from MongoDB
+        final userModel = await AuthService.fetchUserProfile(sanitizedPhone);
         if (mounted) {
           setState(() {
             _isVerifyingOtp = false;
           });
-          _showSuccessSnackBar('Login Successful! Welcome to KutumbSetu.');
+          
+          if (userModel != null) {
+            ref.read(currentUserProvider.notifier).state = userModel;
+            _showSuccessSnackBar('Login Successful! Welcome to KutumbSetu.');
+            context.go('/home');
+          } else {
+            _showSuccessSnackBar('Mobile verified. Please complete your registration.');
+            context.push('/register', extra: sanitizedPhone);
+          }
         }
       } else {
         if (mounted) {
@@ -249,21 +256,14 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _navigateToRegister() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => RegisterScreen(
-          isDarkMode: widget.isDarkMode,
-          onToggleTheme: widget.onToggleTheme,
-        ),
-      ),
-    );
+    context.push('/register');
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = widget.isDarkMode;
+    final themeMode = ref.watch(themeModeProvider);
+    final isDark = themeMode == ThemeMode.dark;
 
     // Soft saffon-to-white / saffron-to-dark gradient background
     final bgGradient = LinearGradient(
@@ -296,7 +296,9 @@ class _LoginScreenState extends State<LoginScreen> {
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     IconButton(
-                      onPressed: widget.onToggleTheme,
+                      onPressed: () {
+                        ref.read(themeModeProvider.notifier).toggleTheme();
+                      },
                       icon: Icon(
                         isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
                         color: isDark ? Colors.white : Colors.grey.shade700,

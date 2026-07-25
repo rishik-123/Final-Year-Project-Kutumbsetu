@@ -56,6 +56,40 @@ const userSchema = new mongoose.Schema({
     default: '',
     trim: true,
   },
+  education: {
+    type: String,
+    default: '',
+    trim: true,
+  },
+  bloodGroup: {
+    type: String,
+    default: '',
+    trim: true,
+  },
+  familyId: {
+    type: String,
+    trim: true,
+  },
+  familyName: {
+    type: String,
+    trim: true,
+  },
+  relationshipToHead: {
+    type: String,
+    trim: true,
+  },
+  motherName: {
+    type: String,
+    trim: true,
+  },
+  spouseName: {
+    type: String,
+    trim: true,
+  },
+  familyHeadPhone: {
+    type: String,
+    trim: true,
+  },
   profilePhoto: {
     type: String,
     trim: true,
@@ -66,4 +100,8 @@ const userSchema = new mongoose.Schema({
   },
 });
 
-module.exports = mongoose.model('User', userSchema, 'users');
+const User = mongoose.model('User', userSchema, 'users');
+const DirectoryUser = mongoose.model('DirectoryUser', userSchema, 'directory');
+User.DirectoryUser = DirectoryUser;
+
+module.exports = User;

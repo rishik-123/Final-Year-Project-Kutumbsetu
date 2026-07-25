@@ -1,11 +1,18 @@
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'providers/theme_provider.dart';
 import 'routes/app_router.dart';
-import 'theme/app_theme.dart';
+import 'theme.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  try {
+    await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  } catch (e) {
+    print('Firebase initialization skipped or failed: $e');
+  }
   runApp(
     const ProviderScope(
       child: KutumbSetuApp(),
@@ -21,7 +28,7 @@ class KutumbSetuApp extends ConsumerWidget {
     final themeMode = ref.watch(themeModeProvider);
 
     return MaterialApp.router(
-      title: 'KutumbSetu Member Directory',
+      title: 'KutumbSetu',
       debugShowCheckedModeBanner: false,
       theme: KutumbSetuTheme.lightTheme,
       darkTheme: KutumbSetuTheme.darkTheme,

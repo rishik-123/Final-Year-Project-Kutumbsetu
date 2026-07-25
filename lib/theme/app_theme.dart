@@ -57,7 +57,6 @@ class KutumbSetuTheme {
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: false,
-        scaffoldModeBanner: false,
       ),
     );
   }

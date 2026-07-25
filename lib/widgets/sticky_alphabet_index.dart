@@ -39,44 +39,47 @@ class StickyAlphabetIndex extends StatelessWidget {
           width: 1,
         ),
       ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: AppConstants.alphabetIndex.map((letter) {
-          final bool isAvailable = availableLetters.contains(letter);
-          final bool isActive = activeLetter == letter;
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: AppConstants.alphabetIndex.map((letter) {
+            final bool isAvailable = availableLetters.contains(letter);
+            final bool isActive = activeLetter == letter;
 
-          return GestureDetector(
-            onTap: isAvailable ? () => onLetterTap(letter) : null,
-            behavior: HitTestBehavior.opaque,
-            child: Container(
-              width: 20,
-              height: 20,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: isActive
-                    ? AppColors.accentBlue
-                    : (isAvailable ? Colors.transparent : Colors.transparent),
-              ),
-              child: Text(
-                letter,
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: isActive ? FontWeight.bold : FontWeight.w600,
+            return GestureDetector(
+              onTap: isAvailable ? () => onLetterTap(letter) : null,
+              behavior: HitTestBehavior.opaque,
+              child: Container(
+                width: 20,
+                height: 20,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
                   color: isActive
-                      ? Colors.white
-                      : (isAvailable
-                          ? (isDark
-                              ? AppColors.textPrimaryDark
-                              : AppColors.primaryBlue)
-                          : (isDark
-                              ? Colors.white24
-                              : Colors.black26)),
+                      ? AppColors.accentBlue
+                      : (isAvailable ? Colors.transparent : Colors.transparent),
+                ),
+                child: Text(
+                  letter,
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: isActive ? FontWeight.bold : FontWeight.w600,
+                    color: isActive
+                        ? Colors.white
+                        : (isAvailable
+                            ? (isDark
+                                ? AppColors.textPrimaryDark
+                                : AppColors.primaryBlue)
+                            : (isDark
+                                ? Colors.white24
+                                : Colors.black26)),
+                  ),
                 ),
               ),
-            ),
-          );
-        }).toList(),
+            );
+          }).toList(),
+        ),
       ),
     );
   }

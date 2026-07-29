@@ -19,8 +19,8 @@ class CommunityFeedScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: kBgColor,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
+        backgroundColor: kCardColor,
+        elevation: 1,
         title: const Text(
           "Community Feed",
           style: TextStyle(color: kTextColor, fontWeight: FontWeight.bold),
@@ -28,14 +28,14 @@ class CommunityFeedScreen extends StatelessWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.add_box_outlined, color: kTextColor),
-            onPressed: () {}, // Add post
+            onPressed: () {}, // Handle new post creation
           )
         ],
       ),
       body: ListView(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(vertical: 8),
         children: const [
-          // 1. STANDARD PHOTO POST
+          // 1. STANDARD PHOTO POST (Instagram Style)
           PostCard(
             avatarText: "VJ",
             avatarColor: kPeacock,
@@ -43,20 +43,21 @@ class CommunityFeedScreen extends StatelessWidget {
             timeLocation: "10 mins ago • Nadiad",
             badgeText: "Community",
             content: "Great turnout at the youth sports meet today! Proud of our community talent.",
+            likesCount: 124,
+            commentsCount: 12,
             mediaWidget: _PlaceholderMedia(icon: Icons.sports_cricket, color: kPeacock),
           ),
           
-          // 2. REEL / VIDEO POST
-          PostCard(
+          // 2. REEL / VIDEO POST (Instagram Reels Style)
+          InstagramStyleReel(
             avatarText: "NC",
             avatarColor: kSaffron,
             authorName: "Nikita Chauhan",
-            timeLocation: "2 hours ago • Ahmedabad",
-            badgeText: "Reel",
-            badgeColor: Color(0xFFFCE4EC),
-            badgeTextColor: Color(0xFFC2185B),
-            content: "Glimpses from the Navratri Garba practice! 💃✨",
-            mediaWidget: _ReelPlaceholder(),
+            caption: "Glimpses from the Navratri Garba practice! 💃✨ #DarjiSamaj #Garba",
+            audioTrack: "Original Audio - Nikita Chauhan",
+            likesCount: "1.2K",
+            commentsCount: "45",
+            sharesCount: "120",
           ),
 
           // 3. CELEBRATION POST (Newborn / Marriage)
@@ -70,6 +71,8 @@ class CommunityFeedScreen extends StatelessWidget {
             badgeTextColor: Color(0xFFC2185B),
             eventHighlightTitle: "Blessed with a Baby Boy! 🍼🐣",
             content: "By the grace of Kuldevi, we are thrilled to announce the arrival of our baby boy, Arjun. Seeking blessings from all elders.",
+            likesCount: 512,
+            commentsCount: 108,
           ),
 
           // 4. JOB ADVERTISEMENT (Classified)
@@ -106,6 +109,8 @@ class CommunityFeedScreen extends StatelessWidget {
             badgeTextColor: Color(0xFF424242),
             isObituary: true,
             content: "Late Shri Chhotalal Chauhan\n(1928 - 2026)\n\nWith deep sorrow, we inform you of the sad demise of our beloved grandfather. The Besnu (prayer meeting) will be held on...",
+            likesCount: 840,
+            commentsCount: 230,
           ),
         ],
       ),
@@ -113,7 +118,7 @@ class CommunityFeedScreen extends StatelessWidget {
   }
 }
 
-// --- REUSABLE POST CARD WIDGET ---
+// --- STANDARD POST CARD (Instagram Style Likes/Comments/Reposts) ---
 class PostCard extends StatelessWidget {
   final String avatarText;
   final Color avatarColor;
@@ -126,6 +131,8 @@ class PostCard extends StatelessWidget {
   final Widget? mediaWidget;
   final String? eventHighlightTitle;
   final bool isObituary;
+  final int likesCount;
+  final int commentsCount;
 
   const PostCard({
     super.key,
@@ -140,12 +147,14 @@ class PostCard extends StatelessWidget {
     this.mediaWidget,
     this.eventHighlightTitle,
     this.isObituary = false,
+    this.likesCount = 0,
+    this.commentsCount = 0,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 14),
+      margin: const EdgeInsets.only(bottom: 14, left: 12, right: 12),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: kCardColor,
@@ -153,8 +162,8 @@ class PostCard extends StatelessWidget {
         border: Border.all(color: kDivider),
         boxShadow: const [
           BoxShadow(
-            color: Color.fromRGBO(33, 26, 15, 0.06),
-            blurRadius: 14,
+            color: Color.fromRGBO(33, 26, 15, 0.04),
+            blurRadius: 10,
             offset: Offset(0, 2),
           )
         ],
@@ -170,8 +179,7 @@ class PostCard extends StatelessWidget {
                 radius: 19,
                 child: Text(
                   avatarText,
-                  style: const TextStyle(
-                      color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                  style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
                 ),
               ),
               const SizedBox(width: 10),
@@ -199,7 +207,7 @@ class PostCard extends StatelessWidget {
           ),
           const SizedBox(height: 10),
 
-          // Event Highlight Box (If applicable)
+          // Event Highlight Box (Newborn/Marriage)
           if (eventHighlightTitle != null)
             Container(
               width: double.infinity,
@@ -217,38 +225,226 @@ class PostCard extends StatelessWidget {
               ),
             ),
 
-          // Body Text
+          // Content
           Text(
-            content,
+            content, 
             textAlign: isObituary ? TextAlign.center : TextAlign.start,
-            style: const TextStyle(fontSize: 12.5, height: 1.48, color: kTextColor),
+            style: const TextStyle(fontSize: 12.5, height: 1.48, color: kTextColor)
           ),
 
-          // Media (Photo/Reel)
+          // Media (Photo)
           if (mediaWidget != null) ...[
             const SizedBox(height: 10),
             mediaWidget!,
           ],
 
-          // Footer Actions
-          const Padding(
-            padding: EdgeInsets.only(top: 10),
-            child: Divider(color: kDivider, height: 1),
+          // Instagram-style Action Bar
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              const Icon(Icons.favorite_border, size: 26, color: kTextColor),
+              const SizedBox(width: 16),
+              const Icon(Icons.chat_bubble_outline, size: 24, color: kTextColor),
+              const SizedBox(width: 16),
+              const Icon(Icons.send_outlined, size: 24, color: kTextColor), // Share
+              const Spacer(),
+              const Icon(Icons.repeat, size: 24, color: kTextSoft), // Repost
+            ],
           ),
-          Padding(
-            padding: const EdgeInsets.only(top: 8),
-            child: Row(
-              children: [
-                _ActionBtn(icon: Icons.favorite_border, text: "Like"),
-                const SizedBox(width: 18),
-                _ActionBtn(icon: Icons.chat_bubble_outline, text: "Comment"),
-                const SizedBox(width: 18),
-                _ActionBtn(icon: Icons.send, text: "Share"),
-              ],
+          
+          const SizedBox(height: 8),
+          
+          // Likes & Comments Text
+          Text(
+            "$likesCount likes",
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: kTextColor),
+          ),
+          const SizedBox(height: 4),
+          if (commentsCount > 0)
+            Text(
+              "View all $commentsCount comments",
+              style: const TextStyle(fontSize: 12, color: kTextSoft),
             ),
+          const SizedBox(height: 4),
+          
+          // Add comment placeholder
+          Row(
+            children: [
+              const CircleAvatar(
+                backgroundColor: kDivider,
+                radius: 12,
+                child: Icon(Icons.person, size: 16, color: Colors.white),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text("Add a comment...", style: TextStyle(fontSize: 12, color: kTextSoft.withOpacity(0.7))),
+              ),
+            ],
           )
         ],
       ),
+    );
+  }
+}
+
+// --- INSTAGRAM-STYLE REEL WIDGET ---
+class InstagramStyleReel extends StatelessWidget {
+  final String avatarText;
+  final Color avatarColor;
+  final String authorName;
+  final String caption;
+  final String audioTrack;
+  final String likesCount;
+  final String commentsCount;
+  final String sharesCount;
+
+  const InstagramStyleReel({
+    super.key,
+    required this.avatarText,
+    required this.avatarColor,
+    required this.authorName,
+    required this.caption,
+    required this.audioTrack,
+    required this.likesCount,
+    required this.commentsCount,
+    required this.sharesCount,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    // Fixed height for feed scrolling. If you want true full screen, 
+    // this would be used inside a PageView.builder with height: MediaQuery.of(context).size.height
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      height: 600, 
+      decoration: const BoxDecoration(
+        color: Colors.black,
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xFF2C2C2C), Color(0xFF111111)],
+        ),
+      ),
+      child: Stack(
+        children: [
+          // Play Button Indicator (Center)
+          const Center(
+            child: Icon(Icons.play_arrow, color: Colors.white54, size: 80),
+          ),
+          
+          // Bottom Left: User Info & Caption
+          Positioned(
+            bottom: 20,
+            left: 12,
+            right: 80, // Leave space for right column
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    CircleAvatar(
+                      backgroundColor: avatarColor,
+                      radius: 16,
+                      child: Text(avatarText, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(authorName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.white),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: const Text("Follow", style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                    )
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  caption,
+                  style: const TextStyle(color: Colors.white, fontSize: 13),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    const Icon(Icons.music_note, color: Colors.white, size: 14),
+                    const SizedBox(width: 6),
+                    Text(audioTrack, style: const TextStyle(color: Colors.white, fontSize: 12)),
+                  ],
+                ),
+              ],
+            ),
+          ),
+
+          // Bottom Right: Action Column (Like, Comment, Share, Repost, Audio)
+          Positioned(
+            bottom: 20,
+            right: 12,
+            child: Column(
+              children: [
+                _ReelAction(icon: Icons.favorite_border, label: likesCount),
+                const SizedBox(height: 20),
+                _ReelAction(icon: Icons.chat_bubble_outline, label: commentsCount),
+                const SizedBox(height: 20),
+                _ReelAction(icon: Icons.send_outlined, label: sharesCount),
+                const SizedBox(height: 20),
+                const _ReelAction(icon: Icons.repeat, label: "Repost"),
+                const SizedBox(height: 24),
+                // Audio Track Image/Box
+                Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: Colors.white24,
+                    border: Border.all(color: Colors.white, width: 2),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(Icons.multitrack_audio, color: Colors.white, size: 18),
+                )
+              ],
+            ),
+          ),
+          
+          // Badge at top
+          Positioned(
+            top: 16,
+            left: 12,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.black45,
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: const Text("Reel", style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// --- REEL ACTION HELPER ---
+class _ReelAction extends StatelessWidget {
+  final IconData icon;
+  final String label;
+
+  const _ReelAction({required this.icon, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Icon(icon, color: Colors.white, size: 30),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+        ),
+      ],
     );
   }
 }
@@ -279,7 +475,7 @@ class AdCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 14),
+      margin: const EdgeInsets.only(bottom: 14, left: 12, right: 12),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: bgColor,
@@ -330,24 +526,7 @@ class AdCard extends StatelessWidget {
   }
 }
 
-// --- HELPERS ---
-class _ActionBtn extends StatelessWidget {
-  final IconData icon;
-  final String text;
-  const _ActionBtn({required this.icon, required this.text});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Icon(icon, size: 16, color: kTextSoft),
-        const SizedBox(width: 4),
-        Text(text, style: const TextStyle(fontSize: 11.5, color: kTextSoft, fontWeight: FontWeight.w600)),
-      ],
-    );
-  }
-}
-
+// --- PHOTO PLACEHOLDER HELPER ---
 class _PlaceholderMedia extends StatelessWidget {
   final IconData icon;
   final Color color;
@@ -356,48 +535,13 @@ class _PlaceholderMedia extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 200,
+      height: 250,
       width: double.infinity,
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withOpacity(0.08),
         borderRadius: BorderRadius.circular(12),
       ),
-      child: Icon(icon, size: 40, color: color),
-    );
-  }
-}
-
-class _ReelPlaceholder extends StatelessWidget {
-  const _ReelPlaceholder();
-
-  @override
-  Widget build(BuildContext context) {
-    return AspectRatio(
-      aspectRatio: 9 / 16,
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(colors: [Color(0xFF1a1a1a), Color(0xFF333333)]),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-              child: const Icon(Icons.play_arrow, color: kSaffron, size: 30),
-            ),
-            const Positioned(
-              bottom: 12,
-              left: 12,
-              child: Text(
-                "▶ 1.2K views   ⏱ 0:45",
-                style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
-              ),
-            )
-          ],
-        ),
-      ),
+      child: Icon(icon, size: 50, color: color),
     );
   }
 }

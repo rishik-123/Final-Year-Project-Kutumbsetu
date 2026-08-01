@@ -8,6 +8,11 @@ import '../models/user_model.dart';
 import '../providers/auth_provider.dart';
 import '../providers/theme_provider.dart';
 import 'family_tree_screen.dart';
+import 'matrimonial/matrimonial_hub_screen.dart';
+import 'profile_completion_screen.dart';
+import '../community/community_feed.dart';
+import 'package:http/http.dart' as http;
+import '../api_config.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -20,6 +25,125 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   int _currentIndex = 0;
   final PageController _newsPageController = PageController();
   int _activeNewsIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+  }
+
+  bool _showLanguageToggle = false;
+  bool _isGujarati = false;
+
+  final Map<String, String> _translations = {
+    'Jay Shree Krishna': 'જય શ્રી કૃષ્ણ',
+    'Search families, villages, members...': 'પરિવારો, ગામો, સભ્યો શોધો...',
+    'Quick actions': 'ઝડપી કાર્યો',
+    'Family Tree': 'કુટુંબ વૃક્ષ',
+    'Directory': 'ડિરેક્ટરી',
+    'Matrimony': 'લગ્નવિષયક',
+    'Events': 'કાર્યક્રમો',
+    'Donations': 'દાન',
+    'News': 'સમાચાર',
+    'Business': 'વ્યવસાય',
+    'More': 'વધુ',
+    'Birthdays today 🎂': 'આજના જન્મદિવસ 🎂',
+    'See all': 'બધા જુઓ',
+    'Recent Samaj News 📰': 'તાજેતરના સમાજ સમાચાર 📰',
+    'Upcoming events': 'આગામી કાર્યક્રમો',
+    'Featured families': 'વિશિષ્ટ પરિવારો',
+    'Community at a glance': 'સમાજ એક નજરમાં',
+    'Community Posts & Feed': 'સમાજ પોસ્ટ્સ અને ફીડ',
+    'Explore': 'શોધો',
+    'Families': 'પરિવારો',
+    'Members': 'સભ્યો',
+    'Villages': 'ગામો',
+    'Generations': 'પેઢીઓ',
+    'Posts': 'પોસ્ટ્સ',
+    'Share': 'શેર કરો',
+    'Trust election notice': 'ટ્રસ્ટ ચૂંટણી નોટિસ',
+    'Annual Trust elections will be held on 29th Aug at Community Bhavan, Rajkot.': 'વાર્ષિક ટ્રસ્ટની ચૂંટણી ૨૯ ઓગસ્ટે કોમ્યુનિટી ભવન, રાજકોટ ખાતે યોજાશે.',
+    'Samuh Lagna Sammelan': 'સમૂહ લગ્ન સંમેલન',
+    'Blood Donation Camp': 'રક્તદાન કેમ્પ',
+    'Youth Sports Meet': 'યુવા રમતગમત મહોત્સવ',
+    'Community Hall, Ahmedabad': 'કોમ્યુનિટી હોલ, અમદાવાદ',
+    'Darji Samaj Bhavan, Surat': 'દરજી સમાજ ભવન, સુરત',
+    'Rajkot Ground No. 3': 'રાજકોટ ગ્રાઉન્ડ નં. ૩',
+    'Chauhan Parivar': 'ચૌહાણ પરિવાર',
+    'Parekh Parivar': 'પારેખ પરિવાર',
+    'Joshi Parivar': 'જોશી પરિવાર',
+    'Vadodara - 6 gen.': 'વડોદરા - ૬ પેઢી',
+    'Surat - 5 gen.': 'સુરત - ૫ પેઢી',
+    'Rajkot - 4 gen.': 'રાજકોટ - ૪ પેઢી',
+    '240 members': '૨૪૦ સભ્યો',
+    '185 members': '૧૮૫ સભ્યો',
+    '312 members': '૩૧૨ સભ્યો',
+    'Announcement': 'જાહેરાત',
+    'Social Work': 'સામાજિક કાર્ય',
+    'Achievement': 'સિદ્ધિ',
+    'Jay Shree Krishna to all samaj members! Welcome to our new digital platform KutumbSetu. Connect with family lineage, business directory, and upcoming events seamlessly.': 'તમામ સમાજ સભ્યોને જય શ્રી કૃષ્ણ! અમારા નવા ડિજિટલ પ્લેટફોર્મ કુટુંબસેતુમાં આપનું સ્વાગત છે. પારિવારિક વંશાવળી, વ્યવસાય ડિરેક્ટરી અને આગામી કાર્યક્રમો સાથે એકીકૃત રીતે જોડાઓ.',
+    'Our Samaj Blood Donation Camp date has been confirmed for 2nd August at Surat. Requesting all youth members to register and donate blood for this noble cause. 🙏': 'અમારા સમાજ રક્તદાન કેમ્પની તારીખ ૨ ઓગસ્ટ સુરત ખાતે નક્કી કરવામાં આવી છે. આ ઉમદા કાર્ય માટે તમામ યુવા સભ્યોને રજીસ્ટર કરવા અને રક્તદાન કરવા વિનંતી છે. 🙏',
+    'Feeling proud to announce that my sister Nikita Chauhan has cleared Chartered Accountancy (CA) exams with distinction! Thanks to elder\'s blessings. 🎓✨': 'મારી બહેન નિકિતા ચૌહાણે ચાર્ટર્ડ એકાઉન્ટન્સી (CA) ની પરીક્ષા ગૌરવપૂર્વક પાસ કરી છે તે જાહેર કરતા ગર્વ થાય છે! વડીલોના આશીર્વાદ બદલ આભાર. 🎓✨',
+    'Hansaben K.': 'હંસાબેન કે.',
+    'Dev Parekh': 'દેવ પારેખ',
+    'Mira Joshi': 'મીરા જોશી',
+    'Turns 58': '૫૮ વર્ષ પૂર્ણ',
+    'Turns 12': '૧૨ વર્ષ પૂર્ણ',
+    'Turns 34': '૩૪ વર્ષ પૂર્ણ',
+    '2 hours ago • Vadodara': '૨ કલાક પહેલા • વડોદરા',
+    '5 hours ago • Karamsad': '૫ કલાક પહેલા • કરમસદ',
+    'Yesterday • Anand': 'ગઈકાલે • આણંદ',
+    'Home': 'હોમ',
+    'Tree': 'વૃક્ષ',
+    'Profile': 'પ્રોફાઇલ',
+    'Build Profile': 'પ્રોફાઇલ બનાવો',
+    'Matrimonial': 'લગ્નવિષયક',
+    'Community Posts & News': 'સમાજ સમાચાર અને પોસ્ટ્સ',
+    'Logout Session': 'સત્ર બહાર નીકળો',
+    'About': 'વિશે',
+    'Family': 'પરિવાર',
+    'Contributions': 'योगदान',
+    'Occupation': 'વ્યવસાય',
+    'Education': 'શિક્ષણ',
+    'Village': 'ગામ',
+    'City': 'શહેર',
+    'Blood Group': 'બ્લડ ગ્રુપ',
+    'Contact': 'સંપર્ક',
+    'Rishik Jariwala': 'રિષિક જરીવાલા',
+    'Rajeshbhai Chauhan': 'રાજેશભાઈ ચૌહાણ',
+    'Jay Shree Krishna ': 'જય શ્રી કૃષ્ણ ',
+  };
+
+  String _translate(String text) {
+    if (!_isGujarati) return text;
+    if (_translations.containsKey(text)) {
+      return _translations[text]!;
+    }
+    final trimmed = text.trim();
+    if (_translations.containsKey(trimmed)) {
+      return _translations[trimmed]!;
+    }
+    return _transliterateToGujarati(text);
+  }
+
+  // Stateful list of notifications
+  final List<Map<String, String>> _notifications = [
+    {
+      'id': '1',
+      'title': 'New Event Registered',
+      'body': 'Samuh Lagna Sammelan registration is now open.',
+      'time': 'Just now',
+      'icon': 'event'
+    },
+    {
+      'id': '2',
+      'title': 'Birthday Today',
+      'body': 'Hansaben K. is turning 58 today. Wish her!',
+      'time': '2 hours ago',
+      'icon': 'cake'
+    },
+  ];
+
+  bool _hasUnreadNotifications = true;
 
   // Masking phone number helper
   String _maskPhone(String phone) {
@@ -76,11 +200,335 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return converted;
   }
 
+  void _showNotificationsBottomSheet(BuildContext context) {
+    setState(() {
+      _hasUnreadNotifications = false;
+    });
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        final isDark = ref.watch(themeModeProvider) == ThemeMode.dark;
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Container(
+              height: MediaQuery.of(context).size.height * 0.6,
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              child: Column(
+                children: [
+                  Container(
+                    margin: const EdgeInsets.only(top: 12),
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade400,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          _translate('Notifications'),
+                          style: GoogleFonts.poppins(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? Colors.white : Colors.black87,
+                          ),
+                        ),
+                        if (_notifications.isNotEmpty)
+                          TextButton(
+                            onPressed: () {
+                              setState(() {
+                                _notifications.clear();
+                              });
+                              setModalState(() {});
+                            },
+                            child: Text(
+                              _translate('Clear All'),
+                              style: const TextStyle(color: Colors.redAccent, fontSize: 13, fontWeight: FontWeight.w600),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  const Divider(),
+                  Expanded(
+                    child: _notifications.isEmpty
+                        ? Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.notifications_off_rounded,
+                                  size: 64,
+                                  color: isDark ? Colors.grey.shade700 : Colors.grey.shade300,
+                                ),
+                                const SizedBox(height: 16),
+                                Text(
+                                  _translate('No new notifications'),
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 15,
+                                    color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                                ElevatedButton.icon(
+                                  onPressed: () {
+                                    final newNotif = {
+                                      'id': DateTime.now().millisecondsSinceEpoch.toString(),
+                                      'title': 'New Announcement',
+                                      'body': 'Trust election notice: Voting is mandatory for all heads of family.',
+                                      'time': 'Just now',
+                                      'icon': 'campaign'
+                                    };
+                                    setState(() {
+                                      _notifications.add(newNotif);
+                                    });
+                                    setModalState(() {});
+                                  },
+                                  icon: const Icon(Icons.add_alert_rounded, size: 16),
+                                  label: const Text('Add Live Test Notification'),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFFD35400),
+                                    foregroundColor: Colors.white,
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                  ),
+                                )
+                              ],
+                            ),
+                          )
+                        : ListView.separated(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            itemCount: _notifications.length,
+                            separatorBuilder: (context, index) => const Divider(),
+                            itemBuilder: (context, index) {
+                              final item = _notifications[index];
+                              IconData iconData = Icons.notifications_active;
+                              if (item['icon'] == 'event') {
+                                iconData = Icons.event_available;
+                              } else if (item['icon'] == 'cake') {
+                                iconData = Icons.cake_rounded;
+                              } else if (item['icon'] == 'campaign') {
+                                iconData = Icons.campaign_rounded;
+                              }
+
+                              return ListTile(
+                                leading: CircleAvatar(
+                                  backgroundColor: const Color(0xFFFCE4D6),
+                                  child: Icon(iconData, color: const Color(0xFFD35400), size: 20),
+                                ),
+                                title: Text(
+                                  _translate(item['title']!),
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 13.5,
+                                    fontWeight: FontWeight.bold,
+                                    color: isDark ? Colors.white : Colors.black87,
+                                  ),
+                                ),
+                                subtitle: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      _translate(item['body']!),
+                                      style: GoogleFonts.inter(
+                                        fontSize: 12,
+                                        color: isDark ? Colors.grey.shade300 : Colors.grey.shade700,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      _translate(item['time']!),
+                                      style: GoogleFonts.inter(
+                                        fontSize: 9.5,
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                trailing: IconButton(
+                                  icon: const Icon(Icons.close, size: 16, color: Colors.grey),
+                                  onPressed: () {
+                                    setState(() {
+                                      _notifications.removeAt(index);
+                                    });
+                                    setModalState(() {});
+                                  },
+                                ),
+                              );
+                            },
+                          ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildQRCodeDialog(UserModel user, bool isDark) {
+    final String displayName = user.surname.isNotEmpty
+        ? '${user.fullName} ${user.surname}'
+        : user.fullName;
+    
+    final String qrData = '''
+=== KUTUMB SETU PROFILE ===
+ID: GDS-2026-0417
+Name: $displayName
+Occupation: ${user.occupation}
+Education: ${user.education}
+Village: ${user.nativePlace}
+City: ${user.city}, ${user.state}
+Blood Group: ${user.bloodGroup}
+Contact: ${user.phoneNumber}
+''';
+
+    final String qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${Uri.encodeComponent(qrData)}';
+
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF1E293B) : Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.2),
+              blurRadius: 15,
+              offset: const Offset(0, 5),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              _translate('Digital Community ID'),
+              style: GoogleFonts.poppins(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: isDark ? Colors.white : Colors.black87,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'GDS-2026-0417',
+              style: GoogleFonts.sourceCodePro(
+                fontSize: 14,
+                color: const Color(0xFFD35400),
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 20),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.grey.shade300, width: 2),
+              ),
+              child: Image.network(
+                qrUrl,
+                width: 200,
+                height: 200,
+                fit: BoxFit.contain,
+                loadingBuilder: (context, child, loadingProgress) {
+                  if (loadingProgress == null) return child;
+                  return const SizedBox(
+                    width: 200,
+                    height: 200,
+                    child: Center(
+                      child: CircularProgressIndicator(color: Color(0xFFD35400)),
+                    ),
+                  );
+                },
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    width: 200,
+                    height: 200,
+                    color: Colors.grey.shade100,
+                    child: const Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.qr_code_2_rounded, size: 64, color: Colors.grey),
+                          SizedBox(height: 8),
+                          Text('Offline QR Cache', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              _translate(displayName),
+              style: GoogleFonts.poppins(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: isDark ? Colors.white : Colors.black87,
+              ),
+            ),
+            Text(
+              _translate(user.occupation),
+              style: GoogleFonts.inter(
+                fontSize: 13,
+                color: Colors.grey,
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Divider(),
+            const SizedBox(height: 12),
+            Text(
+              _translate('Scan this code to view the complete profile details in real-time.'),
+              textAlign: TextAlign.center,
+              style: GoogleFonts.inter(
+                fontSize: 11.5,
+                color: Colors.grey.shade600,
+              ),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFD35400),
+                foregroundColor: Colors.white,
+                minimumSize: const Size(double.infinity, 45),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: Text(
+                _translate('Close'),
+                style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(currentUserProvider) ?? const UserModel(
       id: 'USR001',
       fullName: 'Rajeshbhai',
+      email: 'rajesh@example.com',
       surname: 'Chauhan',
       fatherName: 'Manilal',
       phoneNumber: '+919825010042',
@@ -131,9 +579,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 children: [
                   _buildHomeFeedTab(user, isDark),
                   const FamilyTreeScreen(),
-                  _buildPlaceholderTab('Community Interaction', Icons.diversity_3_outlined, isDark),
-                  _buildPlaceholderTab('Events & Announcements', Icons.calendar_month_outlined, isDark),
-                  _buildProfileTab(user, isDark),
+                  const MatrimonialHubScreen(),
+                  const CommunityFeedScreen(),
+                  const ProfileCompletionScreen(),
                 ],
               ),
             ),
@@ -159,7 +607,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
             child: Text(
-              'Quick actions',
+              _translate('Quick actions'),
               style: GoogleFonts.poppins(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
@@ -199,330 +647,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  // --- TAB 5: PROFILE TAB (IMAGE 4) ---
-  Widget _buildProfileTab(UserModel user, bool isDark) {
-    final String displayName = user.surname.isNotEmpty
-        ? '${user.fullName} ${user.surname}'
-        : user.fullName;
-    final String gujaratiName = _transliterateToGujarati(displayName);
 
-    return SingleChildScrollView(
-      physics: const BouncingScrollPhysics(),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Floating Avatar Profile Banner
-          Stack(
-            clipBehavior: Clip.none,
-            alignment: Alignment.center,
-            children: [
-              Container(
-                height: 140,
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Color(0xFF1E8449), Color(0xFF27AE60)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.vertical(
-                    bottom: Radius.circular(24),
-                  ),
-                ),
-              ),
-              Positioned(
-                bottom: -50,
-                child: Container(
-                  width: 100,
-                  height: 100,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    image: (user.profilePhoto.startsWith('data:image') || user.profilePhoto.length > 100)
-                        ? DecorationImage(
-                            image: MemoryImage(base64Decode(user.profilePhoto.split(',').last)),
-                            fit: BoxFit.cover,
-                          )
-                        : null,
-                    gradient: (user.profilePhoto.startsWith('data:image') || user.profilePhoto.length > 100)
-                        ? null
-                        : const LinearGradient(
-                            colors: [Color(0xFFE67E22), Color(0xFFD35400)],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                    border: Border.all(color: Colors.white, width: 4),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.15),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: (user.profilePhoto.startsWith('data:image') || user.profilePhoto.length > 100)
-                      ? null
-                      : Center(
-                          child: Text(
-                            user.fullName.isNotEmpty ? user.fullName[0].toUpperCase() + (user.surname.isNotEmpty ? user.surname[0].toUpperCase() : '') : 'RC',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 34,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 60),
-
-          // Name & Verification Badge
-          Center(
-            child: Column(
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      displayName,
-                      style: GoogleFonts.poppins(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        color: isDark ? Colors.white : Colors.black87,
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    const Icon(
-                      Icons.verified_rounded,
-                      color: Color(0xFF0088CC),
-                      size: 22,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  gujaratiName,
-                  style: GoogleFonts.poppins(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w500,
-                    color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // Badge Pills (Surname Parivar, City, Occupation)
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _buildBadgePill('${user.surname.isNotEmpty ? user.surname : 'Chauhan'} Parivar', const Color(0xFFE8F8F5), const Color(0xFF1E8449)),
-              const SizedBox(width: 8),
-              _buildBadgePill(user.city.isNotEmpty ? user.city : 'Vadodara', const Color(0xFFEBF5FB), const Color(0xFF2980B9)),
-              const SizedBox(width: 8),
-              _buildBadgePill(user.occupation.isNotEmpty ? user.occupation : 'Software Architect', const Color(0xFFFEF9E7), const Color(0xFFD35400)),
-            ],
-          ),
-          const SizedBox(height: 24),
-
-          // Digital Community ID Card
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF0B5345), Color(0xFF1E3A8A)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.12),
-                    blurRadius: 10,
-                    offset: const Offset(0, 5),
-                  ),
-                ],
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'KUTUMB SETU',
-                          style: GoogleFonts.poppins(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 1.0,
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-                        Text(
-                          'GDS-2026-0417',
-                          style: GoogleFonts.sourceCodePro(
-                            color: Colors.white,
-                            fontSize: 15,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Digital Community ID - ${user.surname.isNotEmpty ? user.surname : 'Chauhan'} Parivar',
-                          style: GoogleFonts.inter(
-                            color: Colors.white70,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Icon(
-                      Icons.qr_code_2_rounded,
-                      color: Color(0xFF1E3A8A),
-                      size: 32,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 24),
-
-          // About / Family / Contributions Segments
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: Container(
-              padding: const EdgeInsets.all(4),
-              decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF1E293B) : Colors.grey.shade200,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      decoration: BoxDecoration(
-                        color: isDark ? const Color(0xFF0F172A) : Colors.white,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Center(
-                        child: Text(
-                          'About',
-                          style: GoogleFonts.poppins(
-                            fontSize: 13,
-                            fontWeight: FontWeight.bold,
-                            color: isDark ? Colors.white : Colors.black87,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    child: Center(
-                      child: Text(
-                        'Family',
-                        style: GoogleFonts.poppins(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.grey,
-                        ),
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    child: Center(
-                      child: Text(
-                        'Contributions',
-                        style: GoogleFonts.poppins(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.grey,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // Details Card
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: Card(
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-                side: BorderSide(color: isDark ? Colors.grey.shade800 : Colors.grey.shade300, width: 1.0),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  children: [
-                    _buildProfileInfoRow('Occupation', user.occupation.isNotEmpty ? user.occupation : 'Software Architect', isDark),
-                    _buildProfileInfoRow('Education', user.education.isNotEmpty ? user.education : 'B.E. Computer Engineering', isDark),
-                    _buildProfileInfoRow('Village', user.nativePlace.isNotEmpty ? user.nativePlace : 'Karamsad', isDark),
-                    _buildProfileInfoRow('City', '${user.city.isNotEmpty ? user.city : 'Vadodara'}, ${user.state.isNotEmpty ? user.state : 'Gujarat'}', isDark),
-                    _buildProfileInfoRow('Blood Group', user.bloodGroup.isNotEmpty ? user.bloodGroup : 'B+', isDark, isHighlight: true),
-                    _buildProfileInfoRow('Contact', _maskPhone(user.phoneNumber), isDark, showLastDivider: false),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 24),
-
-          // Logout Button
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: ElevatedButton.icon(
-              onPressed: () {
-                // Clear Riverpod active user session
-                ref.read(currentUserProvider.notifier).state = null;
-                // Navigate to root route (Login page)
-                context.go('/');
-              },
-              icon: const Icon(Icons.logout_rounded, color: Colors.white),
-              label: Text(
-                'Logout Session',
-                style: GoogleFonts.poppins(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 15,
-                  color: Colors.white,
-                ),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFEF4444),
-                minimumSize: const Size(double.infinity, 50),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                elevation: 2,
-              ),
-            ),
-          ),
-          const SizedBox(height: 48),
-        ],
-      ),
-    );
-  }
 
   // --- HOME SUB-WIDGETS ---
 
@@ -558,7 +683,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     Row(
                       children: [
                         Text(
-                          'Jay Shree Krishna ',
+                          _translate('Jay Shree Krishna '),
                           style: GoogleFonts.poppins(
                             color: Colors.white,
                             fontSize: 13,
@@ -572,9 +697,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      user.fullName.isNotEmpty
+                      _translate(user.fullName.isNotEmpty
                           ? '${user.fullName} ${user.surname}'
-                          : 'Rajeshbhai Chauhan',
+                          : 'Rajeshbhai Chauhan'),
                       style: GoogleFonts.poppins(
                         color: Colors.white,
                         fontSize: 24,
@@ -589,38 +714,111 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               const SizedBox(width: 8),
               Row(
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.white.withValues(alpha: 0.15),
-                    ),
-                    child: const Icon(Icons.language_rounded, color: Colors.cyanAccent, size: 20),
-                  ),
-                  const SizedBox(width: 8),
-                  Stack(
-                    children: [
-                      Container(
+                  if (!_showLanguageToggle)
+                    GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          _showLanguageToggle = true;
+                        });
+                      },
+                      child: Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           color: Colors.white.withValues(alpha: 0.15),
                         ),
-                        child: const Icon(Icons.notifications_rounded, color: Colors.orangeAccent, size: 20),
+                        child: const Icon(Icons.language_rounded, color: Colors.cyanAccent, size: 20),
                       ),
-                      Positioned(
-                        right: 2,
-                        top: 2,
-                        child: Container(
-                          width: 8,
-                          height: 8,
-                          decoration: const BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Colors.red,
-                          ),
+                    )
+                  else
+                    GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          _isGujarati = !_isGujarati;
+                        });
+                      },
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        width: 68,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(16),
+                          color: _isGujarati ? const Color(0xFF1B4F72) : Colors.white.withValues(alpha: 0.2),
+                          border: Border.all(color: Colors.white70, width: 1.5),
                         ),
-                      )
-                    ],
+                        child: Stack(
+                          children: [
+                            AnimatedPositioned(
+                              duration: const Duration(milliseconds: 200),
+                              curve: Curves.easeInOut,
+                              left: _isGujarati ? 36.0 : 2.0,
+                              right: _isGujarati ? 2.0 : 36.0,
+                              top: 2.0,
+                              bottom: 2.0,
+                              child: Container(
+                                decoration: const BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Colors.white,
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    _isGujarati ? 'GJ' : 'EN',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      color: _isGujarati ? const Color(0xFF1B4F72) : Colors.black87,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            Positioned.fill(
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                                children: [
+                                  Opacity(
+                                    opacity: _isGujarati ? 0.3 : 1.0,
+                                    child: const Text('EN', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                                  ),
+                                  Opacity(
+                                    opacity: _isGujarati ? 1.0 : 0.3,
+                                    child: const Text('GJ', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  const SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: () => _showNotificationsBottomSheet(context),
+                    child: Stack(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.white.withValues(alpha: 0.15),
+                          ),
+                          child: const Icon(Icons.notifications_rounded, color: Colors.orangeAccent, size: 20),
+                        ),
+                        if (_hasUnreadNotifications && _notifications.isNotEmpty)
+                          Positioned(
+                            right: 2,
+                            top: 2,
+                            child: Container(
+                              width: 8,
+                              height: 8,
+                              decoration: const BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Colors.red,
+                              ),
+                            ),
+                          )
+                      ],
+                    ),
                   ),
                   const SizedBox(width: 8),
                   GestureDetector(
@@ -723,6 +921,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 setState(() {
                   _currentIndex = 1;
                 });
+              } else if (item['label'] == 'Matrimony') {
+                context.push('/matrimonial');
               }
             },
             borderRadius: BorderRadius.circular(16),
@@ -749,7 +949,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 const SizedBox(height: 6),
                 Expanded(
                   child: Text(
-                    item['label'],
+                    _translate(item['label']),
                     style: GoogleFonts.inter(
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
@@ -785,7 +985,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Birthdays today 🎂',
+                _translate('Birthdays today 🎂'),
                 style: GoogleFonts.poppins(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
@@ -793,7 +993,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ),
               ),
               Text(
-                'See all',
+                _translate('See all'),
                 style: GoogleFonts.poppins(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
@@ -835,7 +1035,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        b['name'],
+                        _translate(b['name']),
                         style: GoogleFonts.poppins(
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
@@ -846,7 +1046,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         overflow: TextOverflow.ellipsis,
                       ),
                       Text(
-                        b['turns'],
+                        _translate(b['turns']),
                         style: GoogleFonts.inter(
                           fontSize: 9,
                           color: Colors.grey,
@@ -874,7 +1074,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Recent Samaj News 📰',
+                _translate('Recent Samaj News 📰'),
                 style: GoogleFonts.poppins(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
@@ -882,7 +1082,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ),
               ),
               Text(
-                'See all',
+                _translate('See all'),
                 style: GoogleFonts.poppins(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
@@ -931,7 +1131,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Trust election notice',
+                        _translate('Trust election notice'),
                         style: GoogleFonts.poppins(
                           fontSize: 13,
                           fontWeight: FontWeight.bold,
@@ -940,7 +1140,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        'Annual Trust elections will be held on 29th Aug at Community Bhavan, Rajkot.',
+                        _translate('Annual Trust elections will be held on 29th Aug at Community Bhavan, Rajkot.'),
                         style: GoogleFonts.inter(
                           fontSize: 10,
                           color: Colors.grey.shade600,
@@ -994,7 +1194,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Upcoming events',
+                _translate('Upcoming events'),
                 style: GoogleFonts.poppins(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
@@ -1002,7 +1202,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ),
               ),
               Text(
-                'See all',
+                _translate('See all'),
                 style: GoogleFonts.poppins(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
@@ -1051,7 +1251,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             ),
                           ),
                           Text(
-                            ev['month']!,
+                            _translate(ev['month']!),
                             style: GoogleFonts.inter(
                               color: const Color(0xFF16A34A),
                               fontSize: 9,
@@ -1067,7 +1267,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            ev['title']!,
+                            _translate(ev['title']!),
                             style: GoogleFonts.poppins(
                               fontSize: 13,
                               fontWeight: FontWeight.bold,
@@ -1076,7 +1276,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            ev['loc']!,
+                            _translate(ev['loc']!),
                             style: GoogleFonts.inter(
                               fontSize: 10.5,
                               color: Colors.grey.shade600,
@@ -1112,7 +1312,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Featured families',
+                _translate('Featured families'),
                 style: GoogleFonts.poppins(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
@@ -1120,7 +1320,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ),
               ),
               Text(
-                'Explore',
+                _translate('Explore'),
                 style: GoogleFonts.poppins(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
@@ -1171,7 +1371,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               child: Text(
-                                f['members'],
+                                _translate(f['members']),
                                 style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold),
                               ),
                             ),
@@ -1184,17 +1384,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              f['name'],
+                              _translate(f['name']),
                               style: GoogleFonts.poppins(
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                                color: isDark ? Colors.white : Colors.black87,
-                              ),
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: isDark ? Colors.white : Colors.black87,
+                                ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
                             Text(
-                              f['desc'],
+                              _translate(f['desc']),
                               style: GoogleFonts.inter(
                                 fontSize: 9,
                                 color: Colors.grey,
@@ -1229,7 +1429,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0),
           child: Text(
-            'Community at a glance',
+            _translate('Community at a glance'),
             style: GoogleFonts.poppins(
               fontSize: 16,
               fontWeight: FontWeight.bold,
@@ -1255,7 +1455,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     child: Column(
                       children: [
                         Text(
-                          st['val']!,
+                          _translate(st['val']!),
                           style: GoogleFonts.poppins(
                             color: const Color(0xFFD35400),
                             fontSize: 16,
@@ -1263,7 +1463,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           ),
                         ),
                         Text(
-                          st['lbl']!,
+                          _translate(st['lbl']!),
                           style: GoogleFonts.inter(
                             color: Colors.grey,
                             fontSize: 9.5,
@@ -1282,176 +1482,271 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
+  Future<List<dynamic>> _fetchHomePosts() async {
+    try {
+      final response = await http.get(Uri.parse('${ApiConfig.baseUrl}/community/posts'));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['success'] == true) {
+          return data['posts'] as List<dynamic>;
+        }
+      }
+    } catch (e) {
+      print('Error fetching home posts: $e');
+    }
+    return [];
+  }
+
   // Community Posts & Feed (Image 3)
   Widget _buildCommunityPostsFeed(bool isDark) {
-    final List<Map<String, dynamic>> posts = [
-      {
-        'init': 'RC',
-        'name': 'Rajeshbhai Chauhan',
-        'time': '2 hours ago • Vadodara',
-        'badge': 'Announcement',
-        'txt': 'Jay Shree Krishna to all samaj members! Welcome to our new digital platform KutumbSetu. Connect with family lineage, business directory, and upcoming events seamlessly.',
-        'likes': '42',
-        'comments': '8'
-      },
-      {
-        'init': 'DC',
-        'name': 'Dineshbhai Chauhan',
-        'time': '5 hours ago • Karamsad',
-        'badge': 'Social Work',
-        'txt': 'Our Samaj Blood Donation Camp date has been confirmed for 2nd August at Surat. Requesting all youth members to register and donate blood for this noble cause. 🙏',
-        'likes': '68',
-        'comments': '14'
-      },
-      {
-        'init': 'KC',
-        'name': 'Krupal Chauhan',
-        'time': 'Yesterday • Anand',
-        'badge': 'Achievement',
-        'txt': 'Feeling proud to announce that my sister Nikita Chauhan has cleared Chartered Accountancy (CA) exams with distinction! Thanks to elder\'s blessings. 🎓✨',
-        'likes': '115',
-        'comments': '32'
-      },
-    ];
+    return FutureBuilder<List<dynamic>>(
+      future: _fetchHomePosts(),
+      builder: (context, snapshot) {
+        // Fallback static posts if database is empty or loading
+        final List<Map<String, dynamic>> staticPosts = [
+          {
+            'init': 'RC',
+            'name': 'Rajeshbhai Chauhan',
+            'time': '2 hours ago • Vadodara',
+            'badge': 'Announcement',
+            'txt': 'Jay Shree Krishna to all samaj members! Welcome to our new digital platform KutumbSetu. Connect with family lineage, business directory, and upcoming events seamlessly.',
+            'likes': 42,
+            'comments': 8,
+            'media': null
+          },
+          {
+            'init': 'DC',
+            'name': 'Dineshbhai Chauhan',
+            'time': '5 hours ago • Karamsad',
+            'badge': 'Social Work',
+            'txt': 'Our Samaj Blood Donation Camp date has been confirmed for 2nd August at Surat. Requesting all youth members to register and donate blood for this noble cause. 🙏',
+            'likes': 68,
+            'comments': 14,
+            'media': null
+          }
+        ];
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Community Posts & Feed',
-                style: GoogleFonts.poppins(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: isDark ? Colors.white : Colors.black87,
-                ),
+        final List<dynamic> posts = snapshot.hasData && snapshot.data!.isNotEmpty
+            ? snapshot.data!
+            : staticPosts;
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    _translate('Community Posts & Feed'),
+                    style: GoogleFonts.poppins(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? Colors.white : Colors.black87,
+                    ),
+                  ),
+                  Text(
+                    _translate('${posts.length} Posts'),
+                    style: GoogleFonts.poppins(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFFD35400),
+                    ),
+                  ),
+                ],
               ),
-              Text(
-                '20 Posts',
-                style: GoogleFonts.poppins(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: const Color(0xFFD35400),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 12),
-        ListView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          padding: const EdgeInsets.symmetric(horizontal: 16.0),
-          itemCount: posts.length,
-          itemBuilder: (context, index) {
-            final p = posts[index];
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 12.0),
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF1E293B) : Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: isDark ? Colors.grey.shade800 : Colors.grey.shade200),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Post User Info
-                    Row(
+            ),
+            const SizedBox(height: 12),
+            ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              itemCount: posts.length,
+              itemBuilder: (context, index) {
+                final p = posts[index];
+                
+                // Extract properties with fallbacks
+                final init = p['avatarText'] ?? p['init'] ?? 'U';
+                final author = p['authorName'] ?? p['name'] ?? 'User';
+                final content = p['content'] ?? p['txt'] ?? '';
+                final likesCount = p['likes'] is List ? (p['likes'] as List).length : int.tryParse(p['likes']?.toString() ?? '0') ?? 0;
+                final commentsCount = p['comments'] is List ? (p['comments'] as List).length : int.tryParse(p['comments']?.toString() ?? '0') ?? 0;
+                
+                String time = 'Just now';
+                if (p['createdAt'] != null) {
+                  try {
+                    final dt = DateTime.parse(p['createdAt'].toString());
+                    final diff = DateTime.now().difference(dt);
+                    if (diff.inMinutes < 60) {
+                      time = '${diff.inMinutes} mins ago';
+                    } else if (diff.inHours < 24) {
+                      time = '${diff.inHours} hours ago';
+                    } else {
+                      time = '${diff.inDays} days ago';
+                    }
+                  } catch (_) {}
+                } else if (p['time'] != null) {
+                  time = p['time'];
+                }
+
+                final avatarHex = p['avatarColor'] ?? '#D35400';
+                final Color avatarColor = Color(int.parse(avatarHex.replaceFirst('#', '0xFF')));
+
+                final mediaUrl = p['mediaUrl'] != null && p['mediaUrl'].toString().isNotEmpty
+                    ? '${ApiConfig.baseUrl.replaceAll('/api', '')}${p['mediaUrl']}'
+                    : null;
+
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12.0),
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: isDark ? Colors.grey.shade800 : Colors.grey.shade200),
+                    ),
+                    child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        CircleAvatar(
-                          radius: 20,
-                          backgroundColor: const Color(0xFFD35400),
-                          child: Text(
-                            p['init'],
-                            style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                p['name'],
+                        // Post User Info
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            CircleAvatar(
+                              radius: 20,
+                              backgroundColor: avatarColor,
+                              child: Text(
+                                init,
+                                style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    _translate(author),
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.bold,
+                                      color: isDark ? Colors.white : Colors.black87,
+                                    ),
+                                  ),
+                                  Text(
+                                    _translate(time),
+                                    style: GoogleFonts.inter(
+                                      fontSize: 9.5,
+                                      color: Colors.grey,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFCE4D6),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                p['badge'] ?? 'Samaj',
                                 style: GoogleFonts.poppins(
-                                  fontSize: 13,
+                                  color: const Color(0xFFD35400),
+                                  fontSize: 8.5,
                                   fontWeight: FontWeight.bold,
-                                  color: isDark ? Colors.white : Colors.black87,
                                 ),
                               ),
-                              Text(
-                                p['time'],
-                                style: GoogleFonts.inter(
-                                  fontSize: 9.5,
-                                  color: Colors.grey,
-                                ),
-                              ),
-                            ],
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+
+                        // Post Text
+                        Text(
+                          content,
+                          style: GoogleFonts.inter(
+                            fontSize: 11.5,
+                            color: isDark ? Colors.grey.shade300 : Colors.grey.shade800,
+                            height: 1.4,
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFFCE4D6),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            p['badge'],
-                            style: GoogleFonts.poppins(
-                              color: const Color(0xFFD35400),
-                              fontSize: 8.5,
-                              fontWeight: FontWeight.bold,
+                        
+                        // Media display if present
+                        if (mediaUrl != null) ...[
+                          const SizedBox(height: 12),
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: Image.network(
+                              mediaUrl,
+                              fit: BoxFit.cover,
+                              width: double.infinity,
+                              height: 200,
+                              errorBuilder: (context, error, stackTrace) => Container(
+                                height: 100,
+                                color: Colors.grey.shade200,
+                                child: const Icon(Icons.broken_image, color: Colors.grey),
+                              ),
                             ),
                           ),
-                        ),
+                        ],
+
+                        const SizedBox(height: 16),
+                        const Divider(height: 1),
+                        const SizedBox(height: 8),
+
+                        // Actions row
+                        Row(
+                          children: [
+                            GestureDetector(
+                              onTap: () async {
+                                if (p['_id'] != null) {
+                                  final user = ref.read(currentUserProvider);
+                                  if (user != null) {
+                                    await http.post(
+                                      Uri.parse('${ApiConfig.baseUrl}/community/posts/${p['_id']}/like'),
+                                      headers: {'Content-Type': 'application/json'},
+                                      body: jsonEncode({'userId': user.id}),
+                                    );
+                                    setState(() {});
+                                  }
+                                }
+                              },
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    p['likes'] is List && ref.watch(currentUserProvider) != null && (p['likes'] as List).contains(ref.watch(currentUserProvider)!.id)
+                                        ? Icons.favorite_rounded
+                                        : Icons.favorite_border_rounded,
+                                    color: Colors.pink,
+                                    size: 16,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(likesCount.toString(), style: GoogleFonts.inter(fontSize: 11, color: Colors.grey)),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 20),
+                            const Icon(Icons.mode_comment_outlined, color: Colors.grey, size: 16),
+                            const SizedBox(width: 4),
+                            Text(commentsCount.toString(), style: GoogleFonts.inter(fontSize: 11, color: Colors.grey)),
+                            const Spacer(),
+                            const Icon(Icons.share_outlined, color: Colors.blue, size: 16),
+                            const SizedBox(width: 4),
+                            Text(_translate('Share'), style: GoogleFonts.inter(fontSize: 11, color: Colors.blue)),
+                          ],
+                        )
                       ],
                     ),
-                    const SizedBox(height: 12),
-
-                    // Post Text
-                    Text(
-                      p['txt'],
-                      style: GoogleFonts.inter(
-                        fontSize: 11.5,
-                        color: isDark ? Colors.grey.shade300 : Colors.grey.shade800,
-                        height: 1.4,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    const Divider(height: 1),
-                    const SizedBox(height: 8),
-
-                    // Actions row
-                    Row(
-                      children: [
-                        const Icon(Icons.favorite_rounded, color: Colors.pink, size: 16),
-                        const SizedBox(width: 4),
-                        Text(p['likes'], style: GoogleFonts.inter(fontSize: 11, color: Colors.grey)),
-                        const SizedBox(width: 20),
-                        const Icon(Icons.mode_comment_outlined, color: Colors.grey, size: 16),
-                        const SizedBox(width: 4),
-                        Text(p['comments'], style: GoogleFonts.inter(fontSize: 11, color: Colors.grey)),
-                        const Spacer(),
-                        const Icon(Icons.share_outlined, color: Colors.blue, size: 16),
-                        const SizedBox(width: 4),
-                        Text('Share', style: GoogleFonts.inter(fontSize: 11, color: Colors.blue)),
-                      ],
-                    )
-                  ],
-                ),
-              ),
-            );
-          },
-        )
-      ],
+                  ),
+                );
+              },
+            )
+          ],
+        );
+      },
     );
   }
 
@@ -1464,7 +1759,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           Icon(icon, size: 64, color: isDark ? Colors.grey.shade600 : Colors.grey.shade400),
           const SizedBox(height: 16),
           Text(
-            title,
+            _translate(title),
             style: GoogleFonts.poppins(
               fontSize: 18,
               fontWeight: FontWeight.bold,
@@ -1473,7 +1768,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            'This tab content will be populated in subsequent modules.',
+            _translate('This tab content will be populated in subsequent modules.'),
             style: GoogleFonts.inter(
               fontSize: 12,
               color: Colors.grey,
@@ -1485,66 +1780,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  // --- PROFILE TAB SUB-WIDGETS ---
-  Widget _buildBadgePill(String label, Color bg, Color textCol) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Text(
-        label,
-        style: GoogleFonts.poppins(
-          color: textCol,
-          fontSize: 11,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-    );
-  }
 
-  Widget _buildProfileInfoRow(String label, String val, bool isDark, {bool isHighlight = false, bool showLastDivider = true}) {
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8.0),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(
-                width: 100,
-                child: Text(
-                  label,
-                  style: GoogleFonts.inter(
-                    fontSize: 13,
-                    color: Colors.grey.shade500,
-                  ),
-                ),
-              ),
-              Expanded(
-                child: Align(
-                  alignment: Alignment.centerRight,
-                  child: Text(
-                    val,
-                    style: GoogleFonts.poppins(
-                      fontSize: 13.5,
-                      fontWeight: isHighlight ? FontWeight.bold : FontWeight.w600,
-                      color: isHighlight
-                          ? const Color(0xFFEF4444)
-                          : (isDark ? Colors.white : Colors.black87),
-                    ),
-                    textAlign: TextAlign.right,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        if (showLastDivider) const Divider(height: 1),
-      ],
-    );
-  }
 
   // --- BOTTOM NAV BAR (IMAGE 1 / 4) ---
   Widget _buildBottomNavBar(bool isDark) {
@@ -1568,9 +1804,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           children: [
             _buildNavBarItem(0, Icons.home_rounded, 'Home', isDark),
             _buildNavBarItem(1, Icons.park_rounded, 'Tree', isDark),
-            _buildNavBarCenterButton(),
-            _buildNavBarItem(3, Icons.calendar_month_rounded, 'Events', isDark),
-            _buildNavBarItem(4, Icons.person_rounded, 'Profile', isDark),
+            _buildNavBarCenterButton(isDark),
+            _buildNavBarItem(3, Icons.newspaper_rounded, 'News', isDark),
+            _buildNavBarItem(4, Icons.assignment_ind_rounded, 'Build Profile', isDark),
           ],
         ),
       ),
@@ -1600,7 +1836,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             ),
             const SizedBox(height: 2),
             Text(
-              label,
+              _translate(label),
               style: GoogleFonts.inter(
                 fontSize: 10,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
@@ -1613,27 +1849,45 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  Widget _buildNavBarCenterButton() {
+  Widget _buildNavBarCenterButton(bool isDark) {
+    final isSelected = _currentIndex == 2;
+    final Color selectedCol = const Color(0xFFD35400);
+    final Color unselectedCol = isDark ? Colors.grey.shade500 : Colors.grey.shade600;
+
     return InkWell(
       onTap: () {
         setState(() {
           _currentIndex = 2;
         });
       },
-      child: Container(
-        width: 48,
-        height: 48,
-        decoration: const BoxDecoration(
-          color: Color(0xFFD35400),
-          shape: BoxShape.circle,
-        ),
-        child: const Center(
-          child: Icon(
-            Icons.people_alt_rounded,
-            color: Colors.white,
-            size: 24,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: isSelected ? selectedCol : (isDark ? const Color(0xFF334155) : Colors.grey.shade200),
+              shape: BoxShape.circle,
+            ),
+            child: Center(
+              child: Icon(
+                Icons.favorite_rounded,
+                color: isSelected ? Colors.white : (isDark ? Colors.grey.shade400 : Colors.grey.shade700),
+                size: 22,
+              ),
+            ),
           ),
-        ),
+          const SizedBox(height: 2),
+          Text(
+            _translate('Matrimonial'),
+            style: GoogleFonts.inter(
+              fontSize: 10,
+              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+              color: isSelected ? selectedCol : unselectedCol,
+            ),
+          ),
+        ],
       ),
     );
   }

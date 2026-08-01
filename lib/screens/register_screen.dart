@@ -4,20 +4,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../api_config.dart';
 import '../providers/theme_provider.dart';
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:image_picker/image_picker.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
-  final String? prefilledPhone;
-
-  const RegisterScreen({
-    super.key,
-    this.prefilledPhone,
-  });
+  const RegisterScreen({super.key});
 
   @override
   ConsumerState<RegisterScreen> createState() => _RegisterScreenState();
@@ -25,274 +16,33 @@ class RegisterScreen extends ConsumerStatefulWidget {
 
 class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
-  final FirebaseAuth _auth = FirebaseAuth.instance;
 
   bool get isDarkMode => ref.watch(themeModeProvider) == ThemeMode.dark;
 
-  @override
-  void initState() {
-    super.initState();
-    if (widget.prefilledPhone != null && widget.prefilledPhone!.isNotEmpty) {
-      String phone = widget.prefilledPhone!;
-      if (phone.startsWith('+91')) {
-        phone = phone.substring(3);
-      }
-      _mobileController.text = phone;
-      _isOtpVerified = true;
-      _isOtpSent = true;
-    }
-  }
-
-  // Form Field Controllers & Scroll Controller
-  final ScrollController _scrollController = ScrollController();
-  final TextEditingController _fullNameController = TextEditingController();
-  final TextEditingController _surnameController = TextEditingController();
-  final TextEditingController _fatherNameController = TextEditingController();
-  final TextEditingController _mobileController = TextEditingController();
-  final TextEditingController _nativePlaceController = TextEditingController();
-  final TextEditingController _currentCityController = TextEditingController();
-  final TextEditingController _occupationController = TextEditingController();
-  final TextEditingController _educationController = TextEditingController();
+  // Form Field Controllers
+  final TextEditingController _firstNameController = TextEditingController();
+  final TextEditingController _middleNameController = TextEditingController();
+  final TextEditingController _lastNameController = TextEditingController();
+  final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
   final TextEditingController _otpController = TextEditingController();
-  final TextEditingController _familyIdController = TextEditingController();
-  final TextEditingController _familyHeadPhoneController = TextEditingController();
-  final TextEditingController _motherNameController = TextEditingController();
-  final TextEditingController _spouseNameController = TextEditingController();
 
-  // Selected State variables
-  String _selectedGender = 'Male';
-  DateTime? _selectedDob;
-  String _selectedMaritalStatus = 'Single';
-  String _selectedState = 'Maharashtra';
-  String _selectedAvatar = 'avatar_male_1';
-  String _selectedBloodGroup = 'B+';
-  String _selectedRelationshipToHead = 'Self';
-  bool _acceptedTerms = false;
-
-  final List<String> _bloodGroups = ['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'];
-
-  // OTP & Firebase Auth State
+  // OTP State
   bool _isOtpSent = false;
   bool _isSendingOtp = false;
   bool _isOtpVerified = false;
   bool _isSubmitting = false;
-  String? _verificationId;
-  int? _resendToken;
   String? _developmentOtp;
-
-
-  final List<String> _genders = ['Male', 'Female', 'Other'];
-  final List<String> _maritalStatuses = ['Single', 'Married', 'Widowed', 'Divorced'];
-  final List<String> _indianStates = [
-    'Andhra Pradesh',
-    'Assam',
-    'Bihar',
-    'Chhattisgarh',
-    'Delhi',
-    'Gujarat',
-    'Haryana',
-    'Himachal Pradesh',
-    'Jharkhand',
-    'Karnataka',
-    'Kerala',
-    'Madhya Pradesh',
-    'Maharashtra',
-    'Odisha',
-    'Punjab',
-    'Rajasthan',
-    'Tamil Nadu',
-    'Telangana',
-    'Uttar Pradesh',
-    'Uttarakhand',
-    'West Bengal',
-  ];
 
   @override
   void dispose() {
-    _scrollController.dispose();
-    _fullNameController.dispose();
-    _surnameController.dispose();
-    _fatherNameController.dispose();
-    _mobileController.dispose();
-    _nativePlaceController.dispose();
-    _currentCityController.dispose();
-    _occupationController.dispose();
-    _educationController.dispose();
+    _firstNameController.dispose();
+    _middleNameController.dispose();
+    _lastNameController.dispose();
+    _phoneController.dispose();
+    _emailController.dispose();
     _otpController.dispose();
-    _familyIdController.dispose();
-    _familyHeadPhoneController.dispose();
-    _motherNameController.dispose();
-    _spouseNameController.dispose();
     super.dispose();
-  }
-
-  // Date Picker Handler
-  Future<void> _selectDateOfBirth() async {
-    final DateTime initialDate = _selectedDob ?? DateTime(2000, 1, 1);
-    final DateTime firstDate = DateTime(1920);
-    final DateTime lastDate = DateTime.now();
-
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: initialDate,
-      firstDate: firstDate,
-      lastDate: lastDate,
-      builder: (context, child) {
-        return Theme(
-          data: isDarkMode
-              ? ThemeData.dark().copyWith(
-                  colorScheme: const ColorScheme.dark(
-                    primary: Color(0xFFE67E22),
-                    onPrimary: Colors.white,
-                    surface: Color(0xFF1E1E1E),
-                    onSurface: Colors.white,
-                  ),
-                )
-              : ThemeData.light().copyWith(
-                  colorScheme: const ColorScheme.light(
-                    primary: Color(0xFFE67E22),
-                    onPrimary: Colors.white,
-                  ),
-                ),
-          child: child!,
-        );
-      },
-    );
-
-    if (picked != null && picked != _selectedDob) {
-      setState(() {
-        _selectedDob = picked;
-      });
-    }
-  }
-
-  Future<void> _pickImage(ImageSource source) async {
-    try {
-      final ImagePicker picker = ImagePicker();
-      final XFile? image = await picker.pickImage(
-        source: source,
-        maxWidth: 512,
-        maxHeight: 512,
-        imageQuality: 75,
-      );
-
-      if (image != null) {
-        final bytes = await image.readAsBytes();
-        final base64Str = 'data:image/jpeg;base64,${base64Encode(bytes)}';
-        setState(() {
-          _selectedAvatar = base64Str;
-        });
-      }
-    } catch (e) {
-      debugPrint('Error picking image: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to capture photo: $e')),
-        );
-      }
-    }
-  }
-
-  // Avatar Picker Dialog
-  void _openAvatarPicker() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (context) {
-        return Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'Upload Profile Photo',
-                style: GoogleFonts.poppins(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: isDarkMode ? Colors.white : Colors.black87,
-                ),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  ElevatedButton.icon(
-                    onPressed: () {
-                      Navigator.pop(context);
-                      _pickImage(ImageSource.camera);
-                    },
-                    icon: const Icon(Icons.camera_alt_rounded, color: Colors.white),
-                    label: const Text('Open Camera', style: TextStyle(color: Colors.white)),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFE67E22),
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    ),
-                  ),
-                  ElevatedButton.icon(
-                    onPressed: () {
-                      Navigator.pop(context);
-                      _pickImage(ImageSource.gallery);
-                    },
-                    icon: const Icon(Icons.photo_library_rounded, color: Colors.white),
-                    label: const Text('From Gallery', style: TextStyle(color: Colors.white)),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF2E7D32),
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-              Text(
-                'Or select a template avatar:',
-                style: GoogleFonts.inter(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.grey,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  _avatarChoice('avatar_male_1', Icons.face_rounded, Colors.blue),
-                  _avatarChoice('avatar_female_1', Icons.face_3_rounded, Colors.pink),
-                  _avatarChoice('avatar_male_2', Icons.face_4_rounded, Colors.teal),
-                  _avatarChoice('avatar_generic', Icons.account_circle_rounded, Colors.orange),
-                ],
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _avatarChoice(String id, IconData icon, Color color) {
-    final isSelected = _selectedAvatar == id;
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _selectedAvatar = id;
-        });
-        Navigator.pop(context);
-      },
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: isSelected ? color.withValues(alpha: 0.2) : Colors.transparent,
-          border: Border.all(
-            color: isSelected ? color : Colors.grey.shade400,
-            width: isSelected ? 3 : 1.5,
-          ),
-        ),
-        child: Icon(icon, size: 40, color: color),
-      ),
-    );
   }
 
   void _showOtpDevelopmentDialog(String otp) {
@@ -319,7 +69,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Use the following OTP to register:',
+                'Use the following OTP to verify your email:',
                 style: GoogleFonts.inter(fontSize: 14),
               ),
               const SizedBox(height: 12),
@@ -361,12 +111,13 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   }
 
   // OTP Sending Handler
-  void _sendOtp() async {
-    final mobileNumber = _mobileController.text.trim();
-    if (mobileNumber.length != 10 || !RegExp(r'^[0-9]+$').hasMatch(mobileNumber)) {
+  Future<void> _sendOtp() async {
+    final email = _emailController.text.trim();
+    final emailRegex = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$');
+    if (email.isEmpty || !emailRegex.hasMatch(email)) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Please enter a valid 10-digit mobile number first.'),
+          content: const Text('Please enter a valid email address first.'),
           backgroundColor: Colors.redAccent,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -374,8 +125,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       );
       return;
     }
-
-    final fullPhoneNumber = '+91$mobileNumber';
 
     setState(() {
       _isSendingOtp = true;
@@ -384,112 +133,67 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
     try {
       final response = await http.post(
-        Uri.parse('${ApiConfig.baseUrl}/auth/send-otp'),
+        Uri.parse('${ApiConfig.baseUrl}/auth/send-email-otp'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'phone': fullPhoneNumber}),
+        body: jsonEncode({'email': email}),
       );
 
       final data = jsonDecode(response.body);
 
       if (response.statusCode == 200 && data['success'] == true) {
-        final otp = data['otp'];
-        if (mounted) {
-          setState(() {
-            _isOtpSent = true;
-            _isSendingOtp = false;
-            _developmentOtp = otp;
-          });
+        setState(() {
+          _isOtpSent = true;
+          _isSendingOtp = false;
+          _developmentOtp = null;
+        });
 
-          // TODO: Replace with Firebase/Fast2SMS in production.
-          _showOtpDevelopmentDialog(otp);
-
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Row(
-                children: [
-                  const Icon(Icons.mark_email_read_rounded, color: Colors.white),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      'OTP sent to +91 $mobileNumber. Enter code below.',
-                      style: GoogleFonts.inter(fontWeight: FontWeight.w600),
-                    ),
-                  ),
-                ],
-              ),
-              backgroundColor: const Color(0xFF2E7D32),
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              duration: const Duration(seconds: 6),
-            ),
-          );
-        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('OTP sent to $email. Please check your Gmail inbox.'),
+            backgroundColor: const Color(0xFF2E7D32),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        );
       } else {
-        if (mounted) {
-          setState(() {
-            _isSendingOtp = false;
-          });
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(data['message'] ?? 'Failed to send OTP. Please check your number.'),
-              backgroundColor: Colors.redAccent,
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-          );
-        }
-      }
-    } catch (e) {
-      if (mounted) {
         setState(() {
           _isSendingOtp = false;
         });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('Failed to connect to local server. Please check backend connection.'),
+            content: Text(data['message'] ?? 'Failed to send OTP.'),
             backgroundColor: Colors.redAccent,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
         );
       }
+    } catch (e) {
+      setState(() {
+        _isSendingOtp = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Failed to connect to local server.'),
+          backgroundColor: Colors.redAccent,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      );
     }
   }
 
-  // Submit & Registration Action
-  void _handleRegistration() async {
-    // 1. Validate Form
+  // Registration Handler
+  Future<void> _handleRegistration() async {
     if (!_formKey.currentState!.validate()) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Please complete all required fields correctly.'),
-          backgroundColor: Colors.redAccent,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        ),
-      );
       return;
     }
 
-    // 2. Validate DOB
-    if (_selectedDob == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Please select your Date of Birth.'),
-          backgroundColor: Colors.redAccent,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        ),
-      );
-      return;
-    }
-
-    // 3. Validate & Verify OTP
     final enteredOtp = _otpController.text.trim();
     if (enteredOtp.length != 6) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Please enter the full 6-digit OTP code received on your phone.'),
+          content: const Text('Please enter the 6-digit OTP code.'),
           backgroundColor: Colors.redAccent,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -497,22 +201,37 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       );
       return;
     }
-
-    final mobileNumber = _mobileController.text.trim();
-    final fullPhoneNumber = '+91$mobileNumber';
 
     setState(() {
       _isSubmitting = true;
     });
 
-    if (!_isOtpVerified) {
-      if (!_isOtpSent) {
+    final email = _emailController.text.trim();
+
+    // 1. Verify OTP
+    try {
+      final verifyResponse = await http.post(
+        Uri.parse('${ApiConfig.baseUrl}/auth/verify-email-otp'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'email': email,
+          'otp': enteredOtp,
+        }),
+      );
+
+      final verifyData = jsonDecode(verifyResponse.body);
+
+      if (verifyResponse.statusCode == 200 && verifyData['success'] == true) {
+        setState(() {
+          _isOtpVerified = true;
+        });
+      } else {
         setState(() {
           _isSubmitting = false;
         });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('Please tap "Send OTP" to receive a verification code first.'),
+            content: Text(verifyData['message'] ?? 'Invalid OTP code.'),
             backgroundColor: Colors.redAccent,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -520,61 +239,13 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         );
         return;
       }
-
-      try {
-        final response = await http.post(
-          Uri.parse('${ApiConfig.baseUrl}/auth/verify-otp'),
-          headers: {'Content-Type': 'application/json'},
-          body: jsonEncode({
-            'phone': fullPhoneNumber,
-            'otp': enteredOtp,
-          }),
-        );
-
-        final data = jsonDecode(response.body);
-
-        if (response.statusCode == 200 && data['success'] == true) {
-          setState(() {
-            _isOtpVerified = true;
-          });
-        } else {
-          setState(() {
-            _isSubmitting = false;
-          });
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(data['message'] ?? 'Invalid OTP code. Please try again.'),
-              backgroundColor: Colors.redAccent,
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-          );
-          return;
-        }
-      } catch (e) {
-        setState(() {
-          _isSubmitting = false;
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('OTP verification failed: ${e.toString()}'),
-            backgroundColor: Colors.redAccent,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          ),
-        );
-        return;
-      }
-    }
-
-    // 4. Validate Terms & Conditions
-    if (!_acceptedTerms) {
+    } catch (e) {
       setState(() {
         _isSubmitting = false;
       });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Please accept the Terms & Conditions to register.'),
+          content: Text('OTP verification failed: $e'),
           backgroundColor: Colors.redAccent,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -583,125 +254,38 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       return;
     }
 
-    // 5. Submit User Details to MongoDB backend
+    // 2. Call backend register API
     try {
-      final dobStr = "${_selectedDob!.year}-${_selectedDob!.month.toString().padLeft(2, '0')}-${_selectedDob!.day.toString().padLeft(2, '0')}";
-      
-      final response = await http.post(
+      final fullName = '${_firstNameController.text.trim()} ${_middleNameController.text.trim()} ${_lastNameController.text.trim()}';
+      final registerResponse = await http.post(
         Uri.parse('${ApiConfig.baseUrl}/users/register'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
-          'fullName': _fullNameController.text.trim(),
-          'surname': _surnameController.text.trim(),
-          'fatherName': _fatherNameController.text.trim(),
-          'phoneNumber': fullPhoneNumber,
-          'gender': _selectedGender,
-          'dateOfBirth': dobStr,
-          'nativePlace': _nativePlaceController.text.trim(),
-          'address': _nativePlaceController.text.trim(),
-          'city': _currentCityController.text.trim(),
-          'state': _selectedState,
-          'maritalStatus': _selectedMaritalStatus,
-          'occupation': _occupationController.text.trim(),
-          'education': _educationController.text.trim(),
-          'bloodGroup': _selectedBloodGroup,
-          'profilePhoto': _selectedAvatar,
-          'familyId': _familyIdController.text.trim(),
-          'familyName': _surnameController.text.trim(),
-          'relationshipToHead': _selectedRelationshipToHead,
-          'motherName': _motherNameController.text.trim(),
-          'spouseName': _spouseNameController.text.trim(),
-          'familyHeadPhone': _familyHeadPhoneController.text.trim().isNotEmpty
-              ? (_familyHeadPhoneController.text.trim().startsWith('+')
-                  ? _familyHeadPhoneController.text.trim()
-                  : '+91${_familyHeadPhoneController.text.trim()}')
-              : '',
+          'fullName': fullName,
+          'email': email,
+          'phoneNumber': _phoneController.text.trim(),
         }),
       );
 
-      final data = jsonDecode(response.body);
+      final registerData = jsonDecode(registerResponse.body);
 
-      setState(() {
-        _isSubmitting = false;
-      });
-
-      if (response.statusCode == 201 && data['success'] == true) {
-        // Show Success Dialog & Redirect to Login Page
-        if (!mounted) return;
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (BuildContext dialogContext) {
-            final isDark = isDarkMode;
-            return AlertDialog(
-              backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const SizedBox(height: 12),
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFE8F5E9),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.check_circle_rounded,
-                      color: Color(0xFF2E7D32),
-                      size: 64,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  Text(
-                    'Registered Successfully!',
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.poppins(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: isDark ? Colors.white : const Color(0xFF2E7D32),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    'Welcome ${_fullNameController.text.trim()} to KutumbSetu family network.\nYour account registration is completed.',
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.inter(
-                      fontSize: 14,
-                      color: isDark ? Colors.grey.shade300 : Colors.grey.shade700,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  ElevatedButton(
-                    onPressed: () {
-                      Navigator.of(dialogContext).pop(); // Dismiss dialog
-                      Navigator.of(context).pop(); // Redirect back to Login Screen
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFE67E22),
-                      minimumSize: const Size(double.infinity, 48),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                    ),
-                    child: Text(
-                      'Proceed to Login',
-                      style: GoogleFonts.poppins(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
+      if (registerResponse.statusCode == 201 && registerData['success'] == true) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Registration successful! Please login to continue.'),
+            backgroundColor: Color(0xFF2E7D32),
+          ),
         );
+        if (mounted) {
+          context.go('/');
+        }
       } else {
-        if (!mounted) return;
+        setState(() {
+          _isSubmitting = false;
+        });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(data['message'] ?? 'Registration failed. Please try again.'),
+            content: Text(registerData['message'] ?? 'Registration failed.'),
             backgroundColor: Colors.redAccent,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -712,10 +296,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       setState(() {
         _isSubmitting = false;
       });
-      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Registration connection failed: ${e.toString()}'),
+          content: Text('Connection failed: $e'),
           backgroundColor: Colors.redAccent,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -726,994 +309,217 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = isDarkMode;
-
-    final bgGradient = LinearGradient(
-      colors: isDark
-          ? [
-              const Color(0xFF5D2800),
-              const Color(0xFF121212),
-            ]
-          : [
-              const Color(0xFFFFF3E0),
-              const Color(0xFFFAFAFA),
-            ],
-      begin: Alignment.topCenter,
-      end: Alignment.bottomCenter,
-    );
+    final saffronColor = const Color(0xFFE67E22);
+    final darkNavy = const Color(0xFF1B4F72);
 
     return Scaffold(
-      resizeToAvoidBottomInset: true,
-      bottomNavigationBar: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-        decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.12),
-              blurRadius: 12,
-              offset: const Offset(0, -4),
-            ),
-          ],
-        ),
-        child: SafeArea(
-          child: ElevatedButton(
-            onPressed: _isSubmitting ? null : _handleRegistration,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: theme.colorScheme.primary,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              elevation: 4,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-            ),
-            child: _isSubmitting
-                ? const SizedBox(
-                    height: 24,
-                    width: 24,
-                    child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
-                  )
-                : Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        'Register Yourself',
-                        style: GoogleFonts.poppins(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      const Icon(Icons.arrow_forward_rounded, color: Colors.white),
-                    ],
-                  ),
-          ),
+      backgroundColor: isDarkMode ? const Color(0xFF121212) : const Color(0xFFFAFAFA),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back_ios_new_rounded, color: isDarkMode ? Colors.white : Colors.black87),
+          onPressed: () => context.go('/'),
         ),
       ),
-      body: Container(
-        width: double.infinity,
-        decoration: BoxDecoration(gradient: bgGradient),
-        child: SafeArea(
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final isWide = constraints.maxWidth >= 600;
-              final bottomPadding = 140.0 + MediaQuery.of(context).viewInsets.bottom;
-
-              return ScrollConfiguration(
-                behavior: ScrollConfiguration.of(context).copyWith(
-                  dragDevices: {
-                    PointerDeviceKind.touch,
-                    PointerDeviceKind.mouse,
-                    PointerDeviceKind.trackpad,
-                    PointerDeviceKind.stylus,
-                  },
-                ),
-                child: Scrollbar(
-                  controller: _scrollController,
-                  thumbVisibility: true,
-                  child: SingleChildScrollView(
-                    controller: _scrollController,
-                    physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
-                    keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-                    padding: EdgeInsets.fromLTRB(20.0, 16.0, 20.0, bottomPadding),
-                    child: Form(
-                      key: _formKey,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      // App Bar Header
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          IconButton(
-                            onPressed: () => Navigator.pop(context),
-                            icon: Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: isDark ? const Color(0xFF2C2C2C) : Colors.white,
-                                shape: BoxShape.circle,
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.05),
-                                    blurRadius: 10,
-                                  )
-                                ],
-                              ),
-                              child: Icon(
-                                Icons.arrow_back_rounded,
-                                color: isDark ? Colors.white : Colors.grey.shade800,
-                              ),
-                            ),
-                          ),
-                          Text(
-                            'Member Registration',
-                            style: GoogleFonts.poppins(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: isDark ? Colors.white : const Color(0xFF333333),
-                            ),
-                          ),
-                          IconButton(
-                            onPressed: () {
-                              ref.read(themeModeProvider.notifier).toggleTheme();
-                            },
-                            icon: Icon(
-                              isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
-                              color: isDark ? Colors.white : Colors.grey.shade700,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Header Banner & Profile Photo Picker
-                      Card(
-                        elevation: isDark ? 0 : 2,
-                        child: Padding(
-                          padding: const EdgeInsets.all(20.0),
-                          child: Column(
-                            children: [
-                              GestureDetector(
-                                onTap: _openAvatarPicker,
-                                child: Stack(
-                                  children: [
-                                    CircleAvatar(
-                                      radius: 46,
-                                      backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.15),
-                                      backgroundImage: (_selectedAvatar.startsWith('data:image') || _selectedAvatar.length > 100)
-                                          ? MemoryImage(base64Decode(_selectedAvatar.split(',').last))
-                                          : null,
-                                      child: (_selectedAvatar.startsWith('data:image') || _selectedAvatar.length > 100)
-                                          ? null
-                                          : Icon(
-                                              _selectedAvatar == 'avatar_female_1'
-                                                  ? Icons.face_3_rounded
-                                                  : _selectedAvatar == 'avatar_male_2'
-                                                      ? Icons.face_4_rounded
-                                                      : Icons.face_rounded,
-                                              size: 56,
-                                              color: theme.colorScheme.primary,
-                                            ),
-                                    ),
-                                    Positioned(
-                                      bottom: 0,
-                                      right: 0,
-                                      child: Container(
-                                        padding: const EdgeInsets.all(6),
-                                        decoration: BoxDecoration(
-                                          color: theme.colorScheme.secondary,
-                                          shape: BoxShape.circle,
-                                          border: Border.all(color: Colors.white, width: 2),
-                                        ),
-                                        child: const Icon(
-                                          Icons.camera_alt_rounded,
-                                          size: 16,
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              Text(
-                                'Tap to Add / Change Profile Photo',
-                                style: GoogleFonts.inter(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                  color: theme.colorScheme.primary,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Section 1: Personal Information Card
-                      _buildSectionCard(
-                        title: 'Personal Details',
-                        icon: Icons.person_rounded,
-                        isDark: isDark,
-                        children: [
-                          if (isWide) ...[
-                            // 2-Column layout on wide screens
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Expanded(
-                                  child: _buildTextField(
-                                    controller: _fullNameController,
-                                    label: 'Full Name',
-                                    hint: 'e.g. Rahul Sharma',
-                                    icon: Icons.badge_rounded,
-                                    validator: (val) => val == null || val.trim().isEmpty ? 'Full Name is required' : null,
-                                  ),
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: _buildTextField(
-                                    controller: _surnameController,
-                                    label: 'Surname / Family Name',
-                                    hint: 'e.g. Sharma / Kulkarni',
-                                    icon: Icons.groups_rounded,
-                                    validator: (val) => val == null || val.trim().isEmpty ? 'Surname is required' : null,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 16),
-
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Expanded(
-                                  child: _buildDobField(isDark, theme),
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: _buildTextField(
-                                    controller: _fatherNameController,
-                                    label: "Father's Name",
-                                    hint: 'e.g. Suresh Sharma',
-                                    icon: Icons.person_outline_rounded,
-                                    validator: (val) => val == null || val.trim().isEmpty ? "Father's Name is required" : null,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 16),
-
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Expanded(
-                                  child: _buildGenderField(isDark, theme),
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: _buildMaritalStatusField(isDark),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 16),
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Expanded(
-                                  child: _buildTextField(
-                                    controller: _occupationController,
-                                    label: 'Occupation',
-                                    hint: 'e.g. Software Architect',
-                                    icon: Icons.work_rounded,
-                                    validator: (val) => val == null || val.trim().isEmpty ? 'Occupation is required' : null,
-                                  ),
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: _buildTextField(
-                                    controller: _educationController,
-                                    label: 'Education',
-                                    hint: 'e.g. B.E. Computer Engineering',
-                                    icon: Icons.school_rounded,
-                                    validator: (val) => val == null || val.trim().isEmpty ? 'Education is required' : null,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 16),
-                            _buildBloodGroupField(isDark),
-                          ] else ...[
-                            // Stacked responsive layout on mobile (Date of Birth placed high up right after Full Name & Surname!)
-                            _buildTextField(
-                              controller: _fullNameController,
-                              label: 'Full Name',
-                              hint: 'e.g. Rahul Sharma',
-                              icon: Icons.badge_rounded,
-                              validator: (val) => val == null || val.trim().isEmpty ? 'Full Name is required' : null,
-                            ),
-                            const SizedBox(height: 16),
- 
-                            _buildTextField(
-                              controller: _surnameController,
-                              label: 'Surname / Family Name',
-                              hint: 'e.g. Sharma / Kulkarni',
-                              icon: Icons.groups_rounded,
-                              validator: (val) => val == null || val.trim().isEmpty ? 'Surname is required' : null,
-                            ),
-                            const SizedBox(height: 16),
- 
-                            // Date of Birth prominently near top
-                            _buildDobField(isDark, theme),
-                            const SizedBox(height: 16),
- 
-                            _buildTextField(
-                              controller: _fatherNameController,
-                              label: "Father's Name",
-                              hint: 'e.g. Suresh Sharma',
-                              icon: Icons.person_outline_rounded,
-                              validator: (val) => val == null || val.trim().isEmpty ? "Father's Name is required" : null,
-                            ),
-                            const SizedBox(height: 16),
- 
-                            _buildGenderField(isDark, theme),
-                            const SizedBox(height: 16),
- 
-                            _buildMaritalStatusField(isDark),
-                            const SizedBox(height: 16),
-
-                            _buildTextField(
-                              controller: _occupationController,
-                              label: 'Occupation',
-                              hint: 'e.g. Software Architect',
-                              icon: Icons.work_rounded,
-                              validator: (val) => val == null || val.trim().isEmpty ? 'Occupation is required' : null,
-                            ),
-                            const SizedBox(height: 16),
-
-                            _buildTextField(
-                              controller: _educationController,
-                              label: 'Education',
-                              hint: 'e.g. B.E. Computer Engineering',
-                              icon: Icons.school_rounded,
-                              validator: (val) => val == null || val.trim().isEmpty ? 'Education is required' : null,
-                            ),
-                            const SizedBox(height: 16),
-
-                            _buildBloodGroupField(isDark),
-                          ],
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Section 1.5: Family Details Card
-                      _buildSectionCard(
-                        title: 'Family Details',
-                        icon: Icons.family_restroom_rounded,
-                        isDark: isDark,
-                        children: [
-                          _buildTextField(
-                            controller: _familyIdController,
-                            label: 'Family ID',
-                            hint: 'e.g. CHAUHAN-001',
-                            icon: Icons.qr_code_rounded,
-                            validator: (val) => val == null || val.trim().isEmpty ? 'Family ID is required' : null,
-                          ),
-                          const SizedBox(height: 16),
-                          _buildRelationshipToHeadField(isDark),
-                          const SizedBox(height: 16),
-                          _buildTextField(
-                            controller: _familyHeadPhoneController,
-                            label: 'Family Head Phone Number',
-                            hint: '10-digit number',
-                            icon: Icons.contact_phone_rounded,
-                            keyboardType: TextInputType.phone,
-                            maxLength: 10,
-                            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                            validator: (val) {
-                              if (val == null || val.trim().isEmpty) {
-                                return 'Family Head Phone Number is required';
-                              }
-                              if (val.trim().length != 10) {
-                                return 'Enter 10 digits';
-                              }
-                              return null;
-                            },
-                          ),
-                          const SizedBox(height: 16),
-                          _buildTextField(
-                            controller: _motherNameController,
-                            label: "Mother's Full Name (Optional)",
-                            hint: 'e.g. Suman Devi',
-                            icon: Icons.person_2_rounded,
-                          ),
-                          const SizedBox(height: 16),
-                          _buildTextField(
-                            controller: _spouseNameController,
-                            label: 'Spouse Name (Optional)',
-                            hint: 'e.g. Aarti Chauhan',
-                            icon: Icons.favorite_border_rounded,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Section 2: Residence & Location
-                      _buildSectionCard(
-                        title: 'Native & Residence Details',
-                        icon: Icons.location_on_rounded,
-                        isDark: isDark,
-                        children: [
-                          if (isWide) ...[
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Expanded(
-                                  child: _buildTextField(
-                                    controller: _nativePlaceController,
-                                    label: 'Native Place / Village',
-                                    hint: 'e.g. Satara / Anand',
-                                    icon: Icons.home_rounded,
-                                    validator: (val) => val == null || val.trim().isEmpty ? 'Native place is required' : null,
-                                  ),
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: _buildTextField(
-                                    controller: _currentCityController,
-                                    label: 'Current City',
-                                    hint: 'e.g. Mumbai / Pune',
-                                    icon: Icons.location_city_rounded,
-                                    validator: (val) => val == null || val.trim().isEmpty ? 'Current city is required' : null,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 16),
-                            _buildStateField(isDark),
-                          ] else ...[
-                            _buildTextField(
-                              controller: _nativePlaceController,
-                              label: 'Native Place / Village',
-                              hint: 'e.g. Satara / Anand',
-                              icon: Icons.home_rounded,
-                              validator: (val) => val == null || val.trim().isEmpty ? 'Native place is required' : null,
-                            ),
-                            const SizedBox(height: 16),
-
-                            _buildTextField(
-                              controller: _currentCityController,
-                              label: 'Current City',
-                              hint: 'e.g. Mumbai / Pune',
-                              icon: Icons.location_city_rounded,
-                              validator: (val) => val == null || val.trim().isEmpty ? 'Current city is required' : null,
-                            ),
-                            const SizedBox(height: 16),
-
-                            _buildStateField(isDark),
-                          ],
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Section 3: Contact & OTP Verification
-                      _buildSectionCard(
-                        title: 'Mobile & OTP Verification',
-                        icon: Icons.phonelink_ring_rounded,
-                        isDark: isDark,
-                        children: [
-                          // Mobile Number with inline Send OTP button
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(
-                                child: _buildTextField(
-                                  controller: _mobileController,
-                                  label: 'Mobile Number',
-                                  hint: '10-digit number',
-                                  icon: Icons.phone_android_rounded,
-                                  keyboardType: TextInputType.phone,
-                                  maxLength: 10,
-                                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                                  validator: (val) {
-                                    if (val == null || val.trim().length != 10) {
-                                      return 'Enter 10 digits';
-                                    }
-                                    return null;
-                                  },
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Padding(
-                                padding: const EdgeInsets.only(top: 26.0),
-                                child: ElevatedButton(
-                                  onPressed: _isSendingOtp ? null : _sendOtp,
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: theme.colorScheme.secondary,
-                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(16),
-                                    ),
-                                  ),
-                                  child: _isSendingOtp
-                                      ? const SizedBox(
-                                          height: 18,
-                                          width: 18,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                          ),
-                                        )
-                                      : Text(
-                                          _isOtpSent ? 'Resend' : 'Send OTP',
-                                          style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.bold),
-                                        ),
-                                ),
-                              ),
-                            ],
-                          ),
-
-                          // Dynamic Firebase SMS OTP Status Banner
-                          Container(
-                            margin: const EdgeInsets.only(top: 12, bottom: 12),
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: _isOtpVerified
-                                  ? const Color(0xFF2E7D32).withValues(alpha: 0.12)
-                                  : theme.colorScheme.primary.withValues(alpha: 0.12),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: _isOtpVerified
-                                    ? const Color(0xFF2E7D32).withValues(alpha: 0.5)
-                                    : theme.colorScheme.primary.withValues(alpha: 0.4),
-                              ),
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  _isOtpVerified
-                                      ? Icons.check_circle_outline_rounded
-                                      : Icons.info_outline_rounded,
-                                  color: _isOtpVerified ? const Color(0xFF2E7D32) : theme.colorScheme.primary,
-                                  size: 20,
-                                ),
-                                const SizedBox(width: 10),
-                                Expanded(
-                                  child: Text(
-                                    _isOtpVerified
-                                        ? 'Mobile number verified successfully!'
-                                        : _isOtpSent
-                                            ? 'Development OTP: $_developmentOtp. Enter the 6-digit code below.'
-                                            : 'Enter your 10-digit mobile number and tap "Send OTP" to receive an SMS code.',
-                                    style: GoogleFonts.inter(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w600,
-                                      color: _isOtpVerified ? const Color(0xFF2E7D32) : theme.colorScheme.primary,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-
-                          // OTP Input Field
-                          _buildTextField(
-                            controller: _otpController,
-                            label: 'Enter 6-Digit OTP',
-                            hint: 'Enter SMS OTP code',
-                            icon: Icons.lock_clock_rounded,
-                            keyboardType: TextInputType.number,
-                            maxLength: 6,
-                            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                            validator: (val) {
-                              if (val == null || val.trim().isEmpty) {
-                                return 'OTP code is required';
-                              }
-                              if (val.trim().length != 6) {
-                                return 'Enter full 6-digit OTP code';
-                              }
-                              return null;
-                            },
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Terms & Conditions Checkbox
-                      Card(
-                        elevation: isDark ? 0 : 2,
-                        child: Padding(
-                          padding: const EdgeInsets.all(12.0),
-                          child: CheckboxListTile(
-                            value: _acceptedTerms,
-                            onChanged: (val) {
-                              setState(() {
-                                _acceptedTerms = val ?? false;
-                              });
-                            },
-                            activeColor: theme.colorScheme.primary,
-                            controlAffinity: ListTileControlAffinity.leading,
-                            title: Text.rich(
-                              TextSpan(
-                                text: 'I accept all ',
-                                style: GoogleFonts.inter(
-                                  fontSize: 13,
-                                  color: isDark ? Colors.grey.shade300 : Colors.grey.shade800,
-                                ),
-                                children: [
-                                  TextSpan(
-                                    text: 'Terms & Conditions',
-                                    style: TextStyle(
-                                      color: theme.colorScheme.tertiary,
-                                      fontWeight: FontWeight.bold,
-                                      decoration: TextDecoration.underline,
-                                    ),
-                                  ),
-                                  const TextSpan(text: ' and Privacy Policy of KutumbSetu.'),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          );
-        },
-      ),
-    ),
-  ),
-);
-  }
-
-  // Section Container Helper
-  Widget _buildSectionCard({
-    required String title,
-    required IconData icon,
-    required bool isDark,
-    required List<Widget> children,
-  }) {
-    final theme = Theme.of(context);
-    return Card(
-      elevation: isDark ? 0 : 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-        side: BorderSide(
-          color: isDark ? Colors.grey.shade800 : Colors.transparent,
-          width: 1.5,
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(icon, color: theme.colorScheme.primary, size: 22),
-                const SizedBox(width: 10),
-                Text(
-                  title,
-                  style: GoogleFonts.poppins(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: isDark ? Colors.white : Colors.grey.shade900,
-                  ),
-                ),
-              ],
-            ),
-            const Divider(height: 24),
-            ...children,
-          ],
-        ),
-      ),
-    );
-  }
-
-  // Reusable TextField Helper
-  Widget _buildTextField({
-    required TextEditingController controller,
-    required String label,
-    required String hint,
-    required IconData icon,
-    TextInputType keyboardType = TextInputType.text,
-    int? maxLength,
-    List<TextInputFormatter>? inputFormatters,
-    String? Function(String?)? validator,
-  }) {
-    final isDark = isDarkMode;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: GoogleFonts.inter(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: isDark ? Colors.grey.shade300 : Colors.grey.shade800,
-          ),
-        ),
-        const SizedBox(height: 8),
-        TextFormField(
-          controller: controller,
-          keyboardType: keyboardType,
-          maxLength: maxLength,
-          inputFormatters: inputFormatters,
-          validator: validator,
-          decoration: InputDecoration(
-            hintText: hint,
-            prefixIcon: Icon(icon),
-            counterText: '',
-          ),
-        ),
-      ],
-    );
-  }
-
-  // Helper widget for Date of Birth picker field
-  Widget _buildDobField(bool isDark, ThemeData theme) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Date of Birth',
-          style: GoogleFonts.inter(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: isDark ? Colors.grey.shade300 : Colors.grey.shade800,
-          ),
-        ),
-        const SizedBox(height: 8),
-        InkWell(
-          onTap: _selectDateOfBirth,
-          borderRadius: BorderRadius.circular(16),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-            decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF2C2C2C) : Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: isDark ? Colors.grey.shade800 : Colors.grey.shade300,
-                width: 1.5,
-              ),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.calendar_month_rounded,
-                  color: theme.colorScheme.primary,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    _selectedDob == null
-                        ? 'Select Date of Birth'
-                        : '${_selectedDob!.day.toString().padLeft(2, '0')}/${_selectedDob!.month.toString().padLeft(2, '0')}/${_selectedDob!.year}',
-                    style: GoogleFonts.inter(
-                      fontSize: 15,
-                      color: _selectedDob == null
-                          ? Colors.grey
-                          : (isDark ? Colors.white : Colors.black87),
+      body: Center(
+        child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // App Branding
+                  Text(
+                    'KutumbSetu',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.poppins(
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                      color: saffronColor,
                     ),
                   ),
-                ),
-                const Icon(Icons.arrow_drop_down_rounded),
-              ],
+                  const SizedBox(height: 8),
+                  Text(
+                    'Create a new account in our community portal',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.inter(
+                      fontSize: 14,
+                      color: isDarkMode ? Colors.grey.shade400 : Colors.grey.shade600,
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+
+                  // First Name
+                  TextFormField(
+                    controller: _firstNameController,
+                    decoration: InputDecoration(
+                      labelText: 'First Name',
+                      prefixIcon: const Icon(Icons.person_outline_rounded),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'First Name is required';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Middle Name
+                  TextFormField(
+                    controller: _middleNameController,
+                    decoration: InputDecoration(
+                      labelText: 'Middle Name',
+                      prefixIcon: const Icon(Icons.person_outline_rounded),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Middle Name is required';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Last Name
+                  TextFormField(
+                    controller: _lastNameController,
+                    decoration: InputDecoration(
+                      labelText: 'Last Name',
+                      prefixIcon: const Icon(Icons.person_outline_rounded),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Last Name is required';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Phone Number
+                  TextFormField(
+                    controller: _phoneController,
+                    keyboardType: TextInputType.phone,
+                    decoration: InputDecoration(
+                      labelText: 'Phone Number',
+                      prefixIcon: const Icon(Icons.phone_iphone_rounded),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Phone Number is required';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Email Address
+                  TextFormField(
+                    controller: _emailController,
+                    keyboardType: TextInputType.emailAddress,
+                    enabled: !_isOtpSent,
+                    decoration: InputDecoration(
+                      labelText: 'Email Address',
+                      prefixIcon: const Icon(Icons.email_outlined),
+                      suffixIcon: _isOtpSent
+                          ? const Icon(Icons.check_circle, color: Colors.green)
+                          : null,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Email Address is required';
+                      }
+                      if (!RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(value)) {
+                        return 'Enter a valid email address';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 24),
+
+                  if (!_isOtpSent)
+                    ElevatedButton(
+                      onPressed: _isSendingOtp ? null : _sendOtp,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: saffronColor,
+                        foregroundColor: Colors.white,
+                        minimumSize: const Size(double.infinity, 50),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: _isSendingOtp
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                            )
+                          : Text('Send Verification OTP', style: GoogleFonts.poppins(fontWeight: FontWeight.bold)),
+                    ),
+
+                  if (_isOtpSent) ...[
+                    // OTP Text Field
+                    TextFormField(
+                      controller: _otpController,
+                      keyboardType: TextInputType.number,
+                      maxLength: 6,
+                      decoration: InputDecoration(
+                        labelText: 'Enter 6-Digit Email OTP',
+                        prefixIcon: const Icon(Icons.lock_clock_outlined),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        TextButton(
+                          onPressed: _isSendingOtp ? null : _sendOtp,
+                          child: Text('Resend OTP', style: TextStyle(color: saffronColor)),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            setState(() {
+                              _isOtpSent = false;
+                            });
+                          },
+                          child: const Text('Change Email', style: TextStyle(color: Colors.grey)),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: _isSubmitting ? null : _handleRegistration,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: darkNavy,
+                        foregroundColor: Colors.white,
+                        minimumSize: const Size(double.infinity, 50),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: _isSubmitting
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                            )
+                          : Text('Register Yourself', style: GoogleFonts.poppins(fontWeight: FontWeight.bold)),
+                    ),
+                  ],
+                ],
+              ),
             ),
           ),
         ),
-      ],
-    );
-  }
-
-  // Helper widget for Gender choice selector
-  Widget _buildGenderField(bool isDark, ThemeData theme) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Gender',
-          style: GoogleFonts.inter(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: isDark ? Colors.grey.shade300 : Colors.grey.shade800,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 8.0,
-          runSpacing: 4.0,
-          children: _genders.map((gender) {
-            final isSelected = _selectedGender == gender;
-            return ChoiceChip(
-              label: Text(gender),
-              selected: isSelected,
-              selectedColor: theme.colorScheme.primary,
-              labelStyle: TextStyle(
-                color: isSelected ? Colors.white : (isDark ? Colors.white : Colors.black87),
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-              ),
-              onSelected: (selected) {
-                if (selected) {
-                  setState(() {
-                    _selectedGender = gender;
-                  });
-                }
-              },
-            );
-          }).toList(),
-        ),
-      ],
-    );
-  }
-
-  // Helper widget for Marital Status dropdown
-  Widget _buildMaritalStatusField(bool isDark) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Marital Status',
-          style: GoogleFonts.inter(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: isDark ? Colors.grey.shade300 : Colors.grey.shade800,
-          ),
-        ),
-        const SizedBox(height: 8),
-        DropdownButtonFormField<String>(
-          initialValue: _selectedMaritalStatus,
-          decoration: const InputDecoration(
-            prefixIcon: Icon(Icons.favorite_rounded),
-            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          ),
-          items: _maritalStatuses.map((status) {
-            return DropdownMenuItem(
-              value: status,
-              child: Text(status),
-            );
-          }).toList(),
-          onChanged: (val) {
-            if (val != null) {
-              setState(() {
-                _selectedMaritalStatus = val;
-              });
-            }
-          },
-        ),
-      ],
-    );
-  }
-
-  // Helper widget for Blood Group dropdown
-  Widget _buildBloodGroupField(bool isDark) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Blood Group',
-          style: GoogleFonts.inter(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: isDark ? Colors.grey.shade300 : Colors.grey.shade800,
-          ),
-        ),
-        const SizedBox(height: 8),
-        DropdownButtonFormField<String>(
-          initialValue: _selectedBloodGroup,
-          decoration: const InputDecoration(
-            prefixIcon: Icon(Icons.bloodtype_rounded),
-            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          ),
-          items: _bloodGroups.map((group) {
-            return DropdownMenuItem(
-              value: group,
-              child: Text(group),
-            );
-          }).toList(),
-          onChanged: (val) {
-            if (val != null) {
-              setState(() {
-                _selectedBloodGroup = val;
-              });
-            }
-          },
-        ),
-      ],
-    );
-  }
-
-  // Helper widget for State dropdown
-  Widget _buildStateField(bool isDark) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'State',
-          style: GoogleFonts.inter(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: isDark ? Colors.grey.shade300 : Colors.grey.shade800,
-          ),
-        ),
-        const SizedBox(height: 8),
-        DropdownButtonFormField<String>(
-          initialValue: _selectedState,
-          decoration: const InputDecoration(
-            prefixIcon: Icon(Icons.map_rounded),
-            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          ),
-          items: _indianStates.map((state) {
-            return DropdownMenuItem(
-              value: state,
-              child: Text(state),
-            );
-          }).toList(),
-          onChanged: (val) {
-            if (val != null) {
-              setState(() {
-                _selectedState = val;
-              });
-            }
-          },
-        ),
-      ],
-    );
-  }
-
-  // Helper widget for Relationship dropdown
-  Widget _buildRelationshipToHeadField(bool isDark) {
-    final List<String> options = [
-      'Self',
-      'Son',
-      'Daughter',
-      'Father',
-      'Mother',
-      'Husband',
-      'Wife',
-      'Grandfather',
-      'Grandmother',
-      'Other'
-    ];
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Relationship to Family Head',
-          style: GoogleFonts.inter(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: isDark ? Colors.grey.shade300 : Colors.grey.shade800,
-          ),
-        ),
-        const SizedBox(height: 8),
-        DropdownButtonFormField<String>(
-          value: _selectedRelationshipToHead,
-          decoration: const InputDecoration(
-            prefixIcon: Icon(Icons.people_rounded),
-            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          ),
-          items: options.map((opt) {
-            return DropdownMenuItem(
-              value: opt,
-              child: Text(opt),
-            );
-          }).toList(),
-          onChanged: (val) {
-            if (val != null) {
-              setState(() {
-                _selectedRelationshipToHead = val;
-              });
-            }
-          },
-        ),
-      ],
+      ),
     );
   }
 }

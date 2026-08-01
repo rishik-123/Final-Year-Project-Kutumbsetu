@@ -1,6 +1,7 @@
 class UserModel {
   final String id;
   final String fullName;
+  final String email;
   final String surname;
   final String fatherName;
   final String phoneNumber;
@@ -25,6 +26,7 @@ class UserModel {
   const UserModel({
     required this.id,
     required this.fullName,
+    required this.email,
     required this.surname,
     required this.fatherName,
     required this.phoneNumber,
@@ -51,6 +53,7 @@ class UserModel {
     return UserModel(
       id: json['_id'] as String? ?? '',
       fullName: json['fullName'] as String? ?? '',
+      email: json['email'] as String? ?? '',
       surname: json['surname'] as String? ?? '',
       fatherName: json['fatherName'] as String? ?? '',
       phoneNumber: json['phoneNumber'] as String? ?? '',
@@ -78,6 +81,7 @@ class UserModel {
     return {
       '_id': id,
       'fullName': fullName,
+      'email': email,
       'surname': surname,
       'fatherName': fatherName,
       'phoneNumber': phoneNumber,
@@ -104,6 +108,7 @@ class UserModel {
   UserModel copyWith({
     String? id,
     String? fullName,
+    String? email,
     String? surname,
     String? fatherName,
     String? phoneNumber,
@@ -128,6 +133,7 @@ class UserModel {
     return UserModel(
       id: id ?? this.id,
       fullName: fullName ?? this.fullName,
+      email: email ?? this.email,
       surname: surname ?? this.surname,
       fatherName: fatherName ?? this.fatherName,
       phoneNumber: phoneNumber ?? this.phoneNumber,

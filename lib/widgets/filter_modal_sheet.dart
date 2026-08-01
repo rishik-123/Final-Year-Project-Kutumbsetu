@@ -200,7 +200,7 @@ class _FilterModalSheetState extends ConsumerState<FilterModalSheet>
 
                 // 3. Profession Tab
                 _buildMultiSelectCategoryList(
-                  items: members.map((m) => m.profession).toSet().toList()..sort(),
+                  items: (members.map((m) => m.profession).toSet().toList()..add('Tailor')).toSet().toList()..removeWhere((p) => p.isEmpty)..sort(),
                   selectedItems: filterState.selectedProfessions,
                   getItemCount: (p) =>
                       members.where((m) => m.profession == p).length,

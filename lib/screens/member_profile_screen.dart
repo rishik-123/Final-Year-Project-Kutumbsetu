@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:share_plus/share_plus.dart';
 import '../constants/app_colors.dart';
 import '../models/member_model.dart';
 import '../providers/member_providers.dart';
@@ -26,6 +28,81 @@ class MemberProfileScreen extends ConsumerWidget {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
     );
+  }
+
+  Future<void> _makeCall(BuildContext context, String phoneNumber) async {
+    final Uri uri = Uri(scheme: 'tel', path: phoneNumber.replaceAll(' ', ''));
+    try {
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri);
+      } else {
+        if (!context.mounted) return;
+        _showSnackBar(context, 'Could not launch dialer for $phoneNumber');
+      }
+    } catch (e) {
+      if (!context.mounted) return;
+      _showSnackBar(context, 'Could not call: $e');
+    }
+  }
+
+  Future<void> _sendMessage(BuildContext context, Member member) async {
+    String cleanPhone = member.mobileNumber.replaceAll(RegExp(r'[^\d]'), '');
+    if (cleanPhone.length == 10) {
+      cleanPhone = '91$cleanPhone';
+    }
+    final String messageText = 'Jay Shree Krishna ${member.fullName}, connecting via KutumbSetu!';
+    final Uri waUri = Uri.parse('https://wa.me/$cleanPhone?text=${Uri.encodeComponent(messageText)}');
+    final Uri smsUri = Uri(
+      scheme: 'sms',
+      path: member.mobileNumber,
+      queryParameters: {'body': messageText},
+    );
+
+    try {
+      if (await canLaunchUrl(waUri)) {
+        await launchUrl(waUri, mode: LaunchMode.externalApplication);
+      } else if (await canLaunchUrl(smsUri)) {
+        await launchUrl(smsUri);
+      } else {
+        if (!context.mounted) return;
+        _showSnackBar(context, 'Could not open WhatsApp or SMS for ${member.fullName}');
+      }
+    } catch (e) {
+      if (!context.mounted) return;
+      _showSnackBar(context, 'Could not initiate message: $e');
+    }
+  }
+
+  Future<void> _shareProfile(BuildContext context, Member member) async {
+    final String shareText = '''
+=== KutumbSetu Member Profile ===
+Name: ${member.fullName}
+Profession: ${member.profession}
+Location: ${member.fullLocation}
+Blood Group: ${member.bloodGroup}
+Contact: ${member.mobileNumber}
+''';
+    try {
+      await Share.share(shareText);
+    } catch (e) {
+      if (!context.mounted) return;
+      _showSnackBar(context, 'Sharing failed: $e');
+    }
+  }
+
+  Future<void> _sendEmail(BuildContext context, String email) async {
+    final Uri uri = Uri(scheme: 'mailto', path: email);
+    try {
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri);
+      } else {
+        if (!context.mounted) return;
+        _showSnackBar(context, 'Could not launch email client for $email');
+      }
+    } catch (e) {
+      if (!context.mounted) return;
+      _showSnackBar(context, 'Could not email: $e');
+    }
   }
 
   @override
@@ -104,8 +181,7 @@ class MemberProfileScreen extends ConsumerWidget {
               ),
               IconButton(
                 icon: const Icon(Icons.share, color: Colors.white),
-                onPressed: () =>
-                    _showSnackBar(context, 'Sharing profile of ${m.fullName}...'),
+                onPressed: () => _shareProfile(context, m),
               ),
             ],
             flexibleSpace: FlexibleSpaceBar(
@@ -247,8 +323,7 @@ class MemberProfileScreen extends ConsumerWidget {
                             backgroundColor: AppColors.accentBlue
                                 .withValues(alpha: 0.1),
                             isFilled: true,
-                            onTap: () => _showSnackBar(
-                                context, 'Calling ${m.mobileNumber}...'),
+                            onTap: () => _makeCall(context, m.mobileNumber),
                           ),
                           ProfileActionButton(
                             icon: Icons.chat_outlined,
@@ -257,8 +332,7 @@ class MemberProfileScreen extends ConsumerWidget {
                             backgroundColor: AppColors.whatsappGreen
                                 .withValues(alpha: 0.1),
                             isFilled: true,
-                            onTap: () => _showSnackBar(context,
-                                'Opening WhatsApp for ${m.fullName}...'),
+                            onTap: () => _sendMessage(context, m),
                           ),
                           ProfileActionButton(
                             icon: Icons.email_outlined,
@@ -269,8 +343,7 @@ class MemberProfileScreen extends ConsumerWidget {
                             backgroundColor: isDark
                                 ? AppColors.bgDark
                                 : AppColors.bgLight,
-                            onTap: () => _showSnackBar(
-                                context, 'Sending email to ${m.email}...'),
+                            onTap: () => _sendEmail(context, m.email),
                           ),
                         ],
                       ),

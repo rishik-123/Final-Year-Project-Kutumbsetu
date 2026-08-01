@@ -1,0 +1,979 @@
+import 'dart:convert';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:http/http.dart' as http;
+import '../api_config.dart';
+import '../providers/auth_provider.dart';
+import '../providers/theme_provider.dart';
+import 'package:image_picker/image_picker.dart';
+
+class ProfileCompletionScreen extends ConsumerStatefulWidget {
+  const ProfileCompletionScreen({super.key});
+
+  @override
+  ConsumerState<ProfileCompletionScreen> createState() => _ProfileCompletionScreenState();
+}
+
+class _ProfileCompletionScreenState extends ConsumerState<ProfileCompletionScreen> {
+  final _formKey = GlobalKey<FormState>();
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _prefillFields();
+    });
+  }
+
+  void _showCreatePostBottomSheet(BuildContext context) {
+    final picker = ImagePicker();
+    XFile? pickedImage;
+    final contentController = TextEditingController();
+    bool uploading = false;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom,
+                left: 20,
+                right: 20,
+                top: 20,
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      'Create Community Post',
+                      style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold, color: const Color(0xFFD35400)),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: contentController,
+                      maxLines: 4,
+                      decoration: InputDecoration(
+                        hintText: "What's on your mind? Share announcements, achievements...",
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    if (pickedImage != null)
+                      Container(
+                        height: 180,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.grey.shade300),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: FutureBuilder<List<int>>(
+                            future: pickedImage!.readAsBytes(),
+                            builder: (context, snapshot) {
+                              if (snapshot.hasData) {
+                                return Image.memory(
+                                  snapshot.data as dynamic,
+                                  fit: BoxFit.cover,
+                                  width: double.infinity,
+                                );
+                              }
+                              return const Center(child: CircularProgressIndicator());
+                            },
+                          ),
+                        ),
+                      )
+                    else
+                      OutlinedButton.icon(
+                        onPressed: () async {
+                          final img = await picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
+                          if (img != null) {
+                            setSheetState(() {
+                              pickedImage = img;
+                            });
+                          }
+                        },
+                        icon: const Icon(Icons.add_photo_alternate_rounded),
+                        label: const Text('Pick Image from Gallery'),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                      ),
+                    const SizedBox(height: 20),
+                    ElevatedButton(
+                      onPressed: uploading
+                          ? null
+                          : () async {
+                              final text = contentController.text.trim();
+                              if (text.isEmpty) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Please enter some text content.')),
+                                );
+                                return;
+                              }
+                              setSheetState(() => uploading = true);
+                              try {
+                                final user = ref.read(currentUserProvider);
+                                if (user == null) return;
+
+                                String? base64Image;
+                                if (pickedImage != null) {
+                                  final bytes = await pickedImage!.readAsBytes();
+                                  base64Image = base64Encode(bytes);
+                                }
+
+                                final response = await http.post(
+                                  Uri.parse('${ApiConfig.baseUrl}/community/posts'),
+                                  headers: {'Content-Type': 'application/json'},
+                                  body: jsonEncode({
+                                    'userId': user.id,
+                                    'content': text,
+                                    'mediaBase64': base64Image,
+                                  }),
+                                );
+
+                                if (response.statusCode == 201) {
+                                  Navigator.pop(context);
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('Post published successfully!')),
+                                  );
+                                } else {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('Failed to publish post.')),
+                                  );
+                                }
+                              } catch (e) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Error uploading post: $e')),
+                                );
+                              } finally {
+                                setSheetState(() => uploading = false);
+                              }
+                            },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFD35400),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: uploading
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                            )
+                          : Text('Publish Post', style: GoogleFonts.poppins(fontWeight: FontWeight.bold)),
+                    ),
+                    const SizedBox(height: 20),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showCreateReelBottomSheet(BuildContext context) {
+    final picker = ImagePicker();
+    XFile? pickedVideo;
+    final captionController = TextEditingController();
+    bool uploading = false;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom,
+                left: 20,
+                right: 20,
+                top: 20,
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      'Create Community Reel',
+                      style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold, color: const Color(0xFF0288D1)),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: captionController,
+                      maxLines: 3,
+                      decoration: InputDecoration(
+                        hintText: "Add a caption for your reel...",
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    if (pickedVideo != null)
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE1F5FE),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFF0288D1)),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.video_library_rounded, color: Color(0xFF0288D1), size: 36),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Video Selected',
+                                    style: GoogleFonts.poppins(fontWeight: FontWeight.bold, color: const Color(0xFF0288D1)),
+                                  ),
+                                  Text(
+                                    pickedVideo!.name,
+                                    style: const TextStyle(fontSize: 11, color: Colors.black54),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    else
+                      OutlinedButton.icon(
+                        onPressed: () async {
+                          final vid = await picker.pickVideo(source: ImageSource.gallery, maxDuration: const Duration(seconds: 30));
+                          if (vid != null) {
+                            setSheetState(() {
+                              pickedVideo = vid;
+                            });
+                          }
+                        },
+                        icon: const Icon(Icons.video_call_rounded),
+                        label: const Text('Pick Reel Video from Gallery'),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                      ),
+                    const SizedBox(height: 20),
+                    ElevatedButton(
+                      onPressed: uploading
+                          ? null
+                          : () async {
+                              final caption = captionController.text.trim();
+                              if (caption.isEmpty) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Please enter a caption.')),
+                                );
+                                return;
+                              }
+                              if (pickedVideo == null) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Please select a video.')),
+                                );
+                                return;
+                              }
+                              setSheetState(() => uploading = true);
+                              try {
+                                final user = ref.read(currentUserProvider);
+                                if (user == null) return;
+
+                                final bytes = await pickedVideo!.readAsBytes();
+                                final base64Video = base64Encode(bytes);
+
+                                final response = await http.post(
+                                  Uri.parse('${ApiConfig.baseUrl}/community/reels'),
+                                  headers: {'Content-Type': 'application/json'},
+                                  body: jsonEncode({
+                                    'userId': user.id,
+                                    'caption': caption,
+                                    'videoBase64': base64Video,
+                                  }),
+                                );
+
+                                if (response.statusCode == 201) {
+                                  Navigator.pop(context);
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('Reel published successfully!')),
+                                  );
+                                } else {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('Failed to upload reel.')),
+                                  );
+                                }
+                              } catch (e) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Error uploading reel: $e')),
+                                );
+                              } finally {
+                                setSheetState(() => uploading = false);
+                              }
+                            },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF0288D1),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: uploading
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                            )
+                          : Text('Upload Reel', style: GoogleFonts.poppins(fontWeight: FontWeight.bold)),
+                    ),
+                    const SizedBox(height: 20),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _prefillFields() {
+    final user = ref.read(currentUserProvider);
+    if (user != null) {
+      setState(() {
+        _phoneController.text = user.phoneNumber;
+        _dobController.text = user.dateOfBirth;
+        _gender = ['Male', 'Female', 'Other'].contains(user.gender) ? user.gender : 'Male';
+        _profilePhoto = user.profilePhoto.isNotEmpty ? user.profilePhoto : 'avatar_male_1';
+        
+        final bg = user.bloodGroup.trim().toUpperCase();
+        _bloodGroup = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].contains(bg) ? bg : 'B+';
+        
+        _villageController.text = user.nativePlace;
+        _cityController.text = user.city;
+        _stateController.text = user.state;
+        _addressController.text = user.address;
+        _qualificationController.text = user.education;
+        _professionController.text = user.occupation;
+        _fatherNameController.text = user.fatherName;
+        _motherNameController.text = user.motherName;
+        _spouseNameController.text = user.spouseName;
+        _relationshipToHead = ['Self', 'Father', 'Mother', 'Wife', 'Son', 'Daughter', 'Brother', 'Sister', 'Grandfather', 'Grandmother', 'Other']
+            .contains(user.relationshipToHead) ? user.relationshipToHead : 'Self';
+        _familyHeadPhoneController.text = user.familyHeadPhone;
+        _familyIdController.text = user.familyId;
+      });
+    }
+  }
+
+  // Personal
+  String _gender = 'Male';
+  final _dobController = TextEditingController();
+  final _phoneController = TextEditingController();
+  String _profilePhoto = 'avatar_male_1';
+  String _bloodGroup = 'B+';
+
+  // Address
+  final _villageController = TextEditingController();
+  final _cityController = TextEditingController();
+  final _stateController = TextEditingController();
+  final _addressController = TextEditingController();
+
+  // Edu & Occ
+  final _qualificationController = TextEditingController();
+  final _collegeController = TextEditingController();
+  final _professionController = TextEditingController();
+
+  // Family
+  final _fatherNameController = TextEditingController();
+  final _motherNameController = TextEditingController();
+  final _grandfatherController = TextEditingController();
+  final _grandmotherController = TextEditingController();
+  final _nanaController = TextEditingController();
+  final _naniController = TextEditingController();
+
+  // Additional
+  final _bioController = TextEditingController();
+  final _familyIdController = TextEditingController();
+  String _relationshipToHead = 'Self';
+  final _familyHeadPhoneController = TextEditingController();
+  final _spouseNameController = TextEditingController();
+  bool _isDeceased = false;
+
+  @override
+  void dispose() {
+    _dobController.dispose();
+    _phoneController.dispose();
+    _villageController.dispose();
+    _cityController.dispose();
+    _stateController.dispose();
+    _addressController.dispose();
+    _qualificationController.dispose();
+    _collegeController.dispose();
+    _professionController.dispose();
+    _fatherNameController.dispose();
+    _motherNameController.dispose();
+    _grandfatherController.dispose();
+    _grandmotherController.dispose();
+    _nanaController.dispose();
+    _naniController.dispose();
+    _bioController.dispose();
+    _familyIdController.dispose();
+    _familyHeadPhoneController.dispose();
+    _spouseNameController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _selectDate() async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime(2000),
+      firstDate: DateTime(1920),
+      lastDate: DateTime.now(),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xFFD35400),
+              onPrimary: Colors.white,
+              onSurface: Colors.black87,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null) {
+      setState(() {
+        _dobController.text = "${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}";
+      });
+    }
+  }
+
+  Future<void> _submitProfile() async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    final user = ref.read(currentUserProvider);
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('User session expired. Please log in again.')),
+      );
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    final payload = {
+      'userId': user.id,
+      'gender': _gender,
+      'dateOfBirth': _dobController.text.trim(),
+      'phoneNumber': _phoneController.text.trim(),
+      'profilePhoto': _profilePhoto,
+      'bloodGroup': _bloodGroup,
+      'village': _villageController.text.trim(),
+      'city': _cityController.text.trim(),
+      'state': _stateController.text.trim(),
+      'address': _addressController.text.trim(),
+      'qualification': _qualificationController.text.trim(),
+      'college': _collegeController.text.trim(),
+      'profession': _professionController.text.trim(),
+      'fatherName': _fatherNameController.text.trim(),
+      'motherName': _motherNameController.text.trim(),
+      'grandfather': _grandfatherController.text.trim(),
+      'grandmother': _grandmotherController.text.trim(),
+      'nana': _nanaController.text.trim(),
+      'nani': _naniController.text.trim(),
+      'bio': _bioController.text.trim(),
+      'familyId': _familyIdController.text.trim().toUpperCase(),
+      'relationshipToHead': _relationshipToHead,
+      'familyHeadPhone': _familyHeadPhoneController.text.trim(),
+      'spouseName': _spouseNameController.text.trim(),
+      'isDeceased': _isDeceased,
+    };
+
+    try {
+      final response = await http.post(
+        Uri.parse('${ApiConfig.baseUrl}/users/profile'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(payload),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['success'] == true) {
+          // Fetch updated profile
+          final updatedUser = await AuthService.fetchUserProfile(user.email);
+          if (updatedUser != null) {
+            ref.read(currentUserProvider.notifier).state = updatedUser;
+          }
+          if (mounted) {
+            final isCompleted = user.phoneNumber.isNotEmpty && user.city.isNotEmpty;
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(isCompleted ? 'Profile updated successfully!' : 'Profile completed successfully! Welcome to KutumbSetu.')),
+            );
+            context.go('/home');
+          }
+        } else {
+          _showError(data['message'] ?? 'Failed to complete profile.');
+        }
+      } else {
+        _showError('Server returned status: ${response.statusCode}');
+      }
+    } catch (e) {
+      _showError('Failed to connect to server: $e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
+    );
+  }
+
+  Widget _buildSectionHeader(String title, IconData icon) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 24, bottom: 12),
+      child: Row(
+        children: [
+          Icon(icon, color: const Color(0xFFD35400), size: 22),
+          const SizedBox(width: 8),
+          Text(
+            title,
+            style: GoogleFonts.poppins(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: const Color(0xFF1B4F72),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = ref.watch(themeModeProvider) == ThemeMode.dark;
+    final primaryOrange = const Color(0xFFD35400);
+
+    return Scaffold(
+      backgroundColor: isDark ? const Color(0xFF121212) : const Color(0xFFFAFAFA),
+      appBar: AppBar(
+        backgroundColor: primaryOrange,
+        elevation: 0,
+        title: Text(
+          ref.watch(currentUserProvider)?.phoneNumber.isNotEmpty == true && ref.watch(currentUserProvider)?.city.isNotEmpty == true
+              ? 'Edit Profile'
+              : 'Complete Your Profile',
+          style: GoogleFonts.poppins(
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
+        centerTitle: true,
+      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator(color: Color(0xFFD35400)))
+          : SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.all(20.0),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  children: [
+                    Text(
+                      ref.watch(currentUserProvider)?.phoneNumber.isNotEmpty == true && ref.watch(currentUserProvider)?.city.isNotEmpty == true
+                          ? 'Update your profile details below.'
+                          : 'Let\'s build your profile to unlock all community features!',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.inter(
+                        fontSize: 14,
+                        color: isDark ? Colors.grey.shade400 : Colors.grey.shade700,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+
+                    // If profile is complete, show social upload shortcuts
+                    if (ref.watch(currentUserProvider)?.phoneNumber.isNotEmpty == true &&
+                        ref.watch(currentUserProvider)?.city.isNotEmpty == true) ...[
+                      const SizedBox(height: 12),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          ElevatedButton.icon(
+                            onPressed: () => _showCreatePostBottomSheet(context),
+                            icon: const Icon(Icons.add_photo_alternate_rounded, color: Colors.white),
+                            label: Text('Add Post', style: GoogleFonts.poppins(fontWeight: FontWeight.bold)),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFD35400),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                          ),
+                          ElevatedButton.icon(
+                            onPressed: () => _showCreateReelBottomSheet(context),
+                            icon: const Icon(Icons.video_call_rounded, color: Colors.white),
+                            label: Text('Create Reel', style: GoogleFonts.poppins(fontWeight: FontWeight.bold)),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF0288D1),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                      const Divider(),
+                    ],
+
+                    // SECTION 1: Personal Details
+                    _buildSectionHeader('Personal Details', Icons.person_outline_rounded),
+                    
+                    // Phone Number
+                    TextFormField(
+                      controller: _phoneController,
+                      keyboardType: TextInputType.phone,
+                      decoration: InputDecoration(
+                        labelText: 'Phone Number',
+                        prefixIcon: const Icon(Icons.phone_iphone_rounded),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Phone number is required';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Gender Selection
+                    DropdownButtonFormField<String>(
+                      value: _gender,
+                      decoration: InputDecoration(
+                        labelText: 'Gender',
+                        prefixIcon: const Icon(Icons.transgender_rounded),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      items: ['Male', 'Female', 'Other']
+                          .map((val) => DropdownMenuItem(value: val, child: Text(val)))
+                          .toList(),
+                      onChanged: (val) {
+                        if (val != null) {
+                          setState(() {
+                            _gender = val;
+                            // automatically match profilePhoto gender prefix
+                            _profilePhoto = val == 'Female' ? 'avatar_female_1' : 'avatar_male_1';
+                          });
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Date of Birth
+                    TextFormField(
+                      controller: _dobController,
+                      readOnly: true,
+                      decoration: InputDecoration(
+                        labelText: 'Date of Birth (YYYY-MM-DD)',
+                        prefixIcon: const Icon(Icons.calendar_today_rounded),
+                        suffixIcon: IconButton(
+                          icon: const Icon(Icons.date_range_rounded),
+                          onPressed: _selectDate,
+                        ),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Date of Birth is required';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Blood Group
+                    DropdownButtonFormField<String>(
+                      value: _bloodGroup,
+                      decoration: InputDecoration(
+                        labelText: 'Blood Group',
+                        prefixIcon: const Icon(Icons.bloodtype_rounded),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      items: ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']
+                          .map((val) => DropdownMenuItem(value: val, child: Text(val)))
+                          .toList(),
+                      onChanged: (val) {
+                        if (val != null) {
+                          setState(() {
+                            _bloodGroup = val;
+                          });
+                        }
+                      },
+                    ),
+
+                    // SECTION 2: Address
+                    _buildSectionHeader('Residence Address', Icons.home_work_outlined),
+                    TextFormField(
+                      controller: _villageController,
+                      decoration: InputDecoration(
+                        labelText: 'Native Village',
+                        prefixIcon: const Icon(Icons.villa_rounded),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _cityController,
+                      decoration: InputDecoration(
+                        labelText: 'City',
+                        prefixIcon: const Icon(Icons.location_city_rounded),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'City is required';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _stateController,
+                      decoration: InputDecoration(
+                        labelText: 'State',
+                        prefixIcon: const Icon(Icons.map_rounded),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _addressController,
+                      maxLines: 2,
+                      decoration: InputDecoration(
+                        labelText: 'Full Address',
+                        prefixIcon: const Icon(Icons.home_rounded),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+
+                    // SECTION 3: Education & Occupation
+                    _buildSectionHeader('Education & Occupation', Icons.school_outlined),
+                    TextFormField(
+                      controller: _qualificationController,
+                      decoration: InputDecoration(
+                        labelText: 'Qualification (e.g. B.Tech)',
+                        prefixIcon: const Icon(Icons.history_edu_rounded),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _collegeController,
+                      decoration: InputDecoration(
+                        labelText: 'College / University',
+                        prefixIcon: const Icon(Icons.account_balance_rounded),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _professionController,
+                      decoration: InputDecoration(
+                        labelText: 'Profession (e.g. Tailor, Doctor)',
+                        prefixIcon: const Icon(Icons.work_outline_rounded),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+
+                    // SECTION 4: Family Details
+                    _buildSectionHeader('Family Members & Relations', Icons.family_restroom_outlined),
+                    TextFormField(
+                      controller: _fatherNameController,
+                      decoration: InputDecoration(
+                        labelText: 'Father\'s Name',
+                        prefixIcon: const Icon(Icons.person),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _motherNameController,
+                      decoration: InputDecoration(
+                        labelText: 'Mother\'s Name',
+                        prefixIcon: const Icon(Icons.person_2),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _grandfatherController,
+                      decoration: InputDecoration(
+                        labelText: 'Grandfather\'s Name',
+                        prefixIcon: const Icon(Icons.elderly_rounded),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _grandmotherController,
+                      decoration: InputDecoration(
+                        labelText: 'Grandmother\'s Name',
+                        prefixIcon: const Icon(Icons.elderly_woman_rounded),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _nanaController,
+                      decoration: InputDecoration(
+                        labelText: 'Nana\'s Name (Maternal Grandfather)',
+                        prefixIcon: const Icon(Icons.elderly_rounded),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _naniController,
+                      decoration: InputDecoration(
+                        labelText: 'Nani\'s Name (Maternal Grandmother)',
+                        prefixIcon: const Icon(Icons.elderly_woman_rounded),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _spouseNameController,
+                      decoration: InputDecoration(
+                        labelText: 'Spouse\'s Name',
+                        prefixIcon: const Icon(Icons.favorite_outline_rounded),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+
+                    // SECTION 5: Family Node Links
+                    _buildSectionHeader('Family Tree Association', Icons.account_tree_outlined),
+                    TextFormField(
+                      controller: _familyIdController,
+                      decoration: InputDecoration(
+                        labelText: 'Family ID (e.g. FAM-101)',
+                        prefixIcon: const Icon(Icons.lan_rounded),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    DropdownButtonFormField<String>(
+                      value: _relationshipToHead,
+                      decoration: InputDecoration(
+                        labelText: 'Relationship to Head of Family',
+                        prefixIcon: const Icon(Icons.supervisor_account_rounded),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      items: ['Self', 'Father', 'Mother', 'Wife', 'Son', 'Daughter', 'Brother', 'Sister', 'Grandfather', 'Grandmother', 'Other']
+                          .map((val) => DropdownMenuItem(value: val, child: Text(val)))
+                          .toList(),
+                      onChanged: (val) {
+                        if (val != null) {
+                          setState(() {
+                            _relationshipToHead = val;
+                          });
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _familyHeadPhoneController,
+                      keyboardType: TextInputType.phone,
+                      decoration: InputDecoration(
+                        labelText: 'Family Head\'s Phone Number',
+                        prefixIcon: const Icon(Icons.contact_phone_rounded),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    SwitchListTile(
+                      title: Text(
+                        'Mark Deceased (isDeceased)',
+                        style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600),
+                      ),
+                      subtitle: const Text('Add deceased indicator ⚫ to family tree node'),
+                      value: _isDeceased,
+                      activeColor: Colors.black,
+                      onChanged: (val) {
+                        setState(() {
+                          _isDeceased = val;
+                        });
+                      },
+                    ),
+
+                    // SECTION 6: Biography
+                    _buildSectionHeader('Brief Bio', Icons.description_outlined),
+                    TextFormField(
+                      controller: _bioController,
+                      maxLines: 3,
+                      decoration: InputDecoration(
+                        labelText: 'Write a few words about yourself...',
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+
+                    // Save Button
+                    ElevatedButton(
+                      onPressed: _submitProfile,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: primaryOrange,
+                        foregroundColor: Colors.white,
+                        minimumSize: const Size(double.infinity, 50),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        elevation: 3,
+                      ),
+                      child: Text(
+                        ref.watch(currentUserProvider)?.phoneNumber.isNotEmpty == true && ref.watch(currentUserProvider)?.city.isNotEmpty == true
+                            ? 'Save Changes'
+                            : 'Save & Complete Profile',
+                        style: GoogleFonts.poppins(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                  ],
+                ),
+              ),
+            ),
+    );
+  }
+}

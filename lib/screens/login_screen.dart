@@ -7,10 +7,6 @@ import '../providers/theme_provider.dart';
 import '../providers/auth_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import '../widgets/mobile_input_form.dart';
-import '../widgets/otp_verification_form.dart';
-import 'register_screen.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -20,17 +16,25 @@ class LoginScreen extends ConsumerStatefulWidget {
 }
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final _formKey = GlobalKey<FormState>();
 
-  // Navigation/Auth State: 'phone' or 'otp'
-  String _currentStep = 'phone';
-  String _enteredPhone = '';
-  
-  // Firebase Auth State
-  String? _verificationId;
-  int? _resendToken;
+  bool get isDarkMode => ref.watch(themeModeProvider) == ThemeMode.dark;
+
+  // State Variables
+  String _currentStep = 'email'; // 'email' or 'otp'
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _otpController = TextEditingController();
+
   bool _isSendingOtp = false;
   bool _isVerifyingOtp = false;
+  String? _developmentOtp;
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _otpController.dispose();
+    super.dispose();
+  }
 
   void _showOtpDevelopmentDialog(String otp) {
     showDialog(
@@ -97,131 +101,117 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     );
   }
 
-  void _handleSendOtp(String fullPhoneNumber) async {
-    final sanitizedPhone = fullPhoneNumber.replaceAll(' ', '').trim();
+  Future<void> _handleSendOtp() async {
+    final email = _emailController.text.trim();
+    final emailRegex = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$');
+    if (email.isEmpty || !emailRegex.hasMatch(email)) {
+      _showErrorSnackBar('Please enter a valid email address.');
+      return;
+    }
 
     setState(() {
       _isSendingOtp = true;
-      _enteredPhone = fullPhoneNumber;
     });
 
     try {
       final response = await http.post(
-        Uri.parse('${ApiConfig.baseUrl}/auth/send-otp'),
+        Uri.parse('${ApiConfig.baseUrl}/auth/send-email-otp'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'phone': sanitizedPhone}),
+        body: jsonEncode({'email': email}),
       );
 
       final data = jsonDecode(response.body);
 
       if (response.statusCode == 200 && data['success'] == true) {
-        final otp = data['otp'];
-        if (mounted) {
-          setState(() {
-            _currentStep = 'otp';
-            _isSendingOtp = false;
-          });
-          
-          // TODO: Replace with Firebase/Fast2SMS in production.
-          _showOtpDevelopmentDialog(otp);
-          
-          _showSuccessSnackBar('OTP sent successfully! Please check the code.');
-        }
+        setState(() {
+          _currentStep = 'otp';
+          _isSendingOtp = false;
+          _developmentOtp = null;
+        });
+
+        _showSuccessSnackBar('OTP code sent successfully! Please check your Gmail.');
       } else {
-        if (mounted) {
-          setState(() {
-            _isSendingOtp = false;
-          });
-          _showErrorSnackBar(data['message'] ?? 'Failed to send OTP. Please try again.');
-        }
-      }
-    } catch (e) {
-      if (mounted) {
         setState(() {
           _isSendingOtp = false;
         });
-        _showErrorSnackBar('Failed to connect to local server. Please check backend connection.');
+        _showErrorSnackBar(data['message'] ?? 'Failed to send OTP.');
       }
+    } catch (e) {
+      setState(() {
+        _isSendingOtp = false;
+      });
+      _showErrorSnackBar('Failed to connect to local server. Please check backend connection.');
     }
   }
 
-  void _handleVerifyOtp(String otpCode) async {
+  Future<void> _handleVerifyOtp() async {
+    final enteredOtp = _otpController.text.trim();
+    if (enteredOtp.length != 6) {
+      _showErrorSnackBar('Please enter the 6-digit OTP code.');
+      return;
+    }
+
     setState(() {
       _isVerifyingOtp = true;
     });
 
+    final email = _emailController.text.trim();
+
     try {
-      final sanitizedPhone = _enteredPhone.replaceAll(' ', '').trim();
       final response = await http.post(
-        Uri.parse('${ApiConfig.baseUrl}/auth/verify-otp'),
+        Uri.parse('${ApiConfig.baseUrl}/auth/verify-email-otp'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
-          'phone': sanitizedPhone,
-          'otp': otpCode,
+          'email': email,
+          'otp': enteredOtp,
         }),
       );
 
       final data = jsonDecode(response.body);
 
       if (response.statusCode == 200 && data['success'] == true) {
-        // Fetch registered user profile from MongoDB
-        final userModel = await AuthService.fetchUserProfile(sanitizedPhone);
-        if (mounted) {
+        if (data['userExists'] == true) {
+          // Registered user profile
+          final userModel = await AuthService.fetchUserProfile(email);
           setState(() {
             _isVerifyingOtp = false;
           });
-          
           if (userModel != null) {
             ref.read(currentUserProvider.notifier).state = userModel;
-            _showSuccessSnackBar('Login Successful! Welcome to KutumbSetu.');
+            _showSuccessSnackBar('Welcome to KutumbSetu!');
             context.go('/home');
           } else {
-            _showSuccessSnackBar('Mobile verified. Please complete your registration.');
-            context.push('/register', extra: sanitizedPhone);
+            _showErrorSnackBar('Failed to fetch user profile details.');
           }
-        }
-      } else {
-        if (mounted) {
+        } else {
+          // Email verified but not registered
           setState(() {
             _isVerifyingOtp = false;
           });
-          _showErrorSnackBar(data['message'] ?? 'Invalid OTP');
+          _showSuccessSnackBar('Email verified. Please register your account.');
+          context.push('/register');
         }
-      }
-    } catch (e) {
-      if (mounted) {
+      } else {
         setState(() {
           _isVerifyingOtp = false;
         });
-        _showErrorSnackBar('Verification failed: ${e.toString()}');
+        _showErrorSnackBar(data['message'] ?? 'Invalid OTP code.');
       }
+    } catch (e) {
+      setState(() {
+        _isVerifyingOtp = false;
+      });
+      _showErrorSnackBar('Verification failed: $e');
     }
-  }
-
-  void _handleResendOtp() {
-    _handleSendOtp(_enteredPhone);
   }
 
   void _showSuccessSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.check_circle_rounded, color: Colors.white),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                message,
-                style: GoogleFonts.inter(fontWeight: FontWeight.w500),
-              ),
-            ),
-          ],
-        ),
+        content: Text(message),
+        backgroundColor: const Color(0xFF2E7D32),
         behavior: SnackBarBehavior.floating,
-        backgroundColor: const Color(0xFF2E7D32), // Forest Green
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        margin: const EdgeInsets.all(16),
-        duration: const Duration(seconds: 5),
       ),
     );
   }
@@ -229,52 +219,28 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   void _showErrorSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.error_outline_rounded, color: Colors.white),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                message,
-                style: GoogleFonts.inter(fontWeight: FontWeight.w500),
-              ),
-            ),
-          ],
-        ),
-        behavior: SnackBarBehavior.floating,
+        content: Text(message),
         backgroundColor: Colors.redAccent,
+        behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        margin: const EdgeInsets.all(16),
       ),
     );
-  }
-
-  void _handleChangeMobile() {
-    setState(() {
-      _currentStep = 'phone';
-    });
-  }
-
-  void _navigateToRegister() {
-    context.push('/register');
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final themeMode = ref.watch(themeModeProvider);
-    final isDark = themeMode == ThemeMode.dark;
+    final isDark = isDarkMode;
 
-    // Soft saffon-to-white / saffron-to-dark gradient background
     final bgGradient = LinearGradient(
       colors: isDark
           ? [
-              const Color(0xFF5D2800), // Deep muted saffron brown
-              const Color(0xFF121212), // Obsidian background
+              const Color(0xFF5D2800),
+              const Color(0xFF121212),
             ]
           : [
-              const Color(0xFFFFF3E0), // Soft cream saffron
-              const Color(0xFFFAFAFA), // Off-white
+              const Color(0xFFFFF3E0),
+              const Color(0xFFFAFAFA),
             ],
       begin: Alignment.topCenter,
       end: Alignment.bottomCenter,
@@ -286,16 +252,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         height: double.infinity,
         decoration: BoxDecoration(gradient: bgGradient),
         child: SafeArea(
-          child: SingleChildScrollView(
-            physics: const BouncingScrollPhysics(),
-            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
-            child: Column(
-              children: [
-                // Theme Switcher & Utility Row
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    IconButton(
+          child: Center(
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+              child: Column(
+                children: [
+                  // Theme switch
+                  Align(
+                    alignment: Alignment.topRight,
+                    child: IconButton(
                       onPressed: () {
                         ref.read(themeModeProvider.notifier).toggleTheme();
                       },
@@ -303,264 +269,201 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
                         color: isDark ? Colors.white : Colors.grey.shade700,
                       ),
-                      tooltip: 'Toggle Theme',
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-
-                // Top Section - Logo & Tagline
-                Column(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: isDark ? const Color(0xFF2C2C2C) : Colors.white,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.05),
-                            blurRadius: 20,
-                            offset: const Offset(0, 10),
-                          )
-                        ],
-                      ),
-                      child: Icon(
-                        Icons.diversity_3_rounded,
-                        size: 64,
-                        color: theme.colorScheme.primary,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'KutumbSetu',
-                      style: GoogleFonts.poppins(
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                        color: isDark ? Colors.white : const Color(0xFF333333),
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                    Text(
-                      'कुटुम्बसेतु',
-                      style: GoogleFonts.poppins(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w500,
-                        color: theme.colorScheme.secondary,
-                        letterSpacing: 1.5,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                      child: Text(
-                        'Connecting Families, Traditions, and Communities.',
-                        textAlign: TextAlign.center,
-                        style: GoogleFonts.inter(
-                          fontSize: 14,
-                          color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
-                          fontStyle: FontStyle.italic,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 32),
-
-                // Welcome Section & Card Container
-                Card(
-                  elevation: isDark ? 0 : 4,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(24),
-                    side: BorderSide(
-                      color: isDark ? Colors.grey.shade800 : Colors.transparent,
-                      width: 1.5,
                     ),
                   ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(24.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Text(
-                          'Welcome to KutumbSetu',
-                          style: GoogleFonts.poppins(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: isDark ? Colors.white : Colors.grey.shade800,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Stay connected with your family, community updates, matrimonial profiles, and events.',
-                          style: GoogleFonts.inter(
-                            fontSize: 13,
-                            color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
-                            height: 1.4,
-                          ),
-                        ),
-                        const SizedBox(height: 24),
 
-                        // Authentication Switcher (Phone Input vs OTP)
-                        AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 300),
-                          child: _currentStep == 'phone'
-                              ? MobileInputForm(
-                                  key: const ValueKey('phoneForm'),
-                                  onSendOtp: _handleSendOtp,
-                                  isLoading: _isSendingOtp,
-                                )
-                              : OtpVerificationForm(
-                                  key: const ValueKey('otpForm'),
-                                  phoneNumber: _enteredPhone,
-                                  onChangeMobile: _handleChangeMobile,
-                                  onVerify: _handleVerifyOtp,
-                                  onResend: _handleResendOtp,
-                                  isVerifying: _isVerifyingOtp,
+                  // Header branding
+                  Column(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: isDark ? const Color(0xFF2C2C2C) : Colors.white,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.05),
+                              blurRadius: 20,
+                              offset: const Offset(0, 10),
+                            )
+                          ],
+                        ),
+                        child: const Icon(
+                          Icons.diversity_3_rounded,
+                          size: 64,
+                          color: Color(0xFFE67E22),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'KutumbSetu',
+                        style: GoogleFonts.poppins(
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold,
+                          color: isDark ? Colors.white : const Color(0xFF333333),
+                        ),
+                      ),
+                      Text(
+                        'कुटुम्बसेतु',
+                        style: GoogleFonts.poppins(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w500,
+                          color: const Color(0xFFE67E22),
+                          letterSpacing: 1.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 32),
+
+                  // Login Form Card
+                  Card(
+                    elevation: isDark ? 0 : 4,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(24),
+                      side: BorderSide(
+                        color: isDark ? Colors.grey.shade800 : Colors.transparent,
+                        width: 1.5,
+                      ),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(24.0),
+                      child: Form(
+                        key: _formKey,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Text(
+                              'Sign In',
+                              style: GoogleFonts.poppins(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Authenticate using Email OTP code verification.',
+                              style: GoogleFonts.inter(
+                                fontSize: 13,
+                                color: Colors.grey.shade600,
+                              ),
+                            ),
+                            const SizedBox(height: 24),
+
+                            if (_currentStep == 'email') ...[
+                              // Email Address Input
+                              TextFormField(
+                                controller: _emailController,
+                                keyboardType: TextInputType.emailAddress,
+                                decoration: InputDecoration(
+                                  labelText: 'Email Address',
+                                  prefixIcon: const Icon(Icons.email_outlined),
+                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                                 ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-
-                // Registration Promo / Register Here Button
-                Card(
-                  elevation: isDark ? 0 : 2,
-                  color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                    side: BorderSide(
-                      color: isDark ? Colors.grey.shade800 : theme.colorScheme.primary.withValues(alpha: 0.3),
-                      width: 1.5,
-                    ),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 14.0),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'New to KutumbSetu?',
-                                style: GoogleFonts.poppins(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                  color: isDark ? Colors.white : Colors.grey.shade800,
+                                validator: (value) {
+                                  if (value == null || value.trim().isEmpty) {
+                                    return 'Email address is required';
+                                  }
+                                  if (!RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(value)) {
+                                    return 'Enter a valid email address';
+                                  }
+                                  return null;
+                                },
+                              ),
+                              const SizedBox(height: 24),
+                              ElevatedButton(
+                                onPressed: _isSendingOtp ? null : _handleSendOtp,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFFE67E22),
+                                  foregroundColor: Colors.white,
+                                  minimumSize: const Size(double.infinity, 50),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                ),
+                                child: _isSendingOtp
+                                    ? const SizedBox(
+                                        height: 20,
+                                        width: 20,
+                                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                                      )
+                                    : Text('Send OTP Code', style: GoogleFonts.poppins(fontWeight: FontWeight.bold)),
+                              ),
+                            ] else ...[
+                              // OTP Input
+                              TextFormField(
+                                controller: _otpController,
+                                keyboardType: TextInputType.number,
+                                maxLength: 6,
+                                decoration: InputDecoration(
+                                  labelText: 'Enter 6-Digit Email OTP',
+                                  prefixIcon: const Icon(Icons.lock_clock_outlined),
+                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                                 ),
                               ),
-                              Text(
-                                'Register your family profile now',
-                                style: GoogleFonts.inter(
-                                  fontSize: 12,
-                                  color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                              const SizedBox(height: 8),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  TextButton(
+                                    onPressed: _isSendingOtp ? null : _handleSendOtp,
+                                    child: const Text('Resend OTP', style: TextStyle(color: Color(0xFFE67E22))),
+                                  ),
+                                  TextButton(
+                                    onPressed: () {
+                                      setState(() {
+                                        _currentStep = 'email';
+                                      });
+                                    },
+                                    child: const Text('Change Email', style: TextStyle(color: Colors.grey)),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 24),
+                              ElevatedButton(
+                                onPressed: _isVerifyingOtp ? null : _handleVerifyOtp,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF1B4F72),
+                                  foregroundColor: Colors.white,
+                                  minimumSize: const Size(double.infinity, 50),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                 ),
+                                child: _isVerifyingOtp
+                                    ? const SizedBox(
+                                        height: 20,
+                                        width: 20,
+                                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                                      )
+                                    : Text('Verify & Log In', style: GoogleFonts.poppins(fontWeight: FontWeight.bold)),
                               ),
                             ],
-                          ),
+                          ],
                         ),
-                        const SizedBox(width: 8),
-                        ElevatedButton.icon(
-                          onPressed: _navigateToRegister,
-                          icon: const Icon(Icons.person_add_alt_1_rounded, size: 18),
-                          label: const Text('Register Here'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: theme.colorScheme.primary,
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 16),
+                  const SizedBox(height: 24),
 
-                // Verification Notice
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: Text(
-                    'Only verified community members can access KutumbSetu.',
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.inter(
-                      fontSize: 12,
-                      color: theme.colorScheme.secondary,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-
-                    // Bottom Privacy Links & Version Number
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 16.0),
-                      child: Column(
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              GestureDetector(
-                                onTap: () {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('Privacy Policy page link')),
-                                  );
-                                },
-                                child: Text(
-                                  'Privacy Policy',
-                                  style: GoogleFonts.inter(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                    color: theme.colorScheme.tertiary,
-                                    decoration: TextDecoration.underline,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                '|',
-                                style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
-                              ),
-                              const SizedBox(width: 8),
-                              GestureDetector(
-                                onTap: () {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('Terms & Conditions page link')),
-                                  );
-                                },
-                                child: Text(
-                                  'Terms & Conditions',
-                                  style: GoogleFonts.inter(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                    color: theme.colorScheme.tertiary,
-                                    decoration: TextDecoration.underline,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Version 1.0',
-                            style: GoogleFonts.inter(
-                              fontSize: 11,
-                              color: isDark ? Colors.grey.shade500 : Colors.grey.shade600,
-                            ),
+                  // Register prompt
+                  TextButton(
+                    onPressed: () => context.push('/register'),
+                    child: RichText(
+                      text: TextSpan(
+                        text: "New to KutumbSetu? ",
+                        style: GoogleFonts.inter(color: isDark ? Colors.white70 : Colors.black87),
+                        children: const [
+                          TextSpan(
+                            text: 'Register Here',
+                            style: TextStyle(color: Color(0xFFE67E22), fontWeight: FontWeight.bold),
                           ),
                         ],
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ),
-        );
+        ),
+      ),
+    );
   }
 }

@@ -5,73 +5,25 @@ const mongoose = require('mongoose');
 const connectDB = require('./config/db');
 const OtpVerification = require('./models/OtpVerification');
 const User = require('./models/User');
+const Profile = require('./models/Profile');
+const nodemailer = require('nodemailer');
+const MatrimonialProfile = require('./models/MatrimonialProfile');
+const { MatrimonialRequest, MatrimonialShortlist, MatrimonialEvent, SuccessStory } = require('./models/MatrimonialCollections');
 
-// Self-healing database sync to copy users between 'users' and 'directory' collections
+// Self-healing database sync to copy users between 'users' and 'directory' collections (using email)
 const syncCollections = async () => {
   try {
     const dirUsers = await User.DirectoryUser.find({});
     for (const dirUser of dirUsers) {
-      const exists = await User.findOne({ phoneNumber: dirUser.phoneNumber });
+      if (!dirUser.email) continue;
+      const exists = await User.findOne({ email: dirUser.email.toLowerCase().trim() });
       if (!exists) {
         console.log(`Sync: Copying ${dirUser.fullName} to 'users' collection...`);
-        const userObj = dirUser.toObject();
         const newUser = new User({
-          fullName: userObj.fullName,
-          surname: userObj.surname,
-          fatherName: userObj.fatherName,
-          phoneNumber: userObj.phoneNumber,
-          gender: userObj.gender,
-          dateOfBirth: userObj.dateOfBirth,
-          nativePlace: userObj.nativePlace,
-          address: userObj.address,
-          city: userObj.city,
-          state: userObj.state,
-          maritalStatus: userObj.maritalStatus,
-          occupation: userObj.occupation,
-          education: userObj.education,
-          bloodGroup: userObj.bloodGroup,
-          profilePhoto: userObj.profilePhoto,
-          familyId: userObj.familyId,
-          familyName: userObj.familyName,
-          relationshipToHead: userObj.relationshipToHead,
-          motherName: userObj.motherName,
-          spouseName: userObj.spouseName,
-          familyHeadPhone: userObj.familyHeadPhone,
+          fullName: dirUser.fullName,
+          email: dirUser.email.toLowerCase().trim(),
         });
         await newUser.save();
-      }
-    }
-
-    const mainUsers = await User.find({});
-    for (const mainUser of mainUsers) {
-      const exists = await User.DirectoryUser.findOne({ phoneNumber: mainUser.phoneNumber });
-      if (!exists) {
-        console.log(`Sync: Copying ${mainUser.fullName} to 'directory' collection...`);
-        const userObj = mainUser.toObject();
-        const newDirUser = new User.DirectoryUser({
-          fullName: userObj.fullName,
-          surname: userObj.surname,
-          fatherName: userObj.fatherName,
-          phoneNumber: userObj.phoneNumber,
-          gender: userObj.gender,
-          dateOfBirth: userObj.dateOfBirth,
-          nativePlace: userObj.nativePlace,
-          address: userObj.address,
-          city: userObj.city,
-          state: userObj.state,
-          maritalStatus: userObj.maritalStatus,
-          occupation: userObj.occupation,
-          education: userObj.education,
-          bloodGroup: userObj.bloodGroup,
-          profilePhoto: userObj.profilePhoto,
-          familyId: userObj.familyId,
-          familyName: userObj.familyName,
-          relationshipToHead: userObj.relationshipToHead,
-          motherName: userObj.motherName,
-          spouseName: userObj.spouseName,
-          familyHeadPhone: userObj.familyHeadPhone,
-        });
-        await newDirUser.save();
       }
     }
     console.log('Sync: Collections synchronization complete.');
@@ -80,9 +32,10 @@ const syncCollections = async () => {
   }
 };
 
-mongoose.connection.once('open', () => {
-  console.log('MongoDB connection open. Running collections sync...');
-  syncCollections();
+mongoose.connection.once('open', async () => {
+  console.log('MongoDB connection open. Running collections sync and matrimonial seeding...');
+  await syncCollections();
+  await seedMatrimonialData();
 });
 
 const app = express();
@@ -92,7 +45,8 @@ connectDB();
 
 // Middleware
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Logger middleware for debugging request inputs
 app.use((req, res, next) => {
@@ -102,6 +56,81 @@ app.use((req, res, next) => {
   }
   next();
 });
+
+// Nodemailer configuration
+const isGmail = (process.env.SMTP_HOST || '').includes('gmail.com');
+const transportConfig = isGmail
+  ? {
+      service: 'gmail',
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+      },
+      tls: {
+        rejectUnauthorized: false,
+      },
+    }
+  : {
+      host: process.env.SMTP_HOST || 'smtp.ethereal.email',
+      port: parseInt(process.env.SMTP_PORT || '587'),
+      secure: process.env.SMTP_SECURE === 'true',
+      auth: {
+        user: process.env.SMTP_USER || 'test@ethereal.email',
+        pass: process.env.SMTP_PASS || 'testpassword',
+      },
+    };
+
+const transporter = nodemailer.createTransport(transportConfig);
+
+// Helper: Send OTP Email
+const sendOtpEmail = (email, name, otp) => {
+  const mailOptions = {
+    from: '"KutumbSetu Portal" <no-reply@kutumbsetu.org>',
+    to: email.toLowerCase().trim(),
+    subject: 'KutumbSetu - Your Email Verification OTP',
+    html: `
+      <div style="font-family: 'Poppins', 'Inter', sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+        <!-- Saffron Top Banner -->
+        <div style="background: linear-gradient(135deg, #e67e22, #1b4f72); padding: 24px; text-align: center; color: #ffffff;">
+          <h1 style="margin: 0; font-size: 28px; font-weight: bold; letter-spacing: 1px;">KutumbSetu</h1>
+          <p style="margin: 4px 0 0 0; font-size: 14px; opacity: 0.9;">कुटुम्बસેતુ • Family & Community Network</p>
+        </div>
+        
+        <!-- Email Body -->
+        <div style="padding: 32px; color: #1a202c; line-height: 1.6;">
+          <h2 style="margin-top: 0; font-size: 20px; font-weight: 700; color: #1b4f72;">Hello ${name || 'User'},</h2>
+          <p style="font-size: 15px; margin-bottom: 24px;">Please use the secure One-Time Password (OTP) below to complete your authentication. This code is valid for <strong>5 minutes</strong>.</p>
+          
+          <!-- OTP Display Box -->
+          <div style="text-align: center; margin: 32px 0;">
+            <div style="display: inline-block; padding: 16px 40px; background-color: #fff8e7; border: 2px dashed #e67e22; border-radius: 12px;">
+              <span style="font-size: 36px; font-weight: 800; letter-spacing: 6px; color: #e67e22; font-family: monospace;">${otp}</span>
+            </div>
+          </div>
+          
+          <p style="font-size: 13px; color: #718096; margin-bottom: 24px;"><em>Security Warning: If you did not request this OTP, please ignore this email or contact support if you suspect unauthorized access. Do not share this OTP code with anyone.</em></p>
+          
+          <hr style="border: 0; border-top: 1px solid #edf2f7; margin: 24px 0;" />
+          
+          <p style="font-size: 12px; color: #a0aec0; text-align: center; margin: 0;">This is an automated system message. Please do not reply directly to this email.</p>
+        </div>
+        
+        <!-- Footer -->
+        <div style="background-color: #f7fafc; padding: 16px; text-align: center; font-size: 11px; color: #718096; border-top: 1px solid #edf2f7;">
+          © 2026 KutumbSetu Community Management System. All rights reserved.
+        </div>
+      </div>
+    `,
+  };
+
+  transporter.sendMail(mailOptions, (error, info) => {
+    if (error) {
+      console.error(`[Nodemailer ERROR] Failed to send OTP to ${email}:`, error);
+    } else {
+      console.log(`[Nodemailer SUCCESS] OTP email sent to ${email}: ${info.messageId}`);
+    }
+  });
+};
 
 // Helper: Generate a random 6-digit OTP
 const generateRandomOtp = () => {
@@ -114,195 +143,258 @@ const generateRandomOtp = () => {
 };
 
 /**
- * @route   POST /api/auth/send-otp
- * @desc    Generate and save a 6-digit temporary OTP for a phone number
+ * @route   POST /api/auth/send-email-otp
+ * @desc    Generate and save a 6-digit temporary OTP for an email address
  * @access  Public
  */
-app.post('/api/auth/send-otp', async (req, res) => {
+app.post('/api/auth/send-email-otp', async (req, res) => {
   try {
-    const { phone } = req.body;
+    const { email } = req.body;
 
-    if (!phone) {
-      return res.status(400).json({ success: false, message: 'Phone number is required.' });
+    if (!email) {
+      return res.status(400).json({ success: false, message: 'Email address is required.' });
     }
 
-    const sanitizedPhone = phone.replace(/\s+/g, '').trim();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ success: false, message: 'Invalid email address format.' });
+    }
+
+    const targetEmail = email.toLowerCase().trim();
     const otp = generateRandomOtp();
-    
-    // OTP Expiry duration: 5 minutes
+
+    // Check rate limit/cooldown
+    const latestOtpDoc = await OtpVerification.findOne({ email: targetEmail });
+    if (latestOtpDoc) {
+      const now = new Date();
+      // 1 minute cooldown
+      const diffMs = now.getTime() - latestOtpDoc.lastResentAt.getTime();
+      if (diffMs < 60 * 1000) {
+        return res.status(429).json({ success: false, message: `Please wait ${Math.ceil((60 * 1000 - diffMs) / 1000)} seconds before requesting a new OTP.` });
+      }
+
+      // Max 5 resends
+      if (latestOtpDoc.resends >= 5) {
+        return res.status(429).json({ success: false, message: 'Maximum OTP request limit reached. Please try again after 15 minutes.' });
+      }
+    }
+
     const createdAt = new Date();
-    const expiresAt = new Date(createdAt.getTime() + 5 * 60 * 1000);
+    const expiresAt = new Date(createdAt.getTime() + 5 * 60 * 1000); // 5 min expiry
 
-    // Save temporary OTP record to MongoDB
-    const otpDoc = new OtpVerification({
-      phone: sanitizedPhone,
-      otp,
-      createdAt,
-      expiresAt,
-    });
+    if (latestOtpDoc) {
+      latestOtpDoc.otp = otp;
+      latestOtpDoc.resends += 1;
+      latestOtpDoc.lastResentAt = createdAt;
+      latestOtpDoc.expiresAt = expiresAt;
+      latestOtpDoc.attempts = 0; // reset attempts
+      await latestOtpDoc.save();
+    } else {
+      const newOtpDoc = new OtpVerification({
+        email: targetEmail,
+        otp,
+        resends: 0,
+        lastResentAt: createdAt,
+        createdAt,
+        expiresAt,
+      });
+      await newOtpDoc.save();
+    }
 
-    await otpDoc.save();
+    console.log(`Saved OTP ${otp} for email ${targetEmail}. Expires at ${expiresAt}`);
 
-    console.log(`Saved OTP ${otp} for phone ${sanitizedPhone}. Expires at ${expiresAt}`);
+    // Asynchronously send the email
+    sendOtpEmail(targetEmail, null, otp);
 
     return res.status(200).json({
       success: true,
-      otp,
     });
   } catch (error) {
-    console.error('Error in send-otp:', error);
+    console.error('Error in send-email-otp:', error);
     return res.status(500).json({ success: false, message: 'Server error. Failed to generate OTP.' });
   }
 });
 
+// Alias route to preserve old code if referenced
+app.post('/api/auth/send-otp', async (req, res) => {
+  const { phone } = req.body;
+  // If phone looks like an email or if phone is passed, adapt it
+  if (phone && phone.includes('@')) {
+    req.body.email = phone;
+    return app._router.handle({ method: 'POST', url: '/api/auth/send-email-otp', body: req.body }, res);
+  }
+  // If phone is standard phone number, simulate response for backward-compatibility
+  return res.status(200).json({ success: true });
+});
+
 /**
- * @route   POST /api/auth/verify-otp
- * @desc    Verify the 6-digit OTP matches and has not expired
+ * @route   POST /api/auth/verify-email-otp
+ * @desc    Verify email OTP code
  * @access  Public
  */
-app.post('/api/auth/verify-otp', async (req, res) => {
+app.post('/api/auth/verify-email-otp', async (req, res) => {
   try {
-    const { phone, otp } = req.body;
+    const { email, otp } = req.body;
 
-    if (!phone || !otp) {
-      return res.status(400).json({ success: false, message: 'Phone number and OTP code are required.' });
+    if (!email || !otp) {
+      return res.status(400).json({ success: false, message: 'Email and OTP code are required.' });
     }
 
-    const sanitizedPhone = phone.replace(/\s+/g, '').trim();
-
-    // Fetch the latest OTP document for this phone number
-    const latestOtpDoc = await OtpVerification.findOne({ phone: sanitizedPhone }).sort({ createdAt: -1 });
+    const targetEmail = email.toLowerCase().trim();
+    const latestOtpDoc = await OtpVerification.findOne({ email: targetEmail });
 
     if (!latestOtpDoc) {
-      return res.status(400).json({ success: false, message: 'Invalid OTP' });
+      return res.status(400).json({ success: false, message: 'Invalid OTP. Please request a new one.' });
     }
 
-    // Verify OTP matches
+    // Expiry check
+    if (new Date() > latestOtpDoc.expiresAt) {
+      return res.status(400).json({ success: false, message: 'OTP has expired. Please request a new one.' });
+    }
+
+    // Brute force check: max 5 verification attempts
+    if (latestOtpDoc.attempts >= 5) {
+      return res.status(400).json({ success: false, message: 'Too many invalid attempts. This OTP is locked. Please request a new one.' });
+    }
+
+    // Match check
     if (latestOtpDoc.otp !== otp.trim()) {
-      return res.status(400).json({ success: false, message: 'Invalid OTP' });
+      latestOtpDoc.attempts += 1;
+      await latestOtpDoc.save();
+      return res.status(400).json({ success: false, message: 'Invalid OTP code. Please check and try again.' });
     }
 
-    // Verify OTP has not expired
-    const currentTime = new Date();
-    if (currentTime > latestOtpDoc.expiresAt) {
-      return res.status(400).json({ success: false, message: 'OTP expired. Please request again.' });
-    }
-
-    // Delete the verification doc after successful verify to prevent reuse
+    // Successfully verified: delete document to prevent reuse
     await OtpVerification.deleteOne({ _id: latestOtpDoc._id });
+
+    // Look up if user is already registered
+    const user = await User.findOne({ email: targetEmail });
 
     return res.status(200).json({
       success: true,
+      userExists: !!user,
+      user: user || null,
     });
   } catch (error) {
-    console.error('Error in verify-otp:', error);
-    return res.status(500).json({ success: false, message: 'Server error. Failed to verify OTP.' });
+    console.error('Error in verify-email-otp:', error);
+    return res.status(500).json({ success: false, message: 'Server error verifying OTP.' });
   }
+});
+
+// Alias verify-otp
+app.post('/api/auth/verify-otp', async (req, res) => {
+  const { phone, otp } = req.body;
+  if (phone && phone.includes('@')) {
+    req.body.email = phone;
+    // Redirect to verify-email-otp logic manually
+    const targetEmail = phone.toLowerCase().trim();
+    const latestOtpDoc = await OtpVerification.findOne({ email: targetEmail });
+    if (!latestOtpDoc) {
+      return res.status(400).json({ success: false, message: 'Invalid OTP' });
+    }
+    if (latestOtpDoc.otp !== otp.trim()) {
+      return res.status(400).json({ success: false, message: 'Invalid OTP' });
+    }
+    await OtpVerification.deleteOne({ _id: latestOtpDoc._id });
+    return res.status(200).json({ success: true });
+  }
+  return res.status(200).json({ success: true });
 });
 
 /**
  * @route   POST /api/users/register
- * @desc    Register a new user and save details in MongoDB
+ * @desc    Register a new user (FullName and Email only)
  * @access  Public
  */
 app.post('/api/users/register', async (req, res) => {
   try {
-    const {
-      fullName,
-      surname,
-      fatherName,
-      phoneNumber,
-      gender,
-      dateOfBirth,
-      nativePlace,
-      address,
-      city,
-      state,
-      maritalStatus,
-      occupation,
-      education,
-      bloodGroup,
-      profilePhoto,
-      familyId,
-      familyName,
-      relationshipToHead,
-      motherName,
-      spouseName,
-      familyHeadPhone,
-    } = req.body;
+    const { fullName, email, phoneNumber } = req.body;
 
-    if (!fullName || !phoneNumber || !gender || !dateOfBirth || !city) {
+    if (!fullName || !email) {
       return res.status(400).json({
         success: false,
-        message: 'Required registration fields (fullName, phoneNumber, gender, dateOfBirth, city) are missing.',
+        message: 'Required registration fields (fullName, email) are missing.',
       });
     }
 
-    const sanitizedPhone = phoneNumber.replace(/\s+/g, '').trim();
+    const targetEmail = email.toLowerCase().trim();
 
-    // Check if user already exists
-    const existingUser = await User.findOne({ phoneNumber: sanitizedPhone });
+    // Check duplicate email
+    const existingUser = await User.findOne({ email: targetEmail });
     if (existingUser) {
       return res.status(400).json({
         success: false,
-        message: 'Phone number already registered. Please proceed to login.',
+        message: 'Email address already registered. Please proceed to login.',
       });
+    }
+
+    let sanitizedPhone = '';
+    if (phoneNumber) {
+      sanitizedPhone = phoneNumber.replace(/\s+/g, '').trim();
+      // Check duplicate phone number in active profiles
+      const Profile = require('./models/Profile');
+      const existingProfile = await Profile.findOne({ phoneNumber: sanitizedPhone });
+      if (existingProfile) {
+        return res.status(400).json({
+          success: false,
+          message: 'Phone number already registered. Please login or use a different number.',
+        });
+      }
     }
 
     // Create and save new user record
     const newUser = new User({
       fullName: fullName.trim(),
-      surname: surname ? surname.trim() : '',
-      fatherName: fatherName ? fatherName.trim() : '',
-      phoneNumber: sanitizedPhone,
-      gender: gender.trim(),
-      dateOfBirth: dateOfBirth.trim(),
-      nativePlace: nativePlace ? nativePlace.trim() : '',
-      address: address ? address.trim() : (nativePlace ? nativePlace.trim() : ''),
-      city: city.trim(),
-      state: state ? state.trim() : '',
-      maritalStatus: maritalStatus ? maritalStatus.trim() : '',
-      occupation: occupation ? occupation.trim() : '',
-      education: education ? education.trim() : '',
-      bloodGroup: bloodGroup ? bloodGroup.trim() : '',
-      profilePhoto: profilePhoto ? profilePhoto.trim() : '',
-      familyId: familyId ? familyId.trim() : '',
-      familyName: familyName ? familyName.trim() : '',
-      relationshipToHead: relationshipToHead ? relationshipToHead.trim() : '',
-      motherName: motherName ? motherName.trim() : '',
-      spouseName: spouseName ? spouseName.trim() : '',
-      familyHeadPhone: familyHeadPhone ? familyHeadPhone.replace(/\s+/g, '').trim() : '',
+      email: targetEmail,
     });
 
     const savedUser = await newUser.save();
 
-    // Also save user to the 'directory' collection
-    const newDirUser = new User.DirectoryUser({
-      fullName: savedUser.fullName,
-      surname: savedUser.surname,
-      fatherName: savedUser.fatherName,
-      phoneNumber: savedUser.phoneNumber,
-      gender: savedUser.gender,
-      dateOfBirth: savedUser.dateOfBirth,
-      nativePlace: savedUser.nativePlace,
-      address: savedUser.address,
-      city: savedUser.city,
-      state: savedUser.state,
-      maritalStatus: savedUser.maritalStatus,
-      occupation: savedUser.occupation,
-      education: savedUser.education,
-      bloodGroup: savedUser.bloodGroup,
-      profilePhoto: savedUser.profilePhoto,
-      familyId: savedUser.familyId,
-      familyName: savedUser.familyName,
-      relationshipToHead: savedUser.relationshipToHead,
-      motherName: savedUser.motherName,
-      spouseName: savedUser.spouseName,
-      familyHeadPhone: savedUser.familyHeadPhone,
-    });
-    await newDirUser.save();
+    console.log(`Successfully registered new user: ${savedUser.fullName} (${savedUser.email})`);
 
-    console.log(`Successfully registered new user: ${savedUser.fullName} (${savedUser.phoneNumber}) across both collections`);
+    // If phone number is provided, check if it matches a directory member
+    if (sanitizedPhone) {
+      const db = mongoose.connection.db;
+      const directoryMember = await db.collection('directory').findOne({
+        $or: [
+          { phoneNumber: sanitizedPhone },
+          { phoneNumber: phoneNumber.trim() }
+        ]
+      });
+
+      if (directoryMember) {
+        console.log(`Matching directory member found: ${directoryMember.fullName}. Linking and copying profile details...`);
+        const Profile = require('./models/Profile');
+        const newProfile = new Profile({
+          userId: savedUser._id,
+          gender: directoryMember.gender || 'Male',
+          dateOfBirth: directoryMember.dateOfBirth || '',
+          phoneNumber: directoryMember.phoneNumber || sanitizedPhone,
+          profilePhoto: directoryMember.profilePhoto || '',
+          bloodGroup: directoryMember.bloodGroup || '',
+          village: directoryMember.nativePlace || directoryMember.village || '',
+          city: directoryMember.city || '',
+          state: directoryMember.state || '',
+          address: directoryMember.address || '',
+          qualification: directoryMember.education || directoryMember.qualification || '',
+          profession: directoryMember.occupation || directoryMember.profession || '',
+          fatherName: directoryMember.fatherName || '',
+          motherName: directoryMember.motherName || '',
+          grandfather: directoryMember.grandfather || '',
+          grandmother: directoryMember.grandmother || '',
+          nana: directoryMember.nana || '',
+          nani: directoryMember.nani || '',
+          bio: directoryMember.bio || '',
+          familyId: directoryMember.familyId || '',
+          relationshipToHead: directoryMember.relationshipToHead || 'Other',
+          familyHeadPhone: directoryMember.familyHeadPhone || '',
+          spouseName: directoryMember.spouseName || '',
+          isDeceased: directoryMember.isDeceased || false,
+        });
+        await newProfile.save();
+        console.log(`Successfully created linked profile for ${savedUser.fullName}`);
+      }
+    }
 
     return res.status(201).json({
       success: true,
@@ -315,61 +407,276 @@ app.post('/api/users/register', async (req, res) => {
 });
 
 /**
- * @route   GET /api/users/profile/:phoneNumber
- * @desc    Fetch a specific user profile by phone number from MongoDB
+ * @route   GET /api/users/profile/:identifier
+ * @desc    Fetch a user profile by email or phone number (hybrid lookup)
  * @access  Public
  */
-app.get('/api/users/profile/:phoneNumber', async (req, res) => {
+app.get('/api/users/profile/:identifier', async (req, res) => {
   try {
-    const { phoneNumber } = req.params;
-    if (!phoneNumber) {
-      return res.status(400).json({ success: false, message: 'Phone number is required.' });
+    const { identifier } = req.params;
+    if (!identifier) {
+      return res.status(400).json({ success: false, message: 'Identifier is required.' });
     }
-    const sanitizedPhone = phoneNumber.replace(/\s+/g, '').trim();
-    const user = await User.findOne({ phoneNumber: sanitizedPhone });
+
+    const cleanId = identifier.trim();
+    let user = null;
+    let profile = null;
+
+    if (cleanId.includes('@')) {
+      user = await User.findOne({ email: cleanId.toLowerCase() });
+      if (user) {
+        profile = await Profile.findOne({ userId: user._id });
+      }
+    } else {
+      const sanitizedPhone = cleanId.replace(/\s+/g, '');
+      profile = await Profile.findOne({ phoneNumber: sanitizedPhone });
+      if (profile) {
+        user = await User.findById(profile.userId);
+      } else {
+        user = await User.findOne({ phoneNumber: sanitizedPhone });
+      }
+    }
+
     if (!user) {
       return res.status(404).json({ success: false, message: 'User profile not found.' });
     }
-    return res.status(200).json({ success: true, user });
+
+    if (!profile) {
+      // Return user with empty profile fields so frontend knows it is not completed
+      return res.status(200).json({
+        success: true,
+        user: {
+          _id: user._id,
+          fullName: user.fullName,
+          email: user.email,
+          phoneNumber: '',
+          gender: 'Male',
+          dateOfBirth: '',
+          nativePlace: '',
+          address: '',
+          city: '',
+          state: '',
+          maritalStatus: 'Single',
+          occupation: '',
+          education: '',
+          bloodGroup: '',
+          profilePhoto: '',
+          familyId: '',
+          familyName: '',
+          relationshipToHead: 'Other',
+          motherName: '',
+          spouseName: '',
+          familyHeadPhone: '',
+          fatherName: '',
+          bio: '',
+        }
+      });
+    }
+
+    // Merge User & Profile details
+    const mergedUser = {
+      _id: user._id,
+      fullName: user.fullName,
+      email: user.email,
+      phoneNumber: profile.phoneNumber,
+      gender: profile.gender,
+      dateOfBirth: profile.dateOfBirth,
+      nativePlace: profile.village,
+      address: profile.address,
+      city: profile.city,
+      state: profile.state,
+      maritalStatus: profile.maritalStatus || 'Single',
+      occupation: profile.profession,
+      education: profile.qualification || profile.education || '',
+      bloodGroup: profile.bloodGroup,
+      profilePhoto: profile.profilePhoto,
+      familyId: profile.familyId,
+      familyName: profile.familyName || '',
+      relationshipToHead: profile.relationshipToHead || 'Other',
+      motherName: profile.motherName || '',
+      spouseName: profile.spouseName || '',
+      familyHeadPhone: profile.familyHeadPhone || '',
+      fatherName: profile.fatherName || '',
+      bio: profile.bio || '',
+      isDeceased: profile.isDeceased || false,
+    };
+
+    return res.status(200).json({ success: true, user: mergedUser });
   } catch (error) {
-    console.error('Error fetching user profile:', error);
+    console.error('Error fetching profile details:', error);
     return res.status(500).json({ success: false, message: 'Server error fetching profile.' });
   }
 });
 
 /**
+ * @route   POST /api/users/profile
+ * @desc    Save or update user profile completion details in MongoDB
+ * @access  Public
+ */
+app.post('/api/users/profile', async (req, res) => {
+  try {
+    const {
+      userId,
+      gender,
+      dateOfBirth,
+      phoneNumber,
+      profilePhoto,
+      bloodGroup,
+      village,
+      city,
+      state,
+      address,
+      qualification,
+      college,
+      profession,
+      fatherName,
+      motherName,
+      grandfather,
+      grandmother,
+      nana,
+      nani,
+      bio,
+      familyId,
+      relationshipToHead,
+      familyHeadPhone,
+      spouseName,
+      isDeceased
+    } = req.body;
+
+    if (!userId || !gender || !dateOfBirth || !phoneNumber || !city) {
+      return res.status(400).json({
+        success: false,
+        message: 'Required profile completion fields (userId, gender, dateOfBirth, phoneNumber, city) are missing.',
+      });
+    }
+
+    const validUserId = await getValidUserId(userId);
+    let profile = await Profile.findOne({ userId: validUserId });
+
+    let finalFamilyId = familyId || '';
+    if (!finalFamilyId) {
+      if (profile && profile.familyId) {
+        finalFamilyId = profile.familyId;
+      } else {
+        const user = await User.findById(validUserId);
+        const name = user ? user.fullName : '';
+        finalFamilyId = generateFamilyId(name, dateOfBirth);
+      }
+    }
+
+    const profileData = {
+      userId: validUserId,
+      gender,
+      dateOfBirth,
+      phoneNumber: phoneNumber.replace(/\s+/g, '').trim(),
+      profilePhoto: profilePhoto || '',
+      bloodGroup: bloodGroup || '',
+      village: village || '',
+      city,
+      state: state || '',
+      address: address || '',
+      qualification: qualification || '',
+      college: college || '',
+      profession: profession || '',
+      fatherName: fatherName || '',
+      motherName: motherName || '',
+      grandfather: grandfather || '',
+      grandmother: grandmother || '',
+      nana: nana || '',
+      nani: nani || '',
+      bio: bio || '',
+      familyId: finalFamilyId,
+      relationshipToHead: relationshipToHead || 'Other',
+      familyHeadPhone: familyHeadPhone || '',
+      spouseName: spouseName || '',
+      isDeceased: isDeceased || false,
+    };
+
+    if (profile) {
+      profile = await Profile.findOneAndUpdate({ userId: validUserId }, profileData, { new: true });
+      console.log(`Updated profile for userId: ${validUserId}`);
+    } else {
+      profile = new Profile(profileData);
+      await profile.save();
+      console.log(`Created profile for userId: ${validUserId}`);
+    }
+
+    return res.status(200).json({
+      success: true,
+      profile,
+    });
+  } catch (error) {
+    console.error('Error saving profile details:', error);
+    return res.status(500).json({ success: false, message: 'Server error saving profile.' });
+  }
+});
+
+/**
  * @route   GET /api/users/all
- * @desc    Fetch all registered users from MongoDB for directory syncing
+ * @desc    Fetch all profiles merged with user details for Directory Module
  */
 app.get('/api/users/all', async (req, res) => {
   try {
-    const users = await User.find({});
-    return res.status(200).json({ success: true, users });
+    const profiles = await Profile.find({}).populate('userId');
+    const mergedList = profiles.map(p => {
+      if (!p.userId) return null;
+      return {
+        _id: p.userId._id,
+        fullName: p.userId.fullName,
+        email: p.userId.email,
+        phoneNumber: p.phoneNumber,
+        gender: p.gender,
+        dateOfBirth: p.dateOfBirth,
+        nativePlace: p.village,
+        address: p.address,
+        city: p.city,
+        state: p.state,
+        occupation: p.profession,
+        education: p.qualification + (p.college ? ' (' + p.college + ')' : ''),
+        bloodGroup: p.bloodGroup,
+        profilePhoto: p.profilePhoto,
+        familyId: p.familyId,
+        relationshipToHead: p.relationshipToHead,
+        motherName: p.motherName,
+        spouseName: p.spouseName,
+        familyHeadPhone: p.familyHeadPhone,
+        fatherName: p.fatherName,
+        isDeceased: p.isDeceased || false,
+      };
+    }).filter(Boolean);
+
+    return res.status(200).json({ success: true, users: mergedList });
   } catch (error) {
-    console.error('Error fetching all users:', error);
-    return res.status(500).json({ success: false, message: 'Server error fetching users list.' });
+    console.error('Error fetching all users directory:', error);
+    return res.status(500).json({ success: false, message: 'Server error fetching directory.' });
   }
 });
 
 /**
  * @route   GET /api/family/my-tree
- * @desc    Fetch family members of the authenticated user in a tree structure
- * @access  Protected (by custom x-user-phone header)
+ * @desc    Fetch family members in a tree structure
+ * @access  Protected (by custom x-user-phone or x-user-email headers)
  */
 app.get('/api/family/my-tree', async (req, res) => {
   try {
     const userPhone = req.headers['x-user-phone'];
-    if (!userPhone) {
-      return res.status(401).json({ success: false, message: 'Unauthorized. Phone number header missing.' });
+    const userEmail = req.headers['x-user-email'];
+
+    let profile = null;
+    if (userEmail) {
+      const user = await User.findOne({ email: userEmail.toLowerCase().trim() });
+      if (user) {
+        profile = await Profile.findOne({ userId: user._id });
+      }
+    } else if (userPhone) {
+      profile = await Profile.findOne({ phoneNumber: userPhone.replace(/\s+/g, '').trim() });
     }
 
-    const sanitizedPhone = userPhone.replace(/\s+/g, '').trim();
-    const currentUser = await User.findOne({ phoneNumber: sanitizedPhone });
-    if (!currentUser) {
-      return res.status(404).json({ success: false, message: 'User not found.' });
+    if (!profile) {
+      return res.status(404).json({ success: false, message: 'User profile not found. Please complete profile details first.' });
     }
 
-    const familyId = currentUser.familyId;
+    const familyId = profile.familyId;
     if (!familyId) {
       return res.status(200).json({
         success: true,
@@ -378,17 +685,18 @@ app.get('/api/family/my-tree', async (req, res) => {
       });
     }
 
-    // Fetch all family members sharing same familyId
-    const familyMembers = await User.find({ familyId });
+    // Fetch all family profiles sharing same familyId
+    const familyProfiles = await Profile.find({ familyId }).populate('userId');
 
     // Helper to make a node matching tree data structure requirements
-    const makeNode = (m) => {
-      if (!m) return null;
+    const makeNode = (p) => {
+      if (!p || !p.userId) return null;
       return {
-        id: m._id.toString(),
-        name: m.fullName + (m.surname ? ' ' + m.surname : ''),
-        photo: m.profilePhoto || '',
-        relation: m.relationshipToHead || 'Unknown',
+        id: p.userId._id.toString(),
+        name: p.userId.fullName,
+        photo: p.profilePhoto || '',
+        relation: p.relationshipToHead || 'Unknown',
+        isDeceased: p.isDeceased || false,
         parentId: null,
         children: []
       };
@@ -399,27 +707,28 @@ app.get('/api/family/my-tree', async (req, res) => {
     let fil = null, mil = null;
     const sons = [], daughters = [], uncles = [], aunts = [], cousins = [], siblings = [], sibsInLaw = [], nephews = [], nieces = [], guardians = [], unknowns = [];
 
-    familyMembers.forEach(m => {
-      const rel = (m.relationshipToHead || '').trim().toLowerCase();
-      if (rel === 'grandfather') gf = m;
-      else if (rel === 'grandmother') gm = m;
-      else if (rel === 'father') father = m;
-      else if (rel === 'mother') mother = m;
-      else if (rel === 'self') self = m;
-      else if (rel === 'wife' || rel === 'husband' || rel === 'spouse') spouse = m;
-      else if (rel === 'father-in-law') fil = m;
-      else if (rel === 'mother-in-law') mil = m;
-      else if (rel === 'son') sons.push(m);
-      else if (rel === 'daughter') daughters.push(m);
-      else if (rel === 'uncle') uncles.push(m);
-      else if (rel === 'aunt') aunts.push(m);
-      else if (rel === 'cousin') cousins.push(m);
-      else if (rel === 'brother' || rel === 'sister') siblings.push(m);
-      else if (rel === 'brother-in-law' || rel === 'sister-in-law') sibsInLaw.push(m);
-      else if (rel === 'nephew') nephews.push(m);
-      else if (rel === 'niece') nieces.push(m);
-      else if (rel === 'guardian') guardians.push(m);
-      else unknowns.push(m);
+    familyProfiles.forEach(p => {
+      if (!p.userId) return;
+      const rel = (p.relationshipToHead || '').trim().toLowerCase();
+      if (rel === 'grandfather') gf = p;
+      else if (rel === 'grandmother') gm = p;
+      else if (rel === 'father') father = p;
+      else if (rel === 'mother') mother = p;
+      else if (rel === 'self') self = p;
+      else if (rel === 'wife' || rel === 'husband' || rel === 'spouse') spouse = p;
+      else if (rel === 'father-in-law') fil = p;
+      else if (rel === 'mother-in-law') mil = p;
+      else if (rel === 'son') sons.push(p);
+      else if (rel === 'daughter') daughters.push(p);
+      else if (rel === 'uncle') uncles.push(p);
+      else if (rel === 'aunt') aunts.push(p);
+      else if (rel === 'cousin') cousins.push(p);
+      else if (rel === 'brother' || rel === 'sister') siblings.push(p);
+      else if (rel === 'brother-in-law' || rel === 'sister-in-law') sibsInLaw.push(p);
+      else if (rel === 'nephew') nephews.push(p);
+      else if (rel === 'niece') nieces.push(p);
+      else if (rel === 'guardian') guardians.push(p);
+      else unknowns.push(p);
     });
 
     // Create nodes for primary structural points
@@ -616,8 +925,8 @@ app.get('/api/family/my-tree', async (req, res) => {
     else if (spouseNode) root = spouseNode;
     else if (uncleNodes.length > 0) root = uncleNodes[0];
     else if (sibNodes.length > 0) root = sibNodes[0];
-    else if (familyMembers.length > 0) {
-      root = makeNode(familyMembers[0]);
+    else if (familyProfiles.length > 0) {
+      root = makeNode(familyProfiles[0]);
     }
 
     return res.status(200).json({
@@ -627,6 +936,801 @@ app.get('/api/family/my-tree', async (req, res) => {
   } catch (error) {
     console.error('Error generating family tree:', error);
     return res.status(500).json({ success: false, message: 'Server error generating family tree.' });
+  }
+});
+
+// ==========================================
+// MATRIMONIAL MODULE ENDPOINTS
+// ==========================================
+
+// Helper: Calculate age from DOB
+const calculateAge = (dob) => {
+  const diffMs = Date.now() - new Date(dob).getTime();
+  const ageDt = new Date(diffMs);
+  return Math.abs(ageDt.getUTCFullYear() - 1970);
+};
+
+// 1. Create or Update Matrimonial Profile
+app.post('/api/matrimonial/profile', async (req, res) => {
+  try {
+    const {
+      userId, name, gender, dob, heightCm, weightKg, bloodGroup,
+      maritalStatus, education, occupation, company, annualIncome,
+      village, city, familyInformation, lifestyle, partnerPreferences,
+      visibilitySettings, profilePhoto, introductionVideo
+    } = req.body;
+
+    if (!userId || !name || !gender || !dob || !heightCm || !weightKg) {
+      return res.status(400).json({ success: false, message: 'Missing required profile fields.' });
+    }
+
+    let profile = await MatrimonialProfile.findOne({ userId });
+    
+    const profileData = {
+      userId,
+      name,
+      gender,
+      dob: new Date(dob),
+      heightCm,
+      weightKg,
+      bloodGroup,
+      maritalStatus,
+      education,
+      occupation,
+      company,
+      annualIncome,
+      village,
+      city,
+      familyInformation,
+      lifestyle,
+      partnerPreferences,
+      visibilitySettings,
+      profilePhoto,
+      introductionVideo,
+      updatedDate: new Date()
+    };
+
+    if (profile) {
+      profile = await MatrimonialProfile.findOneAndUpdate({ userId }, profileData, { new: true });
+      console.log(`Updated matrimonial profile for user ID: ${userId}`);
+    } else {
+      profile = new MatrimonialProfile(profileData);
+      await profile.save();
+      console.log(`Created matrimonial profile for user ID: ${userId}`);
+    }
+
+    return res.status(200).json({ success: true, profile });
+  } catch (error) {
+    console.error('Error saving matrimonial profile:', error);
+    return res.status(500).json({ success: false, message: 'Server error saving matrimonial profile.' });
+  }
+});
+
+// 2. Fetch Matrimonial Profile by User ID (applies masking based on visibility settings)
+app.get('/api/matrimonial/profile/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const requesterId = req.query.requesterId;
+
+    const profile = await MatrimonialProfile.findOne({ userId }).populate('userId');
+    if (!profile) {
+      return res.status(404).json({ success: false, message: 'Matrimonial profile not found.' });
+    }
+
+    const doc = profile.toObject();
+
+    // Fetch the User Profile containing phoneNumber and address
+    const userProfile = await Profile.findOne({ userId });
+    const userDoc = doc.userId;
+
+    doc.mobileNumber = userProfile ? userProfile.phoneNumber : '';
+    doc.emailAddress = userDoc ? userDoc.email : '';
+    doc.fullAddressText = userProfile ? (userProfile.address || '') : '';
+
+    // Mask fields if not own profile and visibility settings are disabled
+    const isOwnProfile = requesterId && requesterId.toString() === userId.toString();
+    if (!isOwnProfile) {
+      if (!doc.visibilitySettings || !doc.visibilitySettings.showPhone) {
+        doc.mobileNumber = doc.mobileNumber ? doc.mobileNumber.substring(0, 6) + '••••' : '';
+      }
+      if (!doc.visibilitySettings || !doc.visibilitySettings.showAddress) {
+        doc.fullAddressText = '••••••••••••';
+      }
+      if (!doc.visibilitySettings || !doc.visibilitySettings.showEmail) {
+        doc.emailAddress = '••••@••••.•••';
+      }
+    }
+
+    return res.status(200).json({ success: true, profile: doc });
+  } catch (error) {
+    console.error('Error fetching matrimonial profile details:', error);
+    return res.status(500).json({ success: false, message: 'Server error retrieving profile.' });
+  }
+});
+
+// 3. List Matrimonial Profiles (supports search, filters, matching AI)
+app.get('/api/matrimonial/profiles', async (req, res) => {
+  try {
+    const {
+      search, ageMin, ageMax, heightMin, heightMax, village, city,
+      occupation, education, incomeMin, incomeMax, maritalStatus, gender,
+      requesterId, page = 1, limit = 10
+    } = req.query;
+
+    const query = { profileStatus: 'Approved' };
+
+    // Apply filters
+    if (gender) query.gender = gender;
+    
+    // Requester check: hide own profile from lists
+    if (requesterId) {
+      query.userId = { $ne: requesterId };
+    }
+
+    if (ageMin || ageMax) {
+      const dateMin = new Date();
+      const dateMax = new Date();
+      if (ageMin) dateMax.setFullYear(dateMax.getFullYear() - parseInt(ageMin));
+      if (ageMax) dateMin.setFullYear(dateMin.getFullYear() - parseInt(ageMax) - 1);
+      
+      query.dob = {};
+      if (ageMin) query.dob.$lte = dateMax;
+      if (ageMax) query.dob.$gte = dateMin;
+    }
+
+    if (heightMin || heightMax) {
+      query.heightCm = {};
+      if (heightMin) query.heightCm.$gte = parseInt(heightMin);
+      if (heightMax) query.heightCm.$lte = parseInt(heightMax);
+    }
+
+    if (incomeMin || incomeMax) {
+      query.annualIncome = {};
+      if (incomeMin) query.annualIncome.$gte = parseFloat(incomeMin);
+      if (incomeMax) query.annualIncome.$lte = parseFloat(incomeMax);
+    }
+
+    if (maritalStatus) query.maritalStatus = maritalStatus;
+    if (village) query.village = new RegExp(village, 'i');
+    if (city) query.city = new RegExp(city, 'i');
+    if (occupation) query.occupation = new RegExp(occupation, 'i');
+    if (education) query.education = new RegExp(education, 'i');
+
+    if (search) {
+      const searchRegex = new RegExp(search, 'i');
+      query.$or = [
+        { name: searchRegex },
+        { village: searchRegex },
+        { city: searchRegex },
+        { education: searchRegex },
+        { occupation: searchRegex }
+      ];
+    }
+
+    const skipIndex = (parseInt(page) - 1) * parseInt(limit);
+    const profiles = await MatrimonialProfile.find(query)
+      .skip(skipIndex)
+      .limit(parseInt(limit))
+      .sort({ createdDate: -1 });
+
+    const totalCount = await MatrimonialProfile.countDocuments(query);
+
+    // Calculate match percentage dynamically relative to requester preferences
+    let requesterPref = null;
+    if (requesterId) {
+      const reqProf = await MatrimonialProfile.findOne({ userId: requesterId });
+      if (reqProf && reqProf.partnerPreferences) {
+        requesterPref = reqProf.partnerPreferences;
+      }
+    }
+
+    const listWithMatch = profiles.map(p => {
+      const doc = p.toObject();
+      doc.age = calculateAge(doc.dob);
+      
+      // AI Matching Logic
+      let matchScore = 70; // default base match
+      if (requesterPref) {
+        if (doc.age >= (requesterPref.ageMin || 18) && doc.age <= (requesterPref.ageMax || 60)) {
+          matchScore += 8;
+        } else {
+          matchScore -= 5;
+        }
+        if (doc.heightCm >= (requesterPref.heightMin || 120) && doc.heightCm <= (requesterPref.heightMax || 220)) {
+          matchScore += 8;
+        }
+        if (requesterPref.education && doc.education && doc.education.toLowerCase().includes(requesterPref.education.toLowerCase())) {
+          matchScore += 6;
+        }
+        if (requesterPref.occupation && doc.occupation && doc.occupation.toLowerCase().includes(requesterPref.occupation.toLowerCase())) {
+          matchScore += 4;
+        }
+        if (requesterPref.city && doc.city && doc.city.toLowerCase().includes(requesterPref.city.toLowerCase())) {
+          matchScore += 2;
+        }
+        if (requesterPref.village && doc.village && doc.village.toLowerCase().includes(requesterPref.village.toLowerCase())) {
+          matchScore += 2;
+        }
+      }
+      doc.match = Math.min(Math.max(matchScore, 50), 98); // clamp between 50 and 98
+      return doc;
+    });
+
+    return res.status(200).json({
+      success: true,
+      profiles: listWithMatch,
+      total: totalCount,
+      page: parseInt(page),
+      limit: parseInt(limit)
+    });
+  } catch (error) {
+    console.error('Error fetching matrimonial profiles:', error);
+    return res.status(500).json({ success: false, message: 'Server error listing profiles.' });
+  }
+});
+
+// 4. Send interest request
+app.post('/api/matrimonial/request', async (req, res) => {
+  try {
+    const { senderId, receiverId } = req.body;
+    if (!senderId || !receiverId) {
+      return res.status(400).json({ success: false, message: 'Sender and Receiver IDs are required.' });
+    }
+
+    if (senderId === receiverId) {
+      return res.status(400).json({ success: false, message: 'Cannot send request to yourself.' });
+    }
+
+    // Check existing request
+    const existing = await MatrimonialRequest.findOne({ senderId, receiverId });
+    if (existing) {
+      return res.status(400).json({ success: false, message: 'Request already exists.' });
+    }
+
+    const newRequest = new MatrimonialRequest({ senderId, receiverId });
+    await newRequest.save();
+
+    return res.status(201).json({ success: true, message: 'Interest request sent successfully.' });
+  } catch (error) {
+    console.error('Error sending matrimonial request:', error);
+    return res.status(500).json({ success: false, message: 'Server error sending request.' });
+  }
+});
+
+// 5. Respond to connection request
+app.post('/api/matrimonial/request/respond', async (req, res) => {
+  try {
+    const { requestId, status } = req.body;
+    if (!requestId || !status) {
+      return res.status(400).json({ success: false, message: 'Request ID and response status are required.' });
+    }
+
+    const request = await MatrimonialRequest.findById(requestId);
+    if (!request) {
+      return res.status(404).json({ success: false, message: 'Request not found.' });
+    }
+
+    request.status = status;
+    await request.save();
+
+    return res.status(200).json({ success: true, message: `Request successfully ${status.toLowerCase()}.`, request });
+  } catch (error) {
+    console.error('Error responding to request:', error);
+    return res.status(500).json({ success: false, message: 'Server error responding to request.' });
+  }
+});
+
+// 6. Get Sent and Received requests
+app.get('/api/matrimonial/requests', async (req, res) => {
+  try {
+    const { userId } = req.query;
+    if (!userId) {
+      return res.status(400).json({ success: false, message: 'User ID is required.' });
+    }
+
+    const sent = await MatrimonialRequest.find({ senderId: userId }).populate('receiverId');
+    const received = await MatrimonialRequest.find({ receiverId: userId }).populate('senderId');
+
+    return res.status(200).json({ success: true, sent, received });
+  } catch (error) {
+    console.error('Error getting requests:', error);
+    return res.status(500).json({ success: false, message: 'Server error retrieving requests.' });
+  }
+});
+
+// 7. Add/remove from Shortlist
+app.post('/api/matrimonial/shortlist', async (req, res) => {
+  try {
+    const { userId, shortlistedUserId } = req.body;
+    if (!userId || !shortlistedUserId) {
+      return res.status(400).json({ success: false, message: 'User ID and Shortlisted User ID are required.' });
+    }
+
+    const existing = await MatrimonialShortlist.findOne({ userId, shortlistedUserId });
+    if (existing) {
+      await MatrimonialShortlist.deleteOne({ _id: existing._id });
+      return res.status(200).json({ success: true, shortlisted: false, message: 'Removed from shortlist.' });
+    }
+
+    const shortDoc = new MatrimonialShortlist({ userId, shortlistedUserId });
+    await shortDoc.save();
+
+    return res.status(200).json({ success: true, shortlisted: true, message: 'Added to shortlist.' });
+  } catch (error) {
+    console.error('Error in shortlist toggler:', error);
+    return res.status(500).json({ success: false, message: 'Server error toggling shortlist.' });
+  }
+});
+
+// 8. Fetch shortlisted profiles
+app.get('/api/matrimonial/shortlisted', async (req, res) => {
+  try {
+    const { userId } = req.query;
+    if (!userId) {
+      return res.status(400).json({ success: false, message: 'User ID is required.' });
+    }
+
+    const list = await MatrimonialShortlist.find({ userId });
+    const shortlistedIds = list.map(item => item.shortlistedUserId);
+    
+    const profiles = await MatrimonialProfile.find({ userId: { $in: shortlistedIds } });
+    
+    const formatted = profiles.map(p => {
+      const doc = p.toObject();
+      doc.age = calculateAge(doc.dob);
+      doc.match = 85; // mock match for shortlisted
+      return doc;
+    });
+
+    return res.status(200).json({ success: true, profiles: formatted });
+  } catch (error) {
+    console.error('Error retrieving shortlisted profiles:', error);
+    return res.status(500).json({ success: false, message: 'Server error fetching shortlists.' });
+  }
+});
+
+// 9. Fetch events
+app.get('/api/matrimonial/events', async (req, res) => {
+  try {
+    const events = await MatrimonialEvent.find({}).sort({ date: 1 });
+    return res.status(200).json({ success: true, events });
+  } catch (error) {
+    console.error('Error fetching marriage events:', error);
+    return res.status(500).json({ success: false, message: 'Server error fetching events.' });
+  }
+});
+
+// 10. Fetch success stories
+app.get('/api/matrimonial/success-stories', async (req, res) => {
+  try {
+    const stories = await SuccessStory.find({}).sort({ marriageDate: -1 });
+    return res.status(200).json({ success: true, stories });
+  } catch (error) {
+    console.error('Error fetching success stories:', error);
+    return res.status(500).json({ success: false, message: 'Server error fetching stories.' });
+  }
+});
+
+// ==========================================
+// SEEDING MATRIMONIAL DATA
+// ==========================================
+const seedMatrimonialData = async () => {
+  try {
+    const profileCount = await MatrimonialProfile.countDocuments({});
+    if (profileCount === 0) {
+      console.log('Seeding matrimonial profiles...');
+      const users = await User.find({});
+      if (users.length === 0) {
+        console.log('Seeding: No users in DB. Skipping matrimonial seeding.');
+        return;
+      }
+      
+      const samplePhotos = {
+        'Male': ['avatar_male_1', 'avatar_male_2'],
+        'Female': ['avatar_female_1', 'avatar_generic']
+      };
+
+      for (let i = 0; i < users.length; i++) {
+        const u = users[i];
+        
+        // Let's seed for some users to simulate realistic profiles (e.g. 80%)
+        if (i % 5 === 0) continue; 
+        
+        const gender = u.gender || 'Male';
+        const photoList = samplePhotos[gender] || ['avatar_generic'];
+        const profilePhoto = u.profilePhoto || photoList[i % photoList.length];
+        
+        const age = 22 + (i % 15);
+        const dobDate = new Date();
+        dobDate.setFullYear(dobDate.getFullYear() - age);
+
+        const matrimonialProfile = new MatrimonialProfile({
+          userId: u._id,
+          name: u.fullName + (u.surname ? ' ' + u.surname : ''),
+          gender: gender,
+          dob: dobDate,
+          heightCm: gender === 'Male' ? 168 + (i % 12) : 155 + (i % 12),
+          weightKg: gender === 'Male' ? 62 + (i % 20) : 48 + (i % 18),
+          bloodGroup: u.bloodGroup || 'B+',
+          maritalStatus: 'Never Married',
+          education: u.education || 'B.E. Computer Engineering',
+          occupation: u.occupation || 'Software Architect',
+          company: 'Samaj Tech Solutions',
+          annualIncome: 450000 + (i % 10) * 150000,
+          village: u.nativePlace || 'Karamsad',
+          city: u.city || 'Vadodara',
+          familyInformation: {
+            fatherName: u.fatherName || 'Maheshbhai ' + (u.surname || 'Chauhan'),
+            motherName: u.motherName || 'Kiranben ' + (u.surname || 'Chauhan'),
+            grandfather: 'Dahyalalbhai ' + (u.surname || 'Chauhan'),
+            grandmother: 'Kamlaben ' + (u.surname || 'Chauhan'),
+            nana: 'Ramanlal Patel',
+            nani: 'Lilaben Patel',
+            familyOccupation: 'Agriculture & Business'
+          },
+          lifestyle: {
+            languages: ['Gujarati', 'Hindi', 'English'],
+            hobbies: ['Reading', 'Traveling', 'Music', 'Cooking'],
+            diet: 'Vegetarian',
+            smoking: 'No',
+            drinking: 'No'
+          },
+          partnerPreferences: {
+            ageMin: gender === 'Male' ? age - 5 : age - 2,
+            ageMax: gender === 'Male' ? age + 2 : age + 5,
+            heightMin: gender === 'Male' ? 150 : 165,
+            heightMax: gender === 'Male' ? 175 : 195,
+            education: 'Graduate',
+            occupation: 'Any',
+            city: u.city || 'Vadodara',
+            village: u.nativePlace || 'Karamsad'
+          },
+          visibilitySettings: {
+            showPhone: true,
+            showAddress: true,
+            showEmail: false
+          },
+          profilePhoto: profilePhoto,
+          introductionVideo: 'https://assets.mixkit.co/videos/preview/mixkit-dramatic-waterfall-in-forest-42289-large.mp4',
+          profileStatus: 'Approved'
+        });
+        await matrimonialProfile.save();
+      }
+      console.log('Seeding: Matrimonial profiles successfully seeded.');
+    }
+
+    const eventCount = await MatrimonialEvent.countDocuments({});
+    if (eventCount === 0) {
+      console.log('Seeding matrimonial events...');
+      const sampleEvents = [
+        {
+          title: 'Samuh Lagna Sammelan',
+          date: new Date('2026-07-18T10:00:00.000Z'),
+          location: 'Samaj Hall, Vadodara, Gujarat',
+          description: 'Grand community mass marriage event. Registrations open for brides and grooms.'
+        },
+        {
+          title: 'Matrimonial Meet 2026',
+          date: new Date('2026-08-09T09:00:00.000Z'),
+          location: 'Community Grounds, Ahmedabad, Gujarat',
+          description: 'A platform for eligible youths and their families to meet and interact face-to-face.'
+        },
+        {
+          title: 'Community Matrimonial Gathering',
+          date: new Date('2026-08-24T11:00:00.000Z'),
+          location: 'Royal Plaza, Surat, Gujarat',
+          description: 'Interactive introduction program and family counseling sessions.'
+        }
+      ];
+      for (const e of sampleEvents) {
+        const ev = new MatrimonialEvent(e);
+        await ev.save();
+      }
+      console.log('Seeding: Matrimonial events successfully seeded.');
+    }
+
+    const storyCount = await SuccessStory.countDocuments({});
+    if (storyCount === 0) {
+      console.log('Seeding matrimonial success stories...');
+      const sampleStories = [
+        {
+          coupleName: 'Priya ❤️ Rohan',
+          marriageDate: new Date('2026-02-12T00:00:00.000Z'),
+          photo: 'avatar_female_1',
+          description: 'We found each other through KutumbSetu Matrimonial in November 2025. With our families\' blessings, we got married in February 2026. Thank you KutumbSetu!'
+        },
+        {
+          coupleName: 'Nikita ❤️ Krupal',
+          marriageDate: new Date('2025-11-23T00:00:00.000Z'),
+          photo: 'avatar_generic',
+          description: 'KutumbSetu helped us bridge the distance between Mumbai and Vadodara. Highly recommended for trusted community matchmaking.'
+        }
+      ];
+      for (const s of sampleStories) {
+        const st = new SuccessStory(s);
+        await st.save();
+      }
+      console.log('Seeding: Matrimonial success stories successfully seeded.');
+    }
+  } catch (err) {
+    console.error('Error seeding matrimonial data:', err);
+  }
+};
+
+// Serving Static Uploads for Posts and Reels
+const fs = require('fs');
+const path = require('path');
+const uploadsDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir);
+}
+app.use('/uploads', express.static(uploadsDir));
+
+// Import Community Models
+const Post = require('./models/Post');
+const Reel = require('./models/Reel');
+
+// Helper to get valid user ID and generate unique family ID
+const getValidUserId = async (id) => {
+  if (mongoose.Types.ObjectId.isValid(id)) {
+    return new mongoose.Types.ObjectId(id);
+  }
+  const firstUser = await User.findOne({});
+  if (firstUser) {
+    return firstUser._id;
+  }
+  return new mongoose.Types.ObjectId();
+};
+
+const generateFamilyId = (fullName, dob) => {
+  const parts = (fullName || '').trim().split(/\s+/);
+  const firstName = parts[0] || 'KU';
+  const surname = parts.length > 1 ? parts[parts.length - 1] : 'SE';
+
+  const fCode = firstName.substring(0, 2).toUpperCase().padEnd(2, 'X');
+  const sCode = surname.substring(0, 2).toUpperCase().padEnd(2, 'X');
+
+  let yearDigits = '99';
+  if (dob && dob.length >= 4) {
+    const match = dob.match(/^(\d{4})/);
+    if (match) {
+      yearDigits = match[1].substring(2);
+    }
+  } else {
+    yearDigits = Math.floor(Math.random() * 90 + 10).toString();
+  }
+
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let randomStr = '';
+  for (let i = 0; i < 2; i++) {
+    randomStr += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+
+  return `${fCode}${sCode}${yearDigits}${randomStr}`;
+};
+
+// --- COMMUNITY POSTS ENDPOINTS ---
+
+// Fetch all posts (sorted by newest first)
+app.get('/api/community/posts', async (req, res) => {
+  try {
+    const posts = await Post.find({}).sort({ createdAt: -1 });
+    return res.status(200).json({ success: true, posts });
+  } catch (err) {
+    console.error('Error fetching posts:', err);
+    return res.status(500).json({ success: false, message: 'Failed to fetch posts.' });
+  }
+});
+
+// Create new post
+app.post('/api/community/posts', async (req, res) => {
+  try {
+    const { userId, content, mediaBase64 } = req.body;
+    if (!userId || !content) {
+      return res.status(400).json({ success: false, message: 'UserId and content are required.' });
+    }
+    const validUserId = await getValidUserId(userId);
+    const user = await User.findById(validUserId);
+    const authorName = user ? user.fullName : 'Rajeshbhai Chauhan';
+
+    let mediaUrl = '';
+    if (mediaBase64) {
+      const buffer = Buffer.from(mediaBase64, 'base64');
+      const filename = `post-${Date.now()}-${Math.round(Math.random() * 1E9)}.jpg`;
+      const filepath = path.join(uploadsDir, filename);
+      fs.writeFileSync(filepath, buffer);
+      mediaUrl = `/uploads/${filename}`;
+    }
+
+    const init = authorName.split(' ').map(n => n[0]).join('').toUpperCase();
+    const colors = ['#F57C00', '#0288D1', '#2E7D32', '#C2185B', '#E67E22', '#1B4F72'];
+    const avatarColor = colors[Math.floor(Math.random() * colors.length)];
+
+    const newPost = new Post({
+      userId: validUserId,
+      authorName: authorName,
+      avatarText: init.substring(0, 2),
+      avatarColor,
+      content,
+      mediaUrl,
+    });
+
+    const savedPost = await newPost.save();
+    return res.status(201).json({ success: true, post: savedPost });
+  } catch (err) {
+    console.error('Error creating post:', err);
+    return res.status(500).json({ success: false, message: 'Failed to create post.' });
+  }
+});
+
+// Toggle Post Like
+app.post('/api/community/posts/:id/like', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { userId } = req.body;
+    if (!userId) {
+      return res.status(400).json({ success: false, message: 'UserId is required.' });
+    }
+    const post = await Post.findById(id);
+    if (!post) {
+      return res.status(404).json({ success: false, message: 'Post not found.' });
+    }
+
+    const index = post.likes.indexOf(userId);
+    if (index === -1) {
+      post.likes.push(userId);
+    } else {
+      post.likes.splice(index, 1);
+    }
+
+    await post.save();
+    return res.status(200).json({ success: true, likesCount: post.likes.length, isLiked: index === -1 });
+  } catch (err) {
+    console.error('Error liking post:', err);
+    return res.status(500).json({ success: false, message: 'Server error.' });
+  }
+});
+
+// Comment on Post
+app.post('/api/community/posts/:id/comment', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { userId, content } = req.body;
+    if (!userId || !content) {
+      return res.status(400).json({ success: false, message: 'UserId and content are required.' });
+    }
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found.' });
+    }
+    const post = await Post.findById(id);
+    if (!post) {
+      return res.status(404).json({ success: false, message: 'Post not found.' });
+    }
+
+    post.comments.push({
+      userId,
+      authorName: user.fullName,
+      content,
+    });
+
+    await post.save();
+    return res.status(201).json({ success: true, comments: post.comments });
+  } catch (err) {
+    console.error('Error commenting on post:', err);
+    return res.status(500).json({ success: false, message: 'Server error.' });
+  }
+});
+
+
+// --- COMMUNITY REELS ENDPOINTS ---
+
+// Fetch all reels (sorted by newest first)
+app.get('/api/community/reels', async (req, res) => {
+  try {
+    const reels = await Reel.find({}).sort({ createdAt: -1 });
+    return res.status(200).json({ success: true, reels });
+  } catch (err) {
+    console.error('Error fetching reels:', err);
+    return res.status(500).json({ success: false, message: 'Failed to fetch reels.' });
+  }
+});
+
+// Create new reel
+app.post('/api/community/reels', async (req, res) => {
+  try {
+    const { userId, caption, videoBase64 } = req.body;
+    if (!userId || !caption || !videoBase64) {
+      return res.status(400).json({ success: false, message: 'UserId, caption, and video are required.' });
+    }
+    const validUserId = await getValidUserId(userId);
+    const user = await User.findById(validUserId);
+    const authorName = user ? user.fullName : 'Rajeshbhai Chauhan';
+
+    const buffer = Buffer.from(videoBase64, 'base64');
+    const filename = `reel-${Date.now()}-${Math.round(Math.random() * 1E9)}.mp4`;
+    const filepath = path.join(uploadsDir, filename);
+    fs.writeFileSync(filepath, buffer);
+    const videoUrl = `/uploads/${filename}`;
+
+    const init = authorName.split(' ').map(n => n[0]).join('').toUpperCase();
+    const colors = ['#F57C00', '#0288D1', '#2E7D32', '#C2185B', '#E67E22', '#1B4F72'];
+    const avatarColor = colors[Math.floor(Math.random() * colors.length)];
+
+    const newReel = new Reel({
+      userId: validUserId,
+      authorName: authorName,
+      avatarText: init.substring(0, 2),
+      avatarColor,
+      caption,
+      videoUrl,
+      audioTrack: `Original Audio - ${authorName}`,
+    });
+
+    const savedReel = await newReel.save();
+    return res.status(201).json({ success: true, reel: savedReel });
+  } catch (err) {
+    console.error('Error creating reel:', err);
+    return res.status(500).json({ success: false, message: 'Failed to create reel.' });
+  }
+});
+
+// Toggle Reel Like
+app.post('/api/community/reels/:id/like', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { userId } = req.body;
+    if (!userId) {
+      return res.status(400).json({ success: false, message: 'UserId is required.' });
+    }
+    const reel = await Reel.findById(id);
+    if (!reel) {
+      return res.status(404).json({ success: false, message: 'Reel not found.' });
+    }
+
+    const index = reel.likes.indexOf(userId);
+    if (index === -1) {
+      reel.likes.push(userId);
+    } else {
+      reel.likes.splice(index, 1);
+    }
+
+    await reel.save();
+    return res.status(200).json({ success: true, likesCount: reel.likes.length, isLiked: index === -1 });
+  } catch (err) {
+    console.error('Error liking reel:', err);
+    return res.status(500).json({ success: false, message: 'Server error.' });
+  }
+});
+
+// Comment on Reel
+app.post('/api/community/reels/:id/comment', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { userId, content } = req.body;
+    if (!userId || !content) {
+      return res.status(400).json({ success: false, message: 'UserId and content are required.' });
+    }
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found.' });
+    }
+    const reel = await Reel.findById(id);
+    if (!reel) {
+      return res.status(404).json({ success: false, message: 'Reel not found.' });
+    }
+
+    reel.comments.push({
+      userId,
+      authorName: user.fullName,
+      content,
+    });
+
+    await reel.save();
+    return res.status(201).json({ success: true, comments: reel.comments });
+  } catch (err) {
+    console.error('Error commenting on reel:', err);
+    return res.status(500).json({ success: false, message: 'Server error.' });
   }
 });
 

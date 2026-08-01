@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:share_plus/share_plus.dart';
 import '../constants/app_colors.dart';
 import '../constants/app_styles.dart';
 import '../models/member_model.dart';
@@ -26,6 +28,66 @@ class MemberCard extends ConsumerWidget {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
     );
+  }
+
+  Future<void> _makeCall(BuildContext context, String phoneNumber) async {
+    final Uri uri = Uri(scheme: 'tel', path: phoneNumber.replaceAll(' ', ''));
+    try {
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri);
+      } else {
+        if (!context.mounted) return;
+        _showActionSnackBar(context, 'Could not launch dialer for $phoneNumber');
+      }
+    } catch (e) {
+      if (!context.mounted) return;
+      _showActionSnackBar(context, 'Could not call: $e');
+    }
+  }
+
+  Future<void> _sendMessage(BuildContext context, Member member) async {
+    String cleanPhone = member.mobileNumber.replaceAll(RegExp(r'[^\d]'), '');
+    if (cleanPhone.length == 10) {
+      cleanPhone = '91$cleanPhone';
+    }
+    final String messageText = 'Jay Shree Krishna ${member.fullName}, connecting via KutumbSetu!';
+    final Uri waUri = Uri.parse('https://wa.me/$cleanPhone?text=${Uri.encodeComponent(messageText)}');
+    final Uri smsUri = Uri(
+      scheme: 'sms',
+      path: member.mobileNumber,
+      queryParameters: {'body': messageText},
+    );
+
+    try {
+      if (await canLaunchUrl(waUri)) {
+        await launchUrl(waUri, mode: LaunchMode.externalApplication);
+      } else if (await canLaunchUrl(smsUri)) {
+        await launchUrl(smsUri);
+      } else {
+        if (!context.mounted) return;
+        _showActionSnackBar(context, 'Could not open WhatsApp or SMS for ${member.fullName}');
+      }
+    } catch (e) {
+      if (!context.mounted) return;
+      _showActionSnackBar(context, 'Could not initiate message: $e');
+    }
+  }
+
+  Future<void> _shareProfile(BuildContext context, Member member) async {
+    final String shareText = '''
+=== KutumbSetu Member Profile ===
+Name: ${member.fullName}
+Profession: ${member.profession}
+Location: ${member.fullLocation}
+Blood Group: ${member.bloodGroup}
+Contact: ${member.mobileNumber}
+''';
+    try {
+      await Share.share(shareText);
+    } catch (e) {
+      if (!context.mounted) return;
+      _showActionSnackBar(context, 'Sharing failed: $e');
+    }
   }
 
   @override
@@ -247,8 +309,7 @@ class MemberCard extends ConsumerWidget {
                           icon: Icons.phone_in_talk,
                           color: AppColors.accentBlue,
                           tooltip: 'Call',
-                          onTap: () => _showActionSnackBar(
-                              context, 'Calling ${member.mobileNumber}...'),
+                          onTap: () => _makeCall(context, member.mobileNumber),
                         ),
                         const SizedBox(width: 8),
 
@@ -257,8 +318,7 @@ class MemberCard extends ConsumerWidget {
                           icon: Icons.chat_outlined,
                           color: AppColors.whatsappGreen,
                           tooltip: 'WhatsApp',
-                          onTap: () => _showActionSnackBar(
-                              context, 'Opening WhatsApp for ${member.fullName}...'),
+                          onTap: () => _sendMessage(context, member),
                         ),
                         const SizedBox(width: 8),
 
@@ -269,8 +329,7 @@ class MemberCard extends ConsumerWidget {
                               ? AppColors.textSecondaryDark
                               : AppColors.textSecondaryLight,
                           tooltip: 'Share',
-                          onTap: () => _showActionSnackBar(
-                              context, 'Sharing profile of ${member.fullName}...'),
+                          onTap: () => _shareProfile(context, member),
                         ),
                       ],
                     ),

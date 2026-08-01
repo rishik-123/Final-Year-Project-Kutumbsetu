@@ -12,6 +12,7 @@ class FamilyTreeNode {
   final String photo;
   final String relation;
   final String? parentId;
+  final bool isDeceased;
   final List<FamilyTreeNode> children;
 
   FamilyTreeNode({
@@ -20,6 +21,7 @@ class FamilyTreeNode {
     required this.photo,
     required this.relation,
     this.parentId,
+    required this.isDeceased,
     required this.children,
   });
 
@@ -34,6 +36,7 @@ class FamilyTreeNode {
       photo: json['photo'] as String? ?? '',
       relation: json['relation'] as String? ?? '',
       parentId: json['parentId'] as String?,
+      isDeceased: json['isDeceased'] as bool? ?? false,
       children: childrenList,
     );
   }
@@ -87,6 +90,7 @@ class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
         headers: {
           'Content-Type': 'application/json',
           'x-user-phone': user.phoneNumber,
+          'x-user-email': user.email,
         },
       );
 
@@ -210,6 +214,54 @@ class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
         positions[node.id] = Offset(startX + i * (nodeWidth + gap), y);
       }
     }
+
+    // Centering alignment for single child subtrees
+    void adjustSubtree(FamilyTreeNode node) {
+      FamilyTreeNode? spouseNode;
+      for (var child in node.children) {
+        final r = child.relation.toLowerCase();
+        if (r == 'wife' || r == 'husband' || r == 'spouse' || r == 'mother' || r == 'grandmother' || r == 'mother-in-law') {
+          spouseNode = child;
+          break;
+        }
+      }
+
+      final List<FamilyTreeNode> descendants = [];
+      for (var child in node.children) {
+        if (child.id != spouseNode?.id) {
+          descendants.add(child);
+        }
+      }
+
+      if (descendants.length == 1) {
+        final singleChild = descendants[0];
+        if (positions.containsKey(node.id) && positions.containsKey(singleChild.id)) {
+          final parentPos = positions[node.id]!;
+          double parentMidX = parentPos.dx;
+          if (spouseNode != null && positions.containsKey(spouseNode.id)) {
+            parentMidX = (parentPos.dx + positions[spouseNode.id]!.dx) / 2;
+          }
+          final currentChildX = positions[singleChild.id]!.dx;
+          final shiftX = parentMidX - currentChildX;
+
+          void shiftSubtree(FamilyTreeNode n) {
+            if (positions.containsKey(n.id)) {
+              positions[n.id] = Offset(positions[n.id]!.dx + shiftX, positions[n.id]!.dy);
+            }
+            for (var c in n.children) {
+              shiftSubtree(c);
+            }
+          }
+          shiftSubtree(singleChild);
+        }
+      }
+
+      for (var child in node.children) {
+        adjustSubtree(child);
+      }
+    }
+
+    adjustSubtree(root);
 
     return positions;
   }
@@ -387,7 +439,7 @@ class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      node.name,
+                      node.isDeceased ? '⚫ ${node.name}' : node.name,
                       style: GoogleFonts.poppins(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,

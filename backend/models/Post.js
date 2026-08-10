@@ -47,12 +47,43 @@ const postSchema = new mongoose.Schema({
         type: String,
         required: true,
       },
+      likes: [
+        {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'User',
+        }
+      ],
+      replies: [
+        {
+          userId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User',
+            required: true,
+          },
+          authorName: {
+            type: String,
+            required: true,
+          },
+          content: {
+            type: String,
+            required: true,
+          },
+          createdAt: {
+            type: Date,
+            default: Date.now,
+          }
+        }
+      ],
       createdAt: {
         type: Date,
         default: Date.now,
       },
     },
   ],
+  sharesCount: {
+    type: Number,
+    default: 0,
+  },
   createdAt: {
     type: Date,
     default: Date.now,

@@ -1,6 +1,8 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../constants/app_colors.dart';
@@ -44,6 +46,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     'Events': 'કાર્યક્રમો',
     'Donations': 'દાન',
     'News': 'સમાચાર',
+    'Community Hub': 'સમાજ હબ',
     'Business': 'વ્યવસાય',
     'More': 'વધુ',
     'Birthdays today 🎂': 'આજના જન્મદિવસ 🎂',
@@ -549,8 +552,11 @@ Contact: ${user.phoneNumber}
       motherName: 'Savitaben',
       spouseName: 'Priyaben',
       familyHeadPhone: '+919825010042',
+      grandfather: 'Manilalbhai',
+      grandmother: 'Maniben',
+      nana: 'Nanabhai',
+      nani: 'Naniben',
     );
-
     final isDark = ref.watch(themeModeProvider) == ThemeMode.dark;
 
     final bgGradient = LinearGradient(
@@ -823,6 +829,24 @@ Contact: ${user.phoneNumber}
                   const SizedBox(width: 8),
                   GestureDetector(
                     onTap: () {
+                      ref.read(themeModeProvider.notifier).toggleTheme();
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white.withValues(alpha: 0.15),
+                      ),
+                      child: Icon(
+                        isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+                        color: Colors.amberAccent,
+                        size: 20,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: () {
                       setState(() {
                         _currentIndex = 4;
                       });
@@ -843,41 +867,49 @@ Contact: ${user.phoneNumber}
           const SizedBox(height: 20),
 
           // Search Bar
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            height: 50,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(25),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.search_rounded, color: Color(0xFF2E86C1), size: 20),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: TextField(
-                    decoration: InputDecoration(
-                      hintText: 'Search families, villages, members...',
-                      hintStyle: GoogleFonts.inter(
-                        color: Colors.grey.shade500,
-                        fontSize: 14,
-                      ),
-                      border: InputBorder.none,
-                      enabledBorder: InputBorder.none,
-                      focusedBorder: InputBorder.none,
-                      contentPadding: EdgeInsets.zero,
+          Builder(
+            builder: (context) {
+              final isDark = Theme.of(context).brightness == Brightness.dark;
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                height: 50,
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                  borderRadius: BorderRadius.circular(25),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
                     ),
-                  ),
+                  ],
                 ),
-              ],
-            ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.search_rounded, color: Color(0xFF2E86C1), size: 20),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: TextField(
+                        style: TextStyle(
+                          color: isDark ? Colors.white : Colors.black87,
+                        ),
+                        decoration: InputDecoration(
+                          hintText: 'Search families, villages, members...',
+                          hintStyle: GoogleFonts.inter(
+                            color: isDark ? Colors.grey : Colors.grey.shade500,
+                            fontSize: 14,
+                          ),
+                          border: InputBorder.none,
+                          enabledBorder: InputBorder.none,
+                          focusedBorder: InputBorder.none,
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }
           ),
         ],
       ),
@@ -1733,9 +1765,35 @@ Contact: ${user.phoneNumber}
                             const SizedBox(width: 4),
                             Text(commentsCount.toString(), style: GoogleFonts.inter(fontSize: 11, color: Colors.grey)),
                             const Spacer(),
-                            const Icon(Icons.share_outlined, color: Colors.blue, size: 16),
-                            const SizedBox(width: 4),
-                            Text(_translate('Share'), style: GoogleFonts.inter(fontSize: 11, color: Colors.blue)),
+                            GestureDetector(
+                              onTap: () async {
+                                if (mediaUrl != null) {
+                                  try {
+                                    final response = await http.get(Uri.parse(mediaUrl));
+                                    if (response.statusCode == 200) {
+                                      final tempDir = Directory.systemTemp;
+                                      final file = File('${tempDir.path}/shared_image.png');
+                                      await file.writeAsBytes(response.bodyBytes);
+                                      await Share.shareXFiles([XFile(file.path)], text: "$content\n\nShared via KutumbSetu Community");
+                                    } else {
+                                      await Share.share("$content\n\nShared via KutumbSetu Community");
+                                    }
+                                  } catch (e) {
+                                    print("Error sharing image: $e");
+                                    await Share.share("$content\n\nShared via KutumbSetu Community");
+                                  }
+                                } else {
+                                  await Share.share("$content\n\nShared via KutumbSetu Community");
+                                }
+                              },
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.share_outlined, color: Colors.blue, size: 16),
+                                  const SizedBox(width: 4),
+                                  Text(_translate('Share'), style: GoogleFonts.inter(fontSize: 11, color: Colors.blue)),
+                                ],
+                              ),
+                            ),
                           ],
                         )
                       ],
@@ -1805,7 +1863,7 @@ Contact: ${user.phoneNumber}
             _buildNavBarItem(0, Icons.home_rounded, 'Home', isDark),
             _buildNavBarItem(1, Icons.park_rounded, 'Tree', isDark),
             _buildNavBarCenterButton(isDark),
-            _buildNavBarItem(3, Icons.newspaper_rounded, 'News', isDark),
+            _buildNavBarItem(3, Icons.people_alt_rounded, 'Community Hub', isDark),
             _buildNavBarItem(4, Icons.assignment_ind_rounded, 'Build Profile', isDark),
           ],
         ),

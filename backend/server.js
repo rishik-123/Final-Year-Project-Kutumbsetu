@@ -1,6 +1,12 @@
 require('dotenv').config();
+const dns = require('dns');
+if (dns.setDefaultResultOrder) {
+  dns.setDefaultResultOrder('ipv4first');
+}
 const express = require('express');
 const cors = require('cors');
+const fs = require('fs');
+const path = require('path');
 const mongoose = require('mongoose');
 const connectDB = require('./config/db');
 const OtpVerification = require('./models/OtpVerification');
@@ -45,8 +51,8 @@ connectDB();
 
 // Middleware
 app.use(cors());
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ limit: '50mb', extended: true }));
+app.use(express.json({ limit: '100mb' }));
+app.use(express.urlencoded({ limit: '100mb', extended: true }));
 
 // Logger middleware for debugging request inputs
 app.use((req, res, next) => {
@@ -61,13 +67,16 @@ app.use((req, res, next) => {
 const isGmail = (process.env.SMTP_HOST || '').includes('gmail.com');
 const transportConfig = isGmail
   ? {
-      service: 'gmail',
+      host: 'smtp.gmail.com',
+      port: 587,
+      secure: false,
       auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
       },
       tls: {
         rejectUnauthorized: false,
+        minVersion: 'TLSv1.2',
       },
     }
   : {
@@ -468,6 +477,10 @@ app.get('/api/users/profile/:identifier', async (req, res) => {
           spouseName: '',
           familyHeadPhone: '',
           fatherName: '',
+          grandfather: '',
+          grandmother: '',
+          nana: '',
+          nani: '',
           bio: '',
         }
       });
@@ -497,6 +510,10 @@ app.get('/api/users/profile/:identifier', async (req, res) => {
       spouseName: profile.spouseName || '',
       familyHeadPhone: profile.familyHeadPhone || '',
       fatherName: profile.fatherName || '',
+      grandfather: profile.grandfather || '',
+      grandmother: profile.grandmother || '',
+      nana: profile.nana || '',
+      nani: profile.nani || '',
       bio: profile.bio || '',
       isDeceased: profile.isDeceased || false,
     };
@@ -521,6 +538,7 @@ app.post('/api/users/profile', async (req, res) => {
       dateOfBirth,
       phoneNumber,
       profilePhoto,
+      profilePhotoBase64,
       bloodGroup,
       village,
       city,
@@ -564,12 +582,31 @@ app.post('/api/users/profile', async (req, res) => {
       }
     }
 
+    let finalProfilePhoto = profilePhoto;
+    if (profilePhotoBase64 && profilePhotoBase64.trim().length > 0) {
+      try {
+        const base64Data = profilePhotoBase64.replace(/^data:image\/\w+;base64,/, "");
+        const buffer = Buffer.from(base64Data, 'base64');
+        const uploadsDir = path.join(__dirname, 'uploads');
+        if (!fs.existsSync(uploadsDir)) {
+          fs.mkdirSync(uploadsDir, { recursive: true });
+        }
+        const filename = `user-photo-${validUserId}-${Date.now()}.jpg`;
+        const filepath = path.join(uploadsDir, filename);
+        fs.writeFileSync(filepath, buffer);
+        finalProfilePhoto = `/uploads/${filename}`;
+        console.log(`Saved user profile photo to: ${finalProfilePhoto}`);
+      } catch (err) {
+        console.error('Error writing user profile photo:', err);
+      }
+    }
+
     const profileData = {
       userId: validUserId,
       gender,
       dateOfBirth,
       phoneNumber: phoneNumber.replace(/\s+/g, '').trim(),
-      profilePhoto: profilePhoto || '',
+      profilePhoto: finalProfilePhoto || '',
       bloodGroup: bloodGroup || '',
       village: village || '',
       city,
@@ -657,6 +694,48 @@ app.get('/api/users/all', async (req, res) => {
  * @desc    Fetch family members in a tree structure
  * @access  Protected (by custom x-user-phone or x-user-email headers)
  */
+/**
+ * @route   POST /api/family/add-member
+ * @desc    Add a custom relation/member to the user's profile addedMembers array
+ * @access  Public
+ */
+app.post('/api/family/add-member', async (req, res) => {
+  try {
+    const { userId, name, relation, isDeceased } = req.body;
+    if (!userId || !name || !relation) {
+      return res.status(400).json({ success: false, message: 'Required fields (userId, name, relation) are missing.' });
+    }
+
+    const validUserId = await getValidUserId(userId);
+    const profile = await Profile.findOne({ userId: validUserId });
+    if (!profile) {
+      return res.status(404).json({ success: false, message: 'Profile not found. Complete profile first.' });
+    }
+
+    profile.addedMembers = profile.addedMembers || [];
+    profile.addedMembers.push({
+      name: name.trim(),
+      relation: relation.trim(),
+      isDeceased: isDeceased || false
+    });
+    await profile.save();
+
+    return res.status(200).json({
+      success: true,
+      message: 'Family relation added successfully!',
+      addedMembers: profile.addedMembers
+    });
+  } catch (error) {
+    console.error('Error adding family member:', error);
+    return res.status(500).json({ success: false, message: 'Server error adding family member.' });
+  }
+});
+
+/**
+ * @route   GET /api/family/my-tree
+ * @desc    Fetch family members in a tree structure
+ * @access  Protected (by custom x-user-phone or x-user-email headers)
+ */
 app.get('/api/family/my-tree', async (req, res) => {
   try {
     const userPhone = req.headers['x-user-phone'];
@@ -666,10 +745,10 @@ app.get('/api/family/my-tree', async (req, res) => {
     if (userEmail) {
       const user = await User.findOne({ email: userEmail.toLowerCase().trim() });
       if (user) {
-        profile = await Profile.findOne({ userId: user._id });
+        profile = await Profile.findOne({ userId: user._id }).populate('userId');
       }
     } else if (userPhone) {
-      profile = await Profile.findOne({ phoneNumber: userPhone.replace(/\s+/g, '').trim() });
+      profile = await Profile.findOne({ phoneNumber: userPhone.replace(/\s+/g, '').trim() }).populate('userId');
     }
 
     if (!profile) {
@@ -677,16 +756,10 @@ app.get('/api/family/my-tree', async (req, res) => {
     }
 
     const familyId = profile.familyId;
-    if (!familyId) {
-      return res.status(200).json({
-        success: true,
-        tree: null,
-        message: 'No family tree found. Please update your profile with a Family ID.'
-      });
+    let familyProfiles = [];
+    if (familyId) {
+      familyProfiles = await Profile.find({ familyId }).populate('userId');
     }
-
-    // Fetch all family profiles sharing same familyId
-    const familyProfiles = await Profile.find({ familyId }).populate('userId');
 
     // Helper to make a node matching tree data structure requirements
     const makeNode = (p) => {
@@ -702,7 +775,19 @@ app.get('/api/family/my-tree', async (req, res) => {
       };
     };
 
-    // Group members by relation
+    const makeVirtualNode = (id, name, relation) => {
+      return {
+        id,
+        name,
+        photo: '',
+        relation,
+        isDeceased: false,
+        parentId: null,
+        children: []
+      };
+    };
+
+    // Group actual registered members by relation
     let gf = null, gm = null, father = null, mother = null, self = null, spouse = null;
     let fil = null, mil = null;
     const sons = [], daughters = [], uncles = [], aunts = [], cousins = [], siblings = [], sibsInLaw = [], nephews = [], nieces = [], guardians = [], unknowns = [];
@@ -731,138 +816,148 @@ app.get('/api/family/my-tree', async (req, res) => {
       else unknowns.push(p);
     });
 
-    // Create nodes for primary structural points
+    if (!self) {
+      self = profile;
+    }
+
     const selfNode = makeNode(self);
-    const spouseNode = makeNode(spouse);
-    const fNode = makeNode(father);
-    const mNode = makeNode(mother);
-    const gfNode = makeNode(gf);
-    const gmNode = makeNode(gm);
-    const filNode = makeNode(fil);
-    const milNode = makeNode(mil);
+    if (!selfNode) {
+      return res.status(404).json({ success: false, message: 'Could not resolve self node.' });
+    }
+
+    // Helper to get actual node or create virtual node from profile text fields
+    const getOrCreateNode = (relationKey, actualProfile, nameFromSelf, virtualRelationName) => {
+      let cleanName = nameFromSelf ? nameFromSelf.trim() : '';
+      if (cleanName.toLowerCase() === 'none' || cleanName.toLowerCase() === 'no' || cleanName.toLowerCase() === 'nil') {
+        cleanName = '';
+      }
+      const hasNameFromSelf = cleanName.length > 0;
+      const isDummy = actualProfile && actualProfile.userId && actualProfile.userId.email && actualProfile.userId.email.includes('_demo_');
+      
+      if (hasNameFromSelf) {
+        const selfNameClean = cleanName.toLowerCase();
+        const actualNameClean = (actualProfile && actualProfile.userId && actualProfile.userId.fullName) ? actualProfile.userId.fullName.trim().toLowerCase() : '';
+        
+        if (actualProfile && !isDummy && (actualNameClean.includes(selfNameClean) || selfNameClean.includes(actualNameClean))) {
+          return makeNode(actualProfile);
+        }
+        return makeVirtualNode(`${selfNode.id}-virtual-${relationKey}`, cleanName, virtualRelationName);
+      }
+      
+      if (actualProfile && !isDummy) {
+        return makeNode(actualProfile);
+      }
+      return null;
+    };
+
+    let gfNode = getOrCreateNode('grandfather', gf, self.grandfather, 'Grandfather');
+    let gmNode = getOrCreateNode('grandmother', gm, self.grandmother, 'Grandmother');
+    let fNode = getOrCreateNode('father', father, self.fatherName, 'Father');
+    let mNode = getOrCreateNode('mother', mother, self.motherName, 'Mother');
+    let nanaNode = getOrCreateNode('nana', null, self.nana, 'Nana');
+    let naniNode = getOrCreateNode('nani', null, self.nani, 'Nani');
+    let spouseNode = getOrCreateNode('spouse', spouse, self.spouseName, 'Spouse');
+    
+    // Also ignore dummy/demo in-laws
+    const isFilDummy = fil && fil.userId && fil.userId.email && fil.userId.email.includes('_demo_');
+    const isMilDummy = mil && mil.userId && mil.userId.email && mil.userId.email.includes('_demo_');
+    const filNode = (fil && !isFilDummy) ? makeNode(fil) : null;
+    const milNode = (mil && !isMilDummy) ? makeNode(mil) : null;
 
     // Map of nodes for quick reference
     const allNodesMap = {};
     if (selfNode) allNodesMap[selfNode.id] = selfNode;
-    if (spouseNode) allNodesMap[spouseNode.id] = spouseNode;
-    if (fNode) allNodesMap[fNode.id] = fNode;
-    if (mNode) allNodesMap[mNode.id] = mNode;
-    if (gfNode) allNodesMap[gfNode.id] = gfNode;
-    if (gmNode) allNodesMap[gmNode.id] = gmNode;
-    if (filNode) allNodesMap[filNode.id] = filNode;
-    if (milNode) allNodesMap[milNode.id] = milNode;
 
-    // Children of Self & Spouse (Sons, Daughters, Guardians, Unknowns)
-    if (selfNode) {
-      if (spouseNode) {
-        selfNode.children.push(spouseNode);
-        spouseNode.parentId = selfNode.id;
-      }
-      sons.forEach(s => {
-        const n = makeNode(s);
-        selfNode.children.push(n);
-        n.parentId = selfNode.id;
-        allNodesMap[n.id] = n;
-      });
-      daughters.forEach(d => {
-        const n = makeNode(d);
-        selfNode.children.push(n);
-        n.parentId = selfNode.id;
-        allNodesMap[n.id] = n;
-      });
-      guardians.forEach(g => {
-        const n = makeNode(g);
-        selfNode.children.push(n);
-        n.parentId = selfNode.id;
-        allNodesMap[n.id] = n;
-      });
-      unknowns.forEach(u => {
-        const n = makeNode(u);
-        selfNode.children.push(n);
-        n.parentId = selfNode.id;
-        allNodesMap[n.id] = n;
-      });
-    }
+    // Process custom addedMembers from profile
+    const addedMembers = self.addedMembers || [];
+    addedMembers.forEach((m, index) => {
+      const n = {
+        id: `${selfNode.id}-added-${index}`,
+        name: m.name,
+        photo: '',
+        relation: m.relation,
+        isDeceased: m.isDeceased || false,
+        parentId: null,
+        children: []
+      };
 
-    // Siblings
-    const sibNodes = siblings.map(s => {
-      const n = makeNode(s);
-      allNodesMap[n.id] = n;
-      return n;
+      const rel = m.relation.trim().toLowerCase();
+      if (rel === 'son') sons.push(n);
+      else if (rel === 'daughter') daughters.push(n);
+      else if (rel === 'brother' || rel === 'sister') siblings.push(n);
+      else if (rel === 'uncle') uncles.push(n);
+      else if (rel === 'aunt') aunts.push(n);
+      else if (rel === 'cousin') cousins.push(n);
+      else if (rel === 'brother-in-law' || rel === 'sister-in-law') sibsInLaw.push(n);
+      else if (rel === 'nephew') nephews.push(n);
+      else if (rel === 'niece') nieces.push(n);
+      else if (rel === 'father' && !fNode) fNode = n;
+      else if (rel === 'mother' && !mNode) mNode = n;
+      else if (rel === 'grandfather' && !gfNode) gfNode = n;
+      else if (rel === 'grandmother' && !gmNode) gmNode = n;
+      else if (rel === 'nana' && !nanaNode) nanaNode = n;
+      else if (rel === 'nani' && !naniNode) naniNode = n;
+      else if ((rel === 'spouse' || rel === 'wife' || rel === 'husband') && !spouseNode) spouseNode = n;
+      else unknowns.push(n);
     });
 
-    if (sibNodes.length > 0) {
-      const mainSib = sibNodes[0];
-      nephews.forEach(nep => {
-        const n = makeNode(nep);
-        mainSib.children.push(n);
-        n.parentId = mainSib.id;
-        allNodesMap[n.id] = n;
-      });
-      nieces.forEach(nie => {
-        const n = makeNode(nie);
-        mainSib.children.push(n);
-        n.parentId = mainSib.id;
-        allNodesMap[n.id] = n;
-      });
+    // Map actual profiles to tree nodes, mixing in custom added nodes
+    const selfUserIdStr = self.userId ? self.userId._id.toString() : '';
+    const sonNodes = sons.map(s => s.userId ? makeNode(s) : s).filter(Boolean).filter(s => s.id !== selfUserIdStr);
+    const daughterNodes = daughters.map(d => d.userId ? makeNode(d) : d).filter(Boolean).filter(d => d.id !== selfUserIdStr);
+    const siblingNodes = siblings.map(s => s.userId ? makeNode(s) : s).filter(Boolean);
+    const uncleNodes = uncles.map(u => u.userId ? makeNode(u) : u).filter(Boolean);
+    const auntNodes = aunts.map(a => a.userId ? makeNode(a) : a).filter(Boolean);
+    const cousinNodes = cousins.map(c => c.userId ? makeNode(c) : c).filter(Boolean);
+    const sibsInLawNodes = sibsInLaw.map(s => s.userId ? makeNode(s) : s).filter(Boolean);
+    const nephewNodes = nephews.map(n => n.userId ? makeNode(n) : n).filter(Boolean);
+    const nieceNodes = nieces.map(n => n.userId ? makeNode(n) : n).filter(Boolean);
+    const guardianNodes = guardians.map(g => g.userId ? makeNode(g) : g).filter(Boolean);
+    const unknownNodes = unknowns.map(u => u.userId ? makeNode(u) : u).filter(Boolean);
+
+    // Register all nodes in map
+    const registerInMap = (n) => { if (n) allNodesMap[n.id] = n; };
+    registerInMap(spouseNode);
+    registerInMap(fNode);
+    registerInMap(mNode);
+    registerInMap(gfNode);
+    registerInMap(gmNode);
+    registerInMap(nanaNode);
+    registerInMap(naniNode);
+    registerInMap(filNode);
+    registerInMap(milNode);
+    sonNodes.forEach(registerInMap);
+    daughterNodes.forEach(registerInMap);
+    siblingNodes.forEach(registerInMap);
+    uncleNodes.forEach(registerInMap);
+    auntNodes.forEach(registerInMap);
+    cousinNodes.forEach(registerInMap);
+    sibsInLawNodes.forEach(registerInMap);
+    nephewNodes.forEach(registerInMap);
+    nieceNodes.forEach(registerInMap);
+    guardianNodes.forEach(registerInMap);
+    unknownNodes.forEach(registerInMap);
+
+    // Spouse pairs mapping (Husband <-> Wife connected side-by-side with blue line)
+    if (gfNode && gmNode) {
+      gfNode.children.push(gmNode);
+      gmNode.parentId = gfNode.id;
+    }
+    if (nanaNode && naniNode) {
+      nanaNode.children.push(naniNode);
+      naniNode.parentId = nanaNode.id;
+    }
+    if (fNode && mNode) {
+      fNode.children.push(mNode);
+      mNode.parentId = fNode.id;
+    }
+    if (selfNode && spouseNode) {
+      selfNode.children.push(spouseNode);
+      spouseNode.parentId = selfNode.id;
     }
 
-    // Children of Father & Mother
-    if (fNode) {
-      if (mNode) {
-        fNode.children.push(mNode);
-        mNode.parentId = fNode.id;
-      }
-      if (selfNode) {
-        fNode.children.push(selfNode);
-        selfNode.parentId = fNode.id;
-      }
-      sibNodes.forEach(sib => {
-        fNode.children.push(sib);
-        sib.parentId = fNode.id;
-      });
-    } else if (mNode) {
-      if (selfNode) {
-        mNode.children.push(selfNode);
-        selfNode.parentId = mNode.id;
-      }
-      sibNodes.forEach(sib => {
-        mNode.children.push(sib);
-        sib.parentId = mNode.id;
-      });
-    }
-
-    // Children of Grandfather & Grandmother
-    const uncleNodes = uncles.map(u => {
-      const n = makeNode(u);
-      allNodesMap[n.id] = n;
-      return n;
-    });
-    const auntNodes = aunts.map(a => {
-      const n = makeNode(a);
-      allNodesMap[n.id] = n;
-      return n;
-    });
-
-    if (uncleNodes.length > 0) {
-      const mainUncle = uncleNodes[0];
-      if (auntNodes.length > 0) {
-        mainUncle.children.push(auntNodes[0]);
-        auntNodes[0].parentId = mainUncle.id;
-      }
-      cousins.forEach(c => {
-        const n = makeNode(c);
-        mainUncle.children.push(n);
-        n.parentId = mainUncle.id;
-        allNodesMap[n.id] = n;
-      });
-    }
-
+    // Paternal line descendants (Midpoint to Father & Uncles)
     if (gfNode) {
-      if (gmNode) {
-        gfNode.children.push(gmNode);
-        gmNode.parentId = gfNode.id;
-      }
       if (fNode) {
         gfNode.children.push(fNode);
         fNode.parentId = gfNode.id;
@@ -882,13 +977,68 @@ app.get('/api/family/my-tree', async (req, res) => {
       });
     }
 
-    // Father-in-law & Mother-in-law children
-    const sibsInLawNodes = sibsInLaw.map(s => {
-      const n = makeNode(s);
-      allNodesMap[n.id] = n;
-      return n;
+    // Maternal line descendants (Midpoint to Mother)
+    if (nanaNode) {
+      if (mNode) {
+        nanaNode.children.push(mNode);
+        mNode.parentId = nanaNode.id;
+      }
+    } else if (naniNode) {
+      if (mNode) {
+        naniNode.children.push(mNode);
+        mNode.parentId = naniNode.id;
+      }
+    }
+
+    // Parent midpoint down to Self & Siblings
+    if (fNode) {
+      fNode.children.push(selfNode);
+      selfNode.parentId = fNode.id;
+      siblingNodes.forEach(sib => {
+        fNode.children.push(sib);
+        sib.parentId = fNode.id;
+      });
+    } else if (mNode) {
+      mNode.children.push(selfNode);
+      selfNode.parentId = mNode.id;
+      siblingNodes.forEach(sib => {
+        mNode.children.push(sib);
+        sib.parentId = mNode.id;
+      });
+    }
+
+    // Self midpoint down to Children
+    sonNodes.forEach(s => {
+      selfNode.children.push(s);
+      s.parentId = selfNode.id;
+    });
+    daughterNodes.forEach(d => {
+      selfNode.children.push(d);
+      d.parentId = selfNode.id;
+    });
+    guardianNodes.forEach(g => {
+      selfNode.children.push(g);
+      g.parentId = selfNode.id;
+    });
+    unknownNodes.forEach(u => {
+      selfNode.children.push(u);
+      u.parentId = selfNode.id;
     });
 
+    // Sibling descendants
+    if (siblingNodes.length > 0) {
+      const mainSib = siblingNodes[0];
+      nephewNodes.forEach(nep => {
+        mainSib.children.push(nep);
+        nep.parentId = mainSib.id;
+      });
+      nieceNodes.forEach(nie => {
+        mainSib.children.push(nie);
+        nie.parentId = mainSib.id;
+      });
+    }
+
+    // In-laws descendants
     if (filNode) {
       if (milNode) {
         filNode.children.push(milNode);
@@ -913,20 +1063,39 @@ app.get('/api/family/my-tree', async (req, res) => {
       });
     }
 
-    // Select the root of the hierarchy
+    // Uncles descendants
+    if (uncleNodes.length > 0) {
+      const mainUncle = uncleNodes[0];
+      if (auntNodes.length > 0) {
+        mainUncle.children.push(auntNodes[0]);
+        auntNodes[0].parentId = mainUncle.id;
+      }
+      cousinNodes.forEach(c => {
+        mainUncle.children.push(c);
+        c.parentId = mainUncle.id;
+      });
+    }
+
+    // Root node selection
     let root = null;
-    if (gfNode) root = gfNode;
-    else if (gmNode) root = gmNode;
-    else if (filNode) root = filNode;
-    else if (milNode) root = milNode;
-    else if (fNode) root = fNode;
-    else if (mNode) root = mNode;
-    else if (selfNode) root = selfNode;
-    else if (spouseNode) root = spouseNode;
-    else if (uncleNodes.length > 0) root = uncleNodes[0];
-    else if (sibNodes.length > 0) root = sibNodes[0];
-    else if (familyProfiles.length > 0) {
-      root = makeNode(familyProfiles[0]);
+    if (gfNode || gmNode || nanaNode || naniNode) {
+      // Create virtual ancestors root to tie both paternal & maternal grandparents symmetrically
+      const ancestors = makeVirtualNode('virtual-ancestors', 'Ancestors', 'Ancestors');
+      if (gfNode) {
+        ancestors.children.push(gfNode);
+        gfNode.parentId = ancestors.id;
+      }
+      if (nanaNode) {
+        ancestors.children.push(nanaNode);
+        nanaNode.parentId = ancestors.id;
+      }
+      root = ancestors;
+    } else if (fNode) {
+      root = fNode;
+    } else if (mNode) {
+      root = mNode;
+    } else {
+      root = selfNode;
     }
 
     return res.status(200).json({
@@ -957,11 +1126,51 @@ app.post('/api/matrimonial/profile', async (req, res) => {
       userId, name, gender, dob, heightCm, weightKg, bloodGroup,
       maritalStatus, education, occupation, company, annualIncome,
       village, city, familyInformation, lifestyle, partnerPreferences,
-      visibilitySettings, profilePhoto, introductionVideo
+      visibilitySettings, profilePhoto, introductionVideo,
+      profilePhotoBase64, introductionVideoBase64
     } = req.body;
 
     if (!userId || !name || !gender || !dob || !heightCm || !weightKg) {
       return res.status(400).json({ success: false, message: 'Missing required profile fields.' });
+    }
+
+    // Handle base64 uploads
+    let finalProfilePhoto = profilePhoto;
+    if (profilePhotoBase64 && profilePhotoBase64.trim().length > 0) {
+      try {
+        const base64Data = profilePhotoBase64.replace(/^data:image\/\w+;base64,/, "");
+        const buffer = Buffer.from(base64Data, 'base64');
+        const uploadsDir = path.join(__dirname, 'uploads');
+        if (!fs.existsSync(uploadsDir)) {
+          fs.mkdirSync(uploadsDir, { recursive: true });
+        }
+        const filename = `matrimony-photo-${userId}-${Date.now()}.jpg`;
+        const filepath = path.join(uploadsDir, filename);
+        fs.writeFileSync(filepath, buffer);
+        finalProfilePhoto = `/uploads/${filename}`;
+        console.log(`Saved matrimonial profile photo to: ${finalProfilePhoto}`);
+      } catch (err) {
+        console.error('Error writing profile photo file:', err);
+      }
+    }
+
+    let finalIntroductionVideo = introductionVideo;
+    if (introductionVideoBase64 && introductionVideoBase64.trim().length > 0) {
+      try {
+        const base64Data = introductionVideoBase64.replace(/^data:video\/\w+;base64,/, "");
+        const buffer = Buffer.from(base64Data, 'base64');
+        const uploadsDir = path.join(__dirname, 'uploads');
+        if (!fs.existsSync(uploadsDir)) {
+          fs.mkdirSync(uploadsDir, { recursive: true });
+        }
+        const filename = `matrimony-video-${userId}-${Date.now()}.mp4`;
+        const filepath = path.join(uploadsDir, filename);
+        fs.writeFileSync(filepath, buffer);
+        finalIntroductionVideo = `/uploads/${filename}`;
+        console.log(`Saved matrimonial intro video to: ${finalIntroductionVideo}`);
+      } catch (err) {
+        console.error('Error writing introduction video file:', err);
+      }
     }
 
     let profile = await MatrimonialProfile.findOne({ userId });
@@ -985,8 +1194,8 @@ app.post('/api/matrimonial/profile', async (req, res) => {
       lifestyle,
       partnerPreferences,
       visibilitySettings,
-      profilePhoto,
-      introductionVideo,
+      profilePhoto: finalProfilePhoto,
+      introductionVideo: finalIntroductionVideo,
       updatedDate: new Date()
     };
 
@@ -1458,8 +1667,6 @@ const seedMatrimonialData = async () => {
 };
 
 // Serving Static Uploads for Posts and Reels
-const fs = require('fs');
-const path = require('path');
 const uploadsDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir);
@@ -1519,6 +1726,30 @@ app.get('/api/community/posts', async (req, res) => {
   } catch (err) {
     console.error('Error fetching posts:', err);
     return res.status(500).json({ success: false, message: 'Failed to fetch posts.' });
+  }
+});
+
+// Fetch posts for a specific user
+app.get('/api/community/posts/user/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const posts = await Post.find({ userId }).sort({ createdAt: -1 });
+    return res.status(200).json({ success: true, posts });
+  } catch (err) {
+    console.error('Error fetching user posts:', err);
+    return res.status(500).json({ success: false, message: 'Failed to fetch user posts.' });
+  }
+});
+
+// Fetch reels for a specific user
+app.get('/api/community/reels/user/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const reels = await Reel.find({ userId }).sort({ createdAt: -1 });
+    return res.status(200).json({ success: true, reels });
+  } catch (err) {
+    console.error('Error fetching user reels:', err);
+    return res.status(500).json({ success: false, message: 'Failed to fetch user reels.' });
   }
 });
 
@@ -1730,6 +1961,120 @@ app.post('/api/community/reels/:id/comment', async (req, res) => {
     return res.status(201).json({ success: true, comments: reel.comments });
   } catch (err) {
     console.error('Error commenting on reel:', err);
+    return res.status(500).json({ success: false, message: 'Server error.' });
+  }
+});
+
+// --- COMMENT LIKING & REPLYING ENDPOINTS ---
+
+// Toggle Comment Like (handles both posts and reels)
+app.post('/api/community/:type/:id/comment/:commentId/like', async (req, res) => {
+  try {
+    const { type, id, commentId } = req.params;
+    const { userId } = req.body;
+    if (!userId) {
+      return res.status(400).json({ success: false, message: 'UserId is required.' });
+    }
+
+    const Model = type === 'posts' ? Post : Reel;
+    const doc = await Model.findById(id);
+    if (!doc) {
+      return res.status(404).json({ success: false, message: 'Document not found.' });
+    }
+
+    const comment = doc.comments.id(commentId);
+    if (!comment) {
+      return res.status(404).json({ success: false, message: 'Comment not found.' });
+    }
+
+    comment.likes = comment.likes || [];
+    const index = comment.likes.indexOf(userId);
+    if (index === -1) {
+      comment.likes.push(userId);
+    } else {
+      comment.likes.splice(index, 1);
+    }
+
+    await doc.save();
+    return res.status(200).json({ success: true, comments: doc.comments });
+  } catch (err) {
+    console.error('Error liking comment:', err);
+    return res.status(500).json({ success: false, message: 'Server error.' });
+  }
+});
+
+// Reply to Comment (handles both posts and reels)
+app.post('/api/community/:type/:id/comment/:commentId/reply', async (req, res) => {
+  try {
+    const { type, id, commentId } = req.params;
+    const { userId, content } = req.body;
+    if (!userId || !content) {
+      return res.status(400).json({ success: false, message: 'UserId and content are required.' });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found.' });
+    }
+
+    const Model = type === 'posts' ? Post : Reel;
+    const doc = await Model.findById(id);
+    if (!doc) {
+      return res.status(404).json({ success: false, message: 'Document not found.' });
+    }
+
+    const comment = doc.comments.id(commentId);
+    if (!comment) {
+      return res.status(404).json({ success: false, message: 'Comment not found.' });
+    }
+
+    comment.replies = comment.replies || [];
+    comment.replies.push({
+      userId,
+      authorName: user.fullName,
+      content: content.trim(),
+    });
+
+    await doc.save();
+    return res.status(201).json({ success: true, comments: doc.comments });
+  } catch (err) {
+    console.error('Error replying to comment:', err);
+    return res.status(500).json({ success: false, message: 'Server error.' });
+  }
+});
+
+// Increment Post Share Count
+app.post('/api/community/posts/:id/share', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const post = await Post.findById(id);
+    if (!post) {
+      return res.status(404).json({ success: false, message: 'Post not found.' });
+    }
+
+    post.sharesCount = (post.sharesCount || 0) + 1;
+    await post.save();
+    return res.status(200).json({ success: true, sharesCount: post.sharesCount });
+  } catch (err) {
+    console.error('Error sharing post:', err);
+    return res.status(500).json({ success: false, message: 'Server error.' });
+  }
+});
+
+// Increment Reel Share Count
+app.post('/api/community/reels/:id/share', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const reel = await Reel.findById(id);
+    if (!reel) {
+      return res.status(404).json({ success: false, message: 'Reel not found.' });
+    }
+
+    reel.sharesCount = (reel.sharesCount || 0) + 1;
+    await reel.save();
+    return res.status(200).json({ success: true, sharesCount: reel.sharesCount });
+  } catch (err) {
+    console.error('Error sharing reel:', err);
     return res.status(500).json({ success: false, message: 'Server error.' });
   }
 });

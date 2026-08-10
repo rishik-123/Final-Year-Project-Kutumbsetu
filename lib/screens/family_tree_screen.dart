@@ -154,16 +154,14 @@ class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
 
       // Spouse matches placed on same level
       for (var child in node.children) {
-        final r = child.relation.toLowerCase();
-        if (r == 'wife' || r == 'husband' || r == 'spouse' || r == 'mother' || r == 'grandmother' || r == 'mother-in-law') {
+        if (isSpouseRelation(node.relation, child.relation)) {
           traverse(child, level);
         }
       }
 
       // regular child descendants placed on next level down
       for (var child in node.children) {
-        final r = child.relation.toLowerCase();
-        if (r != 'wife' && r != 'husband' && r != 'spouse' && r != 'mother' && r != 'grandmother' && r != 'mother-in-law') {
+        if (!isSpouseRelation(node.relation, child.relation)) {
           traverse(child, level + 1);
         }
       }
@@ -191,7 +189,7 @@ class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
         FamilyTreeNode? spouse;
         for (var other in list) {
           if (positioned.contains(other.id)) continue;
-          if (_isSpouseRelation(node.relation, other.relation)) {
+          if (isSpouseRelation(node.relation, other.relation)) {
             spouse = other;
             break;
           }
@@ -219,8 +217,7 @@ class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
     void adjustSubtree(FamilyTreeNode node) {
       FamilyTreeNode? spouseNode;
       for (var child in node.children) {
-        final r = child.relation.toLowerCase();
-        if (r == 'wife' || r == 'husband' || r == 'spouse' || r == 'mother' || r == 'grandmother' || r == 'mother-in-law') {
+        if (isSpouseRelation(node.relation, child.relation)) {
           spouseNode = child;
           break;
         }
@@ -266,13 +263,15 @@ class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
     return positions;
   }
 
-  bool _isSpouseRelation(String rel1, String rel2) {
-    final r1 = rel1.toLowerCase();
-    final r2 = rel2.toLowerCase();
+  static bool isSpouseRelation(String rel1, String rel2) {
+    final r1 = rel1.toLowerCase().trim();
+    final r2 = rel2.toLowerCase().trim();
     if (r1 == 'self' && (r2 == 'wife' || r2 == 'husband' || r2 == 'spouse')) return true;
     if (r2 == 'self' && (r1 == 'wife' || r1 == 'husband' || r1 == 'spouse')) return true;
     if (r1 == 'grandfather' && r2 == 'grandmother') return true;
     if (r2 == 'grandfather' && r1 == 'grandmother') return true;
+    if (r1 == 'nana' && r2 == 'nani') return true;
+    if (r2 == 'nana' && r1 == 'nani') return true;
     if (r1 == 'father' && r2 == 'mother') return true;
     if (r2 == 'father' && r1 == 'mother') return true;
     if (r1 == 'father-in-law' && r2 == 'mother-in-law') return true;
@@ -287,8 +286,8 @@ class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
     } else if (rel == 'father' || rel == 'mother') {
       return const Color(0xFF27AE60); // Green
     } else if (rel == 'brother' || rel == 'sister') {
-      return const Color(0xFFE67E22); // Orange (Brother/Sister cross relations default to orange)
-    } else if (rel == 'grandfather' || rel == 'grandmother') {
+      return const Color(0xFFE67E22); // Orange
+    } else if (rel == 'grandfather' || rel == 'grandmother' || rel == 'nana' || rel == 'nani' || rel == 'ancestors') {
       return const Color(0xFF1B4F72); // Dark Blue
     } else if (rel == 'uncle' || rel == 'aunt') {
       return const Color(0xFF8E44AD); // Purple
@@ -305,7 +304,7 @@ class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
     } else if (rel == 'guardian') {
       return const Color(0xFF7F8C8D); // Grey
     }
-    return const Color(0xFF2C3E50); // Black for Unknown/Other
+    return const Color(0xFF2C3E50); // Black
   }
 
   void _showNodeDetailsDialog(FamilyTreeNode node) {
@@ -370,6 +369,16 @@ class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
           ),
           actions: [
             TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                _showAddRelationDialog(node);
+              },
+              child: Text(
+                'Add Relation',
+                style: GoogleFonts.poppins(fontWeight: FontWeight.bold, color: Colors.blue),
+              ),
+            ),
+            TextButton(
               onPressed: () => Navigator.pop(context),
               child: Text(
                 'Close',
@@ -377,6 +386,154 @@ class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
               ),
             ),
           ],
+        );
+      },
+    );
+  }
+
+  void _showAddRelationDialog(FamilyTreeNode parentNode) {
+    final nameController = TextEditingController();
+    String chosenRelation = 'Son';
+    bool isDeceased = false;
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+              title: Text(
+                'Add Relation to ${parentNode.name}',
+                style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 18),
+              ),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: nameController,
+                      decoration: InputDecoration(
+                        labelText: 'Name',
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    DropdownButtonFormField<String>(
+                      value: chosenRelation,
+                      decoration: InputDecoration(
+                        labelText: 'Relationship',
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      items: [
+                        'Son',
+                        'Daughter',
+                        'Brother',
+                        'Sister',
+                        'Spouse',
+                        'Father',
+                        'Mother',
+                        'Grandfather',
+                        'Grandmother',
+                        'Nana',
+                        'Nani',
+                        'Uncle',
+                        'Aunt',
+                        'Cousin',
+                        'Nephew',
+                        'Niece'
+                      ]
+                          .map((r) => DropdownMenuItem(value: r, child: Text(r)))
+                          .toList(),
+                      onChanged: (val) {
+                        if (val != null) {
+                          setDialogState(() {
+                            chosenRelation = val;
+                          });
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    CheckboxListTile(
+                      title: const Text('Is Deceased?'),
+                      value: isDeceased,
+                      activeColor: const Color(0xFFD35400),
+                      onChanged: (val) {
+                        if (val != null) {
+                          setDialogState(() {
+                            isDeceased = val;
+                          });
+                        }
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text(
+                    'Cancel',
+                    style: GoogleFonts.poppins(color: Colors.grey),
+                  ),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    final name = nameController.text.trim();
+                    if (name.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Please enter a name.')),
+                      );
+                      return;
+                    }
+
+                    final user = ref.read(currentUserProvider);
+                    if (user == null) return;
+
+                    Navigator.pop(context); // Close dialog
+
+                    try {
+                      final response = await http.post(
+                        Uri.parse('${ApiConfig.baseUrl}/family/add-member'),
+                        headers: {'Content-Type': 'application/json'},
+                        body: jsonEncode({
+                          'userId': user.id,
+                          'name': name,
+                          'relation': chosenRelation,
+                          'isDeceased': isDeceased,
+                        }),
+                      );
+
+                      if (response.statusCode == 200) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Relation added successfully!')),
+                        );
+                        _fetchFamilyTree(); // Reload tree
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Failed to add relation.')),
+                        );
+                      }
+                    } catch (e) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Error adding relation: $e')),
+                      );
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFD35400),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: Text(
+                    'Save',
+                    style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+            );
+          },
         );
       },
     );
@@ -479,9 +636,13 @@ class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
 
   List<Widget> _buildNodeWidgets() {
     final List<Widget> widgets = [];
+    final Set<String> renderedIds = {};
     void collect(FamilyTreeNode node) {
       if (_positions.containsKey(node.id)) {
-        widgets.add(_buildNodeCard(node, _positions[node.id]!));
+        if (!renderedIds.contains(node.id)) {
+          renderedIds.add(node.id);
+          widgets.add(_buildNodeCard(node, _positions[node.id]!));
+        }
       }
       for (var child in node.children) {
         collect(child);
@@ -646,8 +807,7 @@ class FamilyTreeLinePainter extends CustomPainter {
       // Find if spouse node exists
       FamilyTreeNode? spouseNode;
       for (var child in node.children) {
-        final r = child.relation.toLowerCase();
-        if (r == 'wife' || r == 'husband' || r == 'spouse' || r == 'mother' || r == 'grandmother' || r == 'mother-in-law') {
+        if (_FamilyTreeScreenState.isSpouseRelation(node.relation, child.relation)) {
           spouseNode = child;
           break;
         }
@@ -660,9 +820,13 @@ class FamilyTreeLinePainter extends CustomPainter {
         // 1. Draw spouse connector line (Husband <-> Wife = Blue)
         paint.color = const Color(0xFF2980B9);
         paint.strokeWidth = 2.5;
+
+        final double parentEdgeX = parentPos.dx < spousePos.dx ? parentPos.dx + 75.0 : parentPos.dx - 75.0;
+        final double spouseEdgeX = parentPos.dx < spousePos.dx ? spousePos.dx - 75.0 : spousePos.dx + 75.0;
+
         canvas.drawLine(
-          Offset(parentPos.dx, parentPos.dy),
-          Offset(spousePos.dx, spousePos.dy),
+          Offset(parentEdgeX, parentPos.dy),
+          Offset(spouseEdgeX, spousePos.dy),
           paint,
         );
 
@@ -683,33 +847,6 @@ class FamilyTreeLinePainter extends CustomPainter {
 
       if (descendants.isNotEmpty) {
         final double parentBottom = jointStart.dy + 35.0; // Bottom of parent card height
-        final double childLineY = parentBottom + 30.0;    // Horizontal junction line height
-
-        paint.color = const Color(0xFF27AE60); // Default parent-child draw color
-        paint.strokeWidth = 2.0;
-
-        canvas.drawLine(
-          Offset(jointStart.dx, parentBottom),
-          Offset(jointStart.dx, childLineY),
-          paint,
-        );
-
-        double minX = jointStart.dx;
-        double maxX = jointStart.dx;
-
-        for (var desc in descendants) {
-          if (positions.containsKey(desc.id)) {
-            final x = positions[desc.id]!.dx;
-            if (x < minX) minX = x;
-            if (x > maxX) maxX = x;
-          }
-        }
-
-        canvas.drawLine(
-          Offset(minX, childLineY),
-          Offset(maxX, childLineY),
-          paint,
-        );
 
         for (var desc in descendants) {
           if (positions.containsKey(desc.id)) {
@@ -717,9 +854,26 @@ class FamilyTreeLinePainter extends CustomPainter {
             final double childTop = childPos.dy - 35.0;
             
             paint.color = colorResolver(desc.relation);
+            paint.strokeWidth = 2.0;
 
+            // Orthogonal connector line:
+            final double midY = (parentBottom + childTop) / 2;
+            
+            // 1. Draw line down from jointStart to midY
             canvas.drawLine(
-              Offset(childPos.dx, childLineY),
+              Offset(jointStart.dx, parentBottom),
+              Offset(jointStart.dx, midY),
+              paint,
+            );
+            // 2. Draw horizontal line from jointStart.dx to childPos.dx
+            canvas.drawLine(
+              Offset(jointStart.dx, midY),
+              Offset(childPos.dx, midY),
+              paint,
+            );
+            // 3. Draw vertical line from midY to childTop
+            canvas.drawLine(
+              Offset(childPos.dx, midY),
               Offset(childPos.dx, childTop),
               paint,
             );

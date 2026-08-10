@@ -1,3 +1,5 @@
+import '../api_config.dart';
+
 class MatrimonialProfileModel {
   final String id;
   final String userId;
@@ -78,6 +80,16 @@ class MatrimonialProfileModel {
       extractedUserId = json['userId']?.toString() ?? '';
     }
 
+    String photoUrl = json['profilePhoto'] as String? ?? '';
+    String videoUrl = json['introductionVideo'] as String? ?? '';
+
+    if (photoUrl.startsWith('/uploads')) {
+      photoUrl = '${ApiConfig.baseUrl.replaceAll('/api', '')}$photoUrl';
+    }
+    if (videoUrl.startsWith('/uploads')) {
+      videoUrl = '${ApiConfig.baseUrl.replaceAll('/api', '')}$videoUrl';
+    }
+
     return MatrimonialProfileModel(
       id: json['_id'] as String? ?? json['id'] as String? ?? '',
       userId: extractedUserId,
@@ -101,8 +113,8 @@ class MatrimonialProfileModel {
       status: json['profileStatus'] as String? ?? 'Approved',
       createdAt: json['createdDate'] != null ? DateTime.parse(json['createdDate'].toString()) : DateTime.now(),
       updatedAt: json['updatedDate'] != null ? DateTime.parse(json['updatedDate'].toString()) : DateTime.now(),
-      profilePhotoUrl: json['profilePhoto'] as String? ?? '',
-      introductionVideoUrl: json['introductionVideo'] as String? ?? '',
+      profilePhotoUrl: photoUrl,
+      introductionVideoUrl: videoUrl,
       match: (json['match'] as num?)?.toInt() ?? 75,
       mobileNumber: json['mobileNumber'] as String? ?? '',
       emailAddress: json['emailAddress'] as String? ?? '',

@@ -131,6 +131,57 @@ class _MatrimonialProfileDetailScreenState extends ConsumerState<MatrimonialProf
               // Profile Content details
               SliverList(
                 delegate: SliverChildListDelegate([
+                  // Shortlist / Save Profile Button Card
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                    child: Card(
+                      elevation: 2,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      color: _isShortlisted ? (isDark ? const Color(0xFF334155) : Colors.amber.shade50) : (isDark ? const Color(0xFF1E293B) : Colors.white),
+                      child: InkWell(
+                        onTap: () async {
+                          if (requester != null) {
+                            final success = await service.toggleShortlist(requester.id, widget.userId);
+                            if (success) {
+                              setState(() {
+                                _isShortlisted = !_isShortlisted;
+                              });
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(_isShortlisted ? 'Profile added to shortlists!' : 'Profile removed from shortlists!'),
+                                  duration: const Duration(seconds: 1),
+                                ),
+                              );
+                            }
+                          }
+                        },
+                        borderRadius: BorderRadius.circular(16),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 14.0, horizontal: 16.0),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                _isShortlisted ? Icons.star_rounded : Icons.star_outline_rounded,
+                                color: Colors.amber.shade800,
+                                size: 24,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                _isShortlisted ? 'Profile Shortlisted' : 'Save to Shortlist',
+                                style: GoogleFonts.poppins(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                  color: _isShortlisted ? Colors.amber.shade900 : (isDark ? Colors.white : Colors.black87),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+
                   // Introduction Video Player Card
                   if (p.introductionVideoUrl.isNotEmpty)
                     Padding(

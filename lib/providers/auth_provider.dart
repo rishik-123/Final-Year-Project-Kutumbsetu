@@ -14,7 +14,6 @@ class AuthService {
         Uri.parse('${ApiConfig.baseUrl}/users/profile/$sanitizedPhone'),
         headers: {'Content-Type': 'application/json'},
       );
-
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         if (data['success'] == true && data['user'] != null) {

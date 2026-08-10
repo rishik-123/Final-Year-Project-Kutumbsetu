@@ -1,3 +1,5 @@
+import '../api_config.dart';
+
 class UserModel {
   final String id;
   final String fullName;
@@ -22,6 +24,10 @@ class UserModel {
   final String motherName;
   final String spouseName;
   final String familyHeadPhone;
+  final String grandfather;
+  final String grandmother;
+  final String nana;
+  final String nani;
 
   const UserModel({
     required this.id,
@@ -47,6 +53,10 @@ class UserModel {
     required this.motherName,
     required this.spouseName,
     required this.familyHeadPhone,
+    required this.grandfather,
+    required this.grandmother,
+    required this.nana,
+    required this.nani,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
@@ -67,13 +77,23 @@ class UserModel {
       occupation: json['occupation'] as String? ?? '',
       education: json['education'] as String? ?? '',
       bloodGroup: json['bloodGroup'] as String? ?? '',
-      profilePhoto: json['profilePhoto'] as String? ?? '',
+      profilePhoto: (() {
+        String pPhoto = json['profilePhoto'] as String? ?? '';
+        if (pPhoto.startsWith('/uploads')) {
+          pPhoto = '${ApiConfig.baseUrl.replaceAll('/api', '')}$pPhoto';
+        }
+        return pPhoto;
+      })(),
       familyId: json['familyId'] as String? ?? '',
       familyName: json['familyName'] as String? ?? '',
       relationshipToHead: json['relationshipToHead'] as String? ?? 'Other',
       motherName: json['motherName'] as String? ?? '',
       spouseName: json['spouseName'] as String? ?? '',
       familyHeadPhone: json['familyHeadPhone'] as String? ?? '',
+      grandfather: json['grandfather'] as String? ?? '',
+      grandmother: json['grandmother'] as String? ?? '',
+      nana: json['nana'] as String? ?? '',
+      nani: json['nani'] as String? ?? '',
     );
   }
 
@@ -102,6 +122,10 @@ class UserModel {
       'motherName': motherName,
       'spouseName': spouseName,
       'familyHeadPhone': familyHeadPhone,
+      'grandfather': grandfather,
+      'grandmother': grandmother,
+      'nana': nana,
+      'nani': nani,
     };
   }
 
@@ -129,6 +153,10 @@ class UserModel {
     String? motherName,
     String? spouseName,
     String? familyHeadPhone,
+    String? grandfather,
+    String? grandmother,
+    String? nana,
+    String? nani,
   }) {
     return UserModel(
       id: id ?? this.id,
@@ -154,6 +182,10 @@ class UserModel {
       motherName: motherName ?? this.motherName,
       spouseName: spouseName ?? this.spouseName,
       familyHeadPhone: familyHeadPhone ?? this.familyHeadPhone,
+      grandfather: grandfather ?? this.grandfather,
+      grandmother: grandmother ?? this.grandmother,
+      nana: nana ?? this.nana,
+      nani: nani ?? this.nani,
     );
   }
 }

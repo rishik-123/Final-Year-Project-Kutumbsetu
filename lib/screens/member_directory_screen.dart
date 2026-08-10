@@ -138,7 +138,7 @@ class _MemberDirectoryScreenState
                                     color: Colors.white, size: 14),
                                 SizedBox(width: 4),
                                 Text(
-                                  'Gujarati Patidar Samaj',
+                                  'Babriyawad Darji Samaj',
                                   style: TextStyle(
                                     color: Colors.white,
                                     fontSize: 11,

@@ -1,14 +1,18 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:http/http.dart' as http;
+import '../api_config.dart';
 import '../constants/app_colors.dart';
 import '../models/member_model.dart';
 import '../providers/member_providers.dart';
 import '../widgets/profile_action_button.dart';
+import '../community/community_feed.dart';
 
-class MemberProfileScreen extends ConsumerWidget {
+class MemberProfileScreen extends ConsumerStatefulWidget {
   final String memberId;
   final Member? member;
 
@@ -17,6 +21,47 @@ class MemberProfileScreen extends ConsumerWidget {
     required this.memberId,
     this.member,
   });
+
+  @override
+  ConsumerState<MemberProfileScreen> createState() => _MemberProfileScreenState();
+}
+
+class _MemberProfileScreenState extends ConsumerState<MemberProfileScreen> {
+  List<dynamic> _posts = [];
+  List<dynamic> _reels = [];
+  bool _isLoadingContent = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchUserContent();
+  }
+
+  Future<void> _fetchUserContent() async {
+    if (!mounted) return;
+    setState(() => _isLoadingContent = true);
+    try {
+      final postsRes = await http.get(Uri.parse('${ApiConfig.baseUrl}/community/posts/user/${widget.memberId}'));
+      final reelsRes = await http.get(Uri.parse('${ApiConfig.baseUrl}/community/reels/user/${widget.memberId}'));
+      
+      if (postsRes.statusCode == 200 && reelsRes.statusCode == 200) {
+        final postsData = jsonDecode(postsRes.body);
+        final reelsData = jsonDecode(reelsRes.body);
+        if (mounted) {
+          setState(() {
+            _posts = postsData['posts'] ?? [];
+            _reels = reelsData['reels'] ?? [];
+            _isLoadingContent = false;
+          });
+        }
+      } else {
+        if (mounted) setState(() => _isLoadingContent = false);
+      }
+    } catch (e) {
+      print('Error fetching user content: $e');
+      if (mounted) setState(() => _isLoadingContent = false);
+    }
+  }
 
   void _showSnackBar(BuildContext context, String message) {
     ScaffoldMessenger.of(context).hideCurrentSnackBar();
@@ -106,14 +151,14 @@ Contact: ${member.mobileNumber}
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final favorites = ref.watch(favoriteMemberIdsProvider);
 
     // Resolve member model from extra parameter or raw list provider
-    final Member? m = member ??
+    final Member? m = widget.member ??
         ref.watch(rawMemberListProvider).asData?.value.firstWhere(
-              (element) => element.id == memberId,
+              (element) => element.id == widget.memberId,
               orElse: () => const Member(
                 id: '',
                 fullName: 'Unknown Member',
@@ -466,8 +511,121 @@ Contact: ${member.mobileNumber}
                         ),
                       ],
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 16),
                   ],
+
+                  // 6. User's Posts and Reels Section
+                  _buildSectionCard(
+                    context,
+                    title: 'Uploaded Content',
+                    icon: Icons.photo_library_rounded,
+                    children: [
+                      if (_isLoadingContent)
+                        const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(24.0),
+                            child: CircularProgressIndicator(),
+                          ),
+                        )
+                      else if (_posts.isEmpty && _reels.isEmpty)
+                        Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(12.0),
+                            child: Text(
+                              'No posts or reels uploaded yet.',
+                              style: TextStyle(
+                                color: isDark ? Colors.grey : Colors.grey.shade600,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                        )
+                      else
+                        DefaultTabController(
+                          length: 2,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              TabBar(
+                                labelColor: isDark ? Colors.orangeAccent : Colors.orange.shade800,
+                                unselectedLabelColor: isDark ? Colors.grey : Colors.grey.shade600,
+                                indicatorColor: Colors.orange,
+                                labelStyle: const TextStyle(fontWeight: FontWeight.bold),
+                                tabs: [
+                                  Tab(
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        const Icon(Icons.grid_on_rounded, size: 18),
+                                        const SizedBox(width: 6),
+                                        Text('Posts (${_posts.length})'),
+                                      ],
+                                    ),
+                                  ),
+                                  Tab(
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        const Icon(Icons.play_circle_outline_rounded, size: 18),
+                                        const SizedBox(width: 6),
+                                        Text('Reels (${_reels.length})'),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 16),
+                              SizedBox(
+                                height: 420,
+                                child: TabBarView(
+                                  children: [
+                                    // Posts tab list
+                                    _posts.isEmpty
+                                        ? const Center(child: Text('No posts yet.'))
+                                        : ListView.builder(
+                                            padding: const EdgeInsets.only(bottom: 24),
+                                            itemCount: _posts.length,
+                                            itemBuilder: (context, index) {
+                                              return Padding(
+                                                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                                                child: PostCard(
+                                                  post: _posts[index],
+                                                  onRefresh: _fetchUserContent,
+                                                ),
+                                              );
+                                            },
+                                          ),
+                                    // Reels tab list
+                                    _reels.isEmpty
+                                        ? const Center(child: Text('No reels yet.'))
+                                        : ListView.builder(
+                                            padding: const EdgeInsets.only(bottom: 24),
+                                            itemCount: _reels.length,
+                                            itemBuilder: (context, index) {
+                                              return Padding(
+                                                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                                                child: SizedBox(
+                                                  height: 380,
+                                                  child: ClipRRect(
+                                                    borderRadius: BorderRadius.circular(16),
+                                                    child: InstagramStyleReel(
+                                                      reel: _reels[index],
+                                                      onRefresh: _fetchUserContent,
+                                                    ),
+                                                  ),
+                                                ),
+                                              );
+                                            },
+                                          ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
                 ],
               ),
             ),

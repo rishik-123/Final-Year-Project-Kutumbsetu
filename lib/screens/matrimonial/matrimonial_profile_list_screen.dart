@@ -325,6 +325,7 @@ class _MatrimonialProfileListScreenState extends ConsumerState<MatrimonialProfil
               padding: const EdgeInsets.all(12.0),
               child: Card(
                 elevation: 2,
+                color: isDark ? const Color(0xFF1E293B) : Colors.white,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 14.0),
@@ -335,20 +336,24 @@ class _MatrimonialProfileListScreenState extends ConsumerState<MatrimonialProfil
                       Expanded(
                         child: TextField(
                           controller: _searchController,
-                          decoration: const InputDecoration(
+                          style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+                          decoration: InputDecoration(
                             hintText: 'Search by name, education, occupation...',
+                            hintStyle: TextStyle(color: isDark ? Colors.grey : Colors.grey.shade600),
                             border: InputBorder.none,
                           ),
                           onSubmitted: (_) => _loadProfiles(),
                         ),
                       ),
-                      IconButton(
-                        icon: const Icon(Icons.clear),
-                        onPressed: () {
-                          _searchController.clear();
-                          _loadProfiles();
-                        },
-                      ),
+                      if (_searchController.text.isNotEmpty)
+                        IconButton(
+                          icon: const Icon(Icons.clear, size: 18),
+                          color: isDark ? Colors.white : Colors.black54,
+                          onPressed: () {
+                            _searchController.clear();
+                            _loadProfiles();
+                          },
+                        ),
                     ],
                   ),
                 ),
@@ -441,7 +446,9 @@ class _MatrimonialProfileListScreenState extends ConsumerState<MatrimonialProfil
                                               const SizedBox(height: 4),
                                               Text(
                                                 '${p.age} Yrs • ${p.heightCm} cm • ${p.maritalStatus}',
-                                                style: GoogleFonts.inter(fontSize: 12, color: Colors.grey.shade600),
+                                                style: GoogleFonts.inter(fontSize: 12, color: isDark ? Colors.grey.shade400 : Colors.grey.shade600),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
                                               ),
                                               const SizedBox(height: 2),
                                               Text(

@@ -126,6 +126,13 @@ const profileSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  addedMembers: [
+    {
+      name: { type: String, required: true },
+      relation: { type: String, required: true },
+      isDeceased: { type: Boolean, default: false },
+    }
+  ],
   createdAt: {
     type: Date,
     default: Date.now,

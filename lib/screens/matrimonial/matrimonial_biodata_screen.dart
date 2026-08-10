@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -5,6 +7,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/matrimonial_providers.dart';
+import '../../api_config.dart';
 
 class MatrimonialBiodataScreen extends ConsumerStatefulWidget {
   const MatrimonialBiodataScreen({super.key});
@@ -147,6 +150,19 @@ class _MatrimonialBiodataScreenState extends ConsumerState<MatrimonialBiodataScr
     }
   }
 
+  ImageProvider? _getProfileImageProvider() {
+    if (_profilePhoto.isEmpty || _profilePhoto.startsWith('avatar')) {
+      return null;
+    }
+    if (_profilePhoto.startsWith('http')) {
+      return NetworkImage(_profilePhoto);
+    }
+    if (_profilePhoto.startsWith('/uploads')) {
+      return NetworkImage('${ApiConfig.baseUrl.replaceAll('/api', '')}$_profilePhoto');
+    }
+    return FileImage(File(_profilePhoto));
+  }
+
   Future<void> _saveBiodata() async {
     if (!_formKey.currentState!.validate()) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -158,6 +174,33 @@ class _MatrimonialBiodataScreenState extends ConsumerState<MatrimonialBiodataScr
 
     final user = ref.read(currentUserProvider);
     if (user == null) return;
+
+    // Show loading spinner
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    );
+
+    String? profilePhotoBase64;
+    if (_profilePhoto.isNotEmpty && !_profilePhoto.startsWith('/uploads') && !_profilePhoto.startsWith('http') && _profilePhoto != 'avatar_generic') {
+      try {
+        final bytes = await File(_profilePhoto).readAsBytes();
+        profilePhotoBase64 = base64Encode(bytes);
+      } catch (e) {
+        print('Error encoding profile photo: $e');
+      }
+    }
+
+    String? introductionVideoBase64;
+    if (_introVideo.isNotEmpty && !_introVideo.startsWith('/uploads') && !_introVideo.startsWith('http') && !_introVideo.startsWith('https') && !_introVideo.contains('mixkit.co')) {
+      try {
+        final bytes = await File(_introVideo).readAsBytes();
+        introductionVideoBase64 = base64Encode(bytes);
+      } catch (e) {
+        print('Error encoding intro video: $e');
+      }
+    }
 
     final payload = {
       'userId': user.id,
@@ -210,8 +253,19 @@ class _MatrimonialBiodataScreenState extends ConsumerState<MatrimonialBiodataScr
       'introductionVideo': _introVideo.isNotEmpty ? _introVideo : 'https://assets.mixkit.co/videos/preview/mixkit-dramatic-waterfall-in-forest-42289-large.mp4',
     };
 
+    if (profilePhotoBase64 != null) {
+      payload['profilePhotoBase64'] = profilePhotoBase64;
+    }
+    if (introductionVideoBase64 != null) {
+      payload['introductionVideoBase64'] = introductionVideoBase64;
+    }
+
     final service = ref.read(matrimonialServiceProvider);
     final success = await service.saveProfile(payload);
+
+    if (context.mounted) {
+      Navigator.pop(context); // Dismiss spinner
+    }
 
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -321,16 +375,38 @@ class _MatrimonialBiodataScreenState extends ConsumerState<MatrimonialBiodataScr
             child: CircleAvatar(
               radius: 50,
               backgroundColor: orange.withValues(alpha: 0.1),
-              backgroundImage: _profilePhoto.isNotEmpty && !_profilePhoto.startsWith('avatar')
-                  ? NetworkImage(_profilePhoto)
-                  : null,
-              child: _profilePhoto.isEmpty
+              backgroundImage: _getProfileImageProvider(),
+              child: _profilePhoto.isEmpty || _profilePhoto.startsWith('avatar')
                   ? Icon(Icons.add_a_photo_outlined, size: 36, color: orange)
                   : null,
             ),
           ),
           const SizedBox(height: 6),
           Text('Upload Profile Photo', style: GoogleFonts.poppins(fontSize: 11, color: Colors.grey)),
+          
+          // Video upload button
+          const SizedBox(height: 12),
+          ElevatedButton.icon(
+            onPressed: _pickVideo,
+            icon: const Icon(Icons.video_call_rounded),
+            label: Text(
+              _introVideo.isEmpty || _introVideo.startsWith('http') || _introVideo.contains('mixkit.co')
+                  ? 'Select Introduction Video'
+                  : 'Video Selected (Tap to Change)',
+            ),
+            style: ElevatedButton.styleFrom(
+              foregroundColor: Colors.white,
+              backgroundColor: blue,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+          ),
+          if (_introVideo.isNotEmpty && !_introVideo.startsWith('http') && !_introVideo.contains('mixkit.co')) ...[
+            const SizedBox(height: 4),
+            Text(
+              "Selected local path: ${_introVideo.split('/').last.split('\\').last}",
+              style: GoogleFonts.inter(fontSize: 10, color: Colors.grey),
+            ),
+          ],
           const SizedBox(height: 18),
 
           TextFormField(

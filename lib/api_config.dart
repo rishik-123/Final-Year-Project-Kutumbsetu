@@ -5,7 +5,7 @@ class ApiConfig {
   /// Toggle this to [true] if testing on a physical Android device connected via USB/C2C cable.
   /// You MUST run the following command in your terminal first to forward port 5000:
   /// `adb reverse tcp:5000 tcp:5000`
-  static const bool useAdbReverseForPhysicalAndroid = false;
+  static const bool useAdbReverseForPhysicalAndroid = true;
 
   /// If you are using a tunneling service like ngrok to expose your local backend publicly
   /// (which allows connecting even when your device is on mobile data or a different network),
@@ -15,8 +15,8 @@ class ApiConfig {
 
   /// Alternatively, enter your computer's local Wi-Fi IP address here (e.g., '192.168.1.15')
   /// if your physical device is connected to the same Wi-Fi network.
-  /// Your current local Wi-Fi IP address on the network is: '192.168.0.101'
-  static const String localWifiIp = '192.168.0.101';
+  /// Your current local Wi-Fi IP address on the network is: '10.251.184.66'
+  static const String localWifiIp = '10.251.184.66';
 
   /// Base API URL pointing to the local Node.js Express server.
   static String get baseUrl {

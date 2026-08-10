@@ -12,6 +12,7 @@ import '../widgets/member_card.dart';
 import '../widgets/search_bar_widget.dart';
 import '../widgets/sort_modal_sheet.dart';
 import '../widgets/sticky_alphabet_index.dart';
+import '../widgets/app_bottom_nav_bar.dart';
 
 class MemberDirectoryScreen extends ConsumerStatefulWidget {
   const MemberDirectoryScreen({super.key});
@@ -369,6 +370,7 @@ class _MemberDirectoryScreenState
           ],
         ),
       ),
+      bottomNavigationBar: const AppBottomNavBar(currentRoute: '/'),
     );
   }
 

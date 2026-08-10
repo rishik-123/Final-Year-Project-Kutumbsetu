@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 import '../api_config.dart';
 import '../models/user_model.dart';
 
-<<<<<<< HEAD
+// StateProvider used by the Directory, Matrimonial, and Family Tree features
 final currentUserProvider = StateProvider<UserModel?>((ref) => null);
 
 class AuthService {
@@ -22,13 +22,12 @@ class AuthService {
         }
       }
     } catch (e) {
-      // Log/ignore errors
       print('Error fetching user profile: $e');
     }
     return null;
   }
 }
-=======
+
 class AuthState {
   final UserModel? user;
   final bool isLoading;
@@ -58,8 +57,9 @@ class AuthState {
 }
 
 class AuthNotifier extends StateNotifier<AuthState> {
-  AuthNotifier() : super(const AuthState()) {
-    // Initialize default demo/guest user so application works out of the box
+  final Ref ref;
+
+  AuthNotifier(this.ref) : super(const AuthState()) {
     _initDefaultUser();
   }
 
@@ -83,6 +83,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
     );
 
     state = state.copyWith(user: defaultUser);
+    
+    // Sync to currentUserProvider
+    Future.microtask(() {
+      ref.read(currentUserProvider.notifier).state = defaultUser;
+    });
+
     fetchUserByPhone('+919888877777');
   }
 
@@ -99,6 +105,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         if (data['success'] == true && data['user'] != null) {
           final user = UserModel.fromJson(data['user'] as Map<String, dynamic>);
           state = state.copyWith(user: user, isLoading: false);
+          ref.read(currentUserProvider.notifier).state = user;
           return;
         }
       }
@@ -109,33 +116,19 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   void setUser(UserModel user) {
-    state = state.copyWith(user: user);
+    if (state.user != user) {
+      state = state.copyWith(user: user);
+    }
   }
 
   void toggleAdminRole() async {
     if (state.user == null) return;
     final currentRole = state.user!.role;
     final newRole = (currentRole == 'admin' || currentRole == 'organizer') ? 'user' : 'admin';
-    final updatedUser = UserModel(
-      id: state.user!.id,
-      fullName: state.user!.fullName,
-      surname: state.user!.surname,
-      fatherName: state.user!.fatherName,
-      phoneNumber: state.user!.phoneNumber,
-      gender: state.user!.gender,
-      dateOfBirth: state.user!.dateOfBirth,
-      nativePlace: state.user!.nativePlace,
-      address: state.user!.address,
-      city: state.user!.city,
-      state: state.user!.state,
-      maritalStatus: state.user!.maritalStatus,
-      occupation: state.user!.occupation,
-      profilePhoto: state.user!.profilePhoto,
-      role: newRole,
-      createdAt: state.user!.createdAt,
-    );
+    final updatedUser = state.user!.copyWith(role: newRole);
 
     state = state.copyWith(user: updatedUser);
+    ref.read(currentUserProvider.notifier).state = updatedUser;
 
     try {
       await http.patch(
@@ -148,10 +141,24 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   void logout() {
     state = state.copyWith(clearUser: true);
+    ref.read(currentUserProvider.notifier).state = null;
   }
 }
 
+// StateNotifierProvider used by the Campaign feature
 final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
-  return AuthNotifier();
+  final notifier = AuthNotifier(ref);
+
+  // Sync authProvider state when currentUserProvider is mutated directly (e.g. at login screen)
+  ref.listen<UserModel?>(currentUserProvider, (previous, next) {
+    if (notifier.state.user != next) {
+      if (next != null) {
+        notifier.setUser(next);
+      } else {
+        notifier.logout();
+      }
+    }
+  });
+
+  return notifier;
 });
->>>>>>> 1868b567f0c8c3c223969b0f07549dd266a461e5

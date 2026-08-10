@@ -5,21 +5,15 @@ if (dns.setDefaultResultOrder) {
 }
 const express = require('express');
 const cors = require('cors');
-<<<<<<< HEAD
 const fs = require('fs');
 const path = require('path');
 const mongoose = require('mongoose');
-=======
-const path = require('path');
-const fs = require('fs');
 const multer = require('multer');
->>>>>>> 1868b567f0c8c3c223969b0f07549dd266a461e5
 const connectDB = require('./config/db');
 
 // Models
 const OtpVerification = require('./models/OtpVerification');
 const User = require('./models/User');
-<<<<<<< HEAD
 const Profile = require('./models/Profile');
 const nodemailer = require('nodemailer');
 const MatrimonialProfile = require('./models/MatrimonialProfile');
@@ -52,12 +46,10 @@ mongoose.connection.once('open', async () => {
   await syncCollections();
   await seedMatrimonialData();
 });
-=======
 const Campaign = require('./models/Campaign');
 const CampaignCategory = require('./models/CampaignCategory');
 const CampaignRegistration = require('./models/CampaignRegistration');
 const Notification = require('./models/Notification');
->>>>>>> 1868b567f0c8c3c223969b0f07549dd266a461e5
 
 const app = express();
 
@@ -72,16 +64,9 @@ if (!fs.existsSync(uploadDir)) {
 
 // Middleware
 app.use(cors());
-<<<<<<< HEAD
 app.use(express.json({ limit: '100mb' }));
 app.use(express.urlencoded({ limit: '100mb', extended: true }));
-=======
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-
-// Static route for uploaded images
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
->>>>>>> 1868b567f0c8c3c223969b0f07549dd266a461e5
 
 // Logger middleware for debugging request inputs
 app.use((req, res, next) => {
@@ -89,7 +74,6 @@ app.use((req, res, next) => {
   next();
 });
 
-<<<<<<< HEAD
 // Nodemailer configuration
 const isGmail = (process.env.SMTP_HOST || '').includes('gmail.com');
 const transportConfig = isGmail
@@ -168,7 +152,6 @@ const sendOtpEmail = (email, name, otp) => {
   });
 };
 
-=======
 // Configure Multer for File Uploads
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -220,7 +203,6 @@ const seedDefaultCategories = async () => {
 };
 
 
->>>>>>> 1868b567f0c8c3c223969b0f07549dd266a461e5
 // Helper: Generate a random 6-digit OTP
 const generateRandomOtp = () => {
   const digits = '0123456789';
@@ -231,7 +213,16 @@ const generateRandomOtp = () => {
   return otp;
 };
 
-<<<<<<< HEAD
+// Helper: Generate Unique Registration Number
+const generateRegistrationNumber = () => {
+  const randomNum = Math.floor(100000 + Math.random() * 900000);
+  return `KS-REG-${randomNum}`;
+};
+
+// ==========================================
+// 1. AUTHENTICATION & USER APIS
+// ==========================================
+
 /**
  * @route   POST /api/auth/send-email-otp
  * @desc    Generate and save a 6-digit temporary OTP for an email address
@@ -269,30 +260,9 @@ app.post('/api/auth/send-email-otp', async (req, res) => {
       }
     }
 
-=======
-// Helper: Generate Unique Registration Number
-const generateRegistrationNumber = () => {
-  const randomNum = Math.floor(100000 + Math.random() * 900000);
-  return `KS-REG-${randomNum}`;
-};
-
-// ==========================================
-// 1. AUTHENTICATION & USER APIS
-// ==========================================
-
-app.post('/api/auth/send-otp', async (req, res) => {
-  try {
-    const { phone } = req.body;
-    if (!phone) {
-      return res.status(400).json({ success: false, message: 'Phone number is required.' });
-    }
-    const sanitizedPhone = phone.replace(/\s+/g, '').trim();
-    const otp = generateRandomOtp();
->>>>>>> 1868b567f0c8c3c223969b0f07549dd266a461e5
     const createdAt = new Date();
     const expiresAt = new Date(createdAt.getTime() + 5 * 60 * 1000); // 5 min expiry
 
-<<<<<<< HEAD
     if (latestOtpDoc) {
       latestOtpDoc.otp = otp;
       latestOtpDoc.resends += 1;
@@ -320,7 +290,61 @@ app.post('/api/auth/send-otp', async (req, res) => {
     return res.status(200).json({
       success: true,
     });
-=======
+  } catch (error) {
+    console.error('Error in send-email-otp:', error);
+    return res.status(500).json({ success: false, message: 'Server error. Failed to generate OTP.' });
+  }
+});
+
+/**
+ * @route   POST /api/auth/send-otp
+ * @desc    Generate and save a 6-digit temporary OTP for a phone number
+ * @access  Public
+ */
+app.post('/api/auth/send-otp', async (req, res) => {
+  try {
+    const { phone } = req.body;
+    if (!phone) {
+      return res.status(400).json({ success: false, message: 'Phone number is required.' });
+    }
+    
+    // Support email-otp redirect if phone is passed as an email address
+    if (phone.includes('@')) {
+      req.body.email = phone;
+      // Handle email OTP generation manually
+      const targetEmail = phone.toLowerCase().trim();
+      const otp = generateRandomOtp();
+      const createdAt = new Date();
+      const expiresAt = new Date(createdAt.getTime() + 5 * 60 * 1000);
+
+      let latestOtpDoc = await OtpVerification.findOne({ email: targetEmail });
+      if (latestOtpDoc) {
+        latestOtpDoc.otp = otp;
+        latestOtpDoc.lastResentAt = createdAt;
+        latestOtpDoc.expiresAt = expiresAt;
+        await latestOtpDoc.save();
+      } else {
+        latestOtpDoc = new OtpVerification({
+          email: targetEmail,
+          otp,
+          lastResentAt: createdAt,
+          createdAt,
+          expiresAt,
+        });
+        await latestOtpDoc.save();
+      }
+      sendOtpEmail(targetEmail, null, otp);
+      return res.status(200).json({ success: true, otp });
+    }
+
+    const sanitizedPhone = phone.replace(/\s+/g, '').trim();
+    const otp = generateRandomOtp();
+    const createdAt = new Date();
+    const expiresAt = new Date(createdAt.getTime() + 5 * 60 * 1000); // 5 min expiry
+
+    // Find and delete any previous OTP for the phone to avoid duplicates
+    await OtpVerification.deleteMany({ phone: sanitizedPhone });
+
     const otpDoc = new OtpVerification({
       phone: sanitizedPhone,
       otp,
@@ -331,24 +355,10 @@ app.post('/api/auth/send-otp', async (req, res) => {
 
     console.log(`Saved OTP ${otp} for phone ${sanitizedPhone}`);
     return res.status(200).json({ success: true, otp });
->>>>>>> 1868b567f0c8c3c223969b0f07549dd266a461e5
   } catch (error) {
-    console.error('Error in send-email-otp:', error);
+    console.error('Error in send-otp:', error);
     return res.status(500).json({ success: false, message: 'Server error. Failed to generate OTP.' });
   }
-});
-
-<<<<<<< HEAD
-// Alias route to preserve old code if referenced
-app.post('/api/auth/send-otp', async (req, res) => {
-  const { phone } = req.body;
-  // If phone looks like an email or if phone is passed, adapt it
-  if (phone && phone.includes('@')) {
-    req.body.email = phone;
-    return app._router.handle({ method: 'POST', url: '/api/auth/send-email-otp', body: req.body }, res);
-  }
-  // If phone is standard phone number, simulate response for backward-compatibility
-  return res.status(200).json({ success: true });
 });
 
 /**
@@ -389,13 +399,61 @@ app.post('/api/auth/verify-email-otp', async (req, res) => {
     }
 
     // Successfully verified: delete document to prevent reuse
-=======
+    await OtpVerification.deleteOne({ _id: latestOtpDoc._id });
+    
+    // Look up if user is already registered (using email or phone)
+    let user = await User.findOne({ email: targetEmail });
+    if (!user && targetEmail.includes('@')) {
+      // Look up via profile
+      const profile = await Profile.findOne({ email: targetEmail });
+      if (profile) {
+        user = await User.findById(profile.userId);
+      }
+    }
+
+    return res.status(200).json({
+      success: true,
+      userExists: !!user,
+      user: user || null,
+    });
+  } catch (error) {
+    console.error('Error in verify-email-otp:', error);
+    return res.status(500).json({ success: false, message: 'Server error verifying OTP.' });
+  }
+});
+
+/**
+ * @route   POST /api/auth/verify-otp
+ * @desc    Verify phone OTP or email OTP (hybrid verify)
+ * @access  Public
+ */
 app.post('/api/auth/verify-otp', async (req, res) => {
   try {
     const { phone, otp } = req.body;
     if (!phone || !otp) {
       return res.status(400).json({ success: false, message: 'Phone number and OTP code are required.' });
     }
+
+    // Support email OTP verify redirection
+    if (phone.includes('@')) {
+      const targetEmail = phone.toLowerCase().trim();
+      const latestOtpDoc = await OtpVerification.findOne({ email: targetEmail });
+      if (!latestOtpDoc || latestOtpDoc.otp !== otp.trim()) {
+        return res.status(400).json({ success: false, message: 'Invalid OTP' });
+      }
+      if (new Date() > latestOtpDoc.expiresAt) {
+        return res.status(400).json({ success: false, message: 'OTP expired.' });
+      }
+      await OtpVerification.deleteOne({ _id: latestOtpDoc._id });
+      const user = await User.findOne({ email: targetEmail });
+      return res.status(200).json({
+        success: true,
+        isExistingUser: !!user,
+        userExists: !!user,
+        user: user || null,
+      });
+    }
+
     const sanitizedPhone = phone.replace(/\s+/g, '').trim();
     const latestOtpDoc = await OtpVerification.findOne({ phone: sanitizedPhone }).sort({ createdAt: -1 });
 
@@ -407,65 +465,42 @@ app.post('/api/auth/verify-otp', async (req, res) => {
       return res.status(400).json({ success: false, message: 'OTP expired. Please request again.' });
     }
 
->>>>>>> 1868b567f0c8c3c223969b0f07549dd266a461e5
     await OtpVerification.deleteOne({ _id: latestOtpDoc._id });
-    const user = await User.findOne({ phoneNumber: sanitizedPhone });
 
-    // Look up if user is already registered
-    const user = await User.findOne({ email: targetEmail });
+    // Look up if user is already registered (either by phone in Profile, or phone in User, or email)
+    let user = await User.findOne({ phoneNumber: sanitizedPhone });
+    if (!user) {
+      const profile = await Profile.findOne({ phoneNumber: sanitizedPhone });
+      if (profile) {
+        user = await User.findById(profile.userId);
+      }
+    }
 
     return res.status(200).json({
       success: true,
-<<<<<<< HEAD
-      userExists: !!user,
-=======
       isExistingUser: !!user,
->>>>>>> 1868b567f0c8c3c223969b0f07549dd266a461e5
+      userExists: !!user,
       user: user || null,
     });
   } catch (error) {
-    console.error('Error in verify-email-otp:', error);
+    console.error('Error in verify-otp:', error);
     return res.status(500).json({ success: false, message: 'Server error verifying OTP.' });
   }
 });
 
-<<<<<<< HEAD
-// Alias verify-otp
-app.post('/api/auth/verify-otp', async (req, res) => {
-  const { phone, otp } = req.body;
-  if (phone && phone.includes('@')) {
-    req.body.email = phone;
-    // Redirect to verify-email-otp logic manually
-    const targetEmail = phone.toLowerCase().trim();
-    const latestOtpDoc = await OtpVerification.findOne({ email: targetEmail });
-    if (!latestOtpDoc) {
-      return res.status(400).json({ success: false, message: 'Invalid OTP' });
-    }
-    if (latestOtpDoc.otp !== otp.trim()) {
-      return res.status(400).json({ success: false, message: 'Invalid OTP' });
-    }
-    await OtpVerification.deleteOne({ _id: latestOtpDoc._id });
-    return res.status(200).json({ success: true });
-  }
-  return res.status(200).json({ success: true });
-});
-
 /**
  * @route   POST /api/users/register
- * @desc    Register a new user (FullName and Email only)
+ * @desc    Register a new user and create their Profile
  * @access  Public
  */
 app.post('/api/users/register', async (req, res) => {
   try {
-    const { fullName, email, phoneNumber } = req.body;
-=======
-app.post('/api/users/register', async (req, res) => {
-  try {
     const {
       fullName,
+      email,
+      phoneNumber,
       surname,
       fatherName,
-      phoneNumber,
       gender,
       dateOfBirth,
       nativePlace,
@@ -477,46 +512,44 @@ app.post('/api/users/register', async (req, res) => {
       profilePhoto,
       role,
     } = req.body;
->>>>>>> 1868b567f0c8c3c223969b0f07549dd266a461e5
 
-    if (!fullName || !email) {
+    if (!fullName) {
       return res.status(400).json({
         success: false,
-<<<<<<< HEAD
-        message: 'Required registration fields (fullName, email) are missing.',
+        message: 'Required registration field: fullName is missing.',
       });
     }
 
-    const targetEmail = email.toLowerCase().trim();
-
-    // Check duplicate email
-    const existingUser = await User.findOne({ email: targetEmail });
-=======
-        message: 'Required registration fields are missing.',
-      });
+    // Check duplicate by email
+    let targetEmail = '';
+    if (email) {
+      targetEmail = email.toLowerCase().trim();
+      const existingUser = await User.findOne({ email: targetEmail });
+      if (existingUser) {
+        return res.status(400).json({
+          success: false,
+          message: 'Email address already registered. Please proceed to login.',
+        });
+      }
     }
 
-    const sanitizedPhone = phoneNumber.replace(/\s+/g, '').trim();
-    const existingUser = await User.findOne({ phoneNumber: sanitizedPhone });
->>>>>>> 1868b567f0c8c3c223969b0f07549dd266a461e5
-    if (existingUser) {
-      return res.status(400).json({
-        success: false,
-        message: 'Email address already registered. Please proceed to login.',
-      });
-    }
-
-<<<<<<< HEAD
+    // Check duplicate by phone number
     let sanitizedPhone = '';
     if (phoneNumber) {
       sanitizedPhone = phoneNumber.replace(/\s+/g, '').trim();
-      // Check duplicate phone number in active profiles
-      const Profile = require('./models/Profile');
+      const existingUser = await User.findOne({ phoneNumber: sanitizedPhone });
+      if (existingUser) {
+        return res.status(400).json({
+          success: false,
+          message: 'Phone number already registered. Please login.',
+        });
+      }
+      
       const existingProfile = await Profile.findOne({ phoneNumber: sanitizedPhone });
       if (existingProfile) {
         return res.status(400).json({
           success: false,
-          message: 'Phone number already registered. Please login or use a different number.',
+          message: 'Phone number already registered. Please login.',
         });
       }
     }
@@ -524,14 +557,16 @@ app.post('/api/users/register', async (req, res) => {
     // Create and save new user record
     const newUser = new User({
       fullName: fullName.trim(),
-      email: targetEmail,
+      email: targetEmail || undefined,
+      phoneNumber: sanitizedPhone || undefined,
+      role: role && ['admin', 'organizer', 'user'].includes(role) ? role : 'user',
     });
 
     const savedUser = await newUser.save();
-
-    console.log(`Successfully registered new user: ${savedUser.fullName} (${savedUser.email})`);
+    console.log(`Successfully registered new user: ${savedUser.fullName}`);
 
     // If phone number is provided, check if it matches a directory member
+    let profileCreated = false;
     if (sanitizedPhone) {
       const db = mongoose.connection.db;
       const directoryMember = await db.collection('directory').findOne({
@@ -543,21 +578,20 @@ app.post('/api/users/register', async (req, res) => {
 
       if (directoryMember) {
         console.log(`Matching directory member found: ${directoryMember.fullName}. Linking and copying profile details...`);
-        const Profile = require('./models/Profile');
         const newProfile = new Profile({
           userId: savedUser._id,
-          gender: directoryMember.gender || 'Male',
-          dateOfBirth: directoryMember.dateOfBirth || '',
+          gender: directoryMember.gender || gender || 'Male',
+          dateOfBirth: directoryMember.dateOfBirth || dateOfBirth || '',
           phoneNumber: directoryMember.phoneNumber || sanitizedPhone,
-          profilePhoto: directoryMember.profilePhoto || '',
+          profilePhoto: directoryMember.profilePhoto || profilePhoto || '',
           bloodGroup: directoryMember.bloodGroup || '',
-          village: directoryMember.nativePlace || directoryMember.village || '',
-          city: directoryMember.city || '',
-          state: directoryMember.state || '',
-          address: directoryMember.address || '',
+          village: directoryMember.nativePlace || directoryMember.village || nativePlace || '',
+          city: directoryMember.city || city || '',
+          state: directoryMember.state || state || '',
+          address: directoryMember.address || address || '',
           qualification: directoryMember.education || directoryMember.qualification || '',
-          profession: directoryMember.occupation || directoryMember.profession || '',
-          fatherName: directoryMember.fatherName || '',
+          profession: directoryMember.occupation || directoryMember.profession || occupation || '',
+          fatherName: directoryMember.fatherName || fatherName || '',
           motherName: directoryMember.motherName || '',
           grandfather: directoryMember.grandfather || '',
           grandmother: directoryMember.grandmother || '',
@@ -571,42 +605,55 @@ app.post('/api/users/register', async (req, res) => {
           isDeceased: directoryMember.isDeceased || false,
         });
         await newProfile.save();
+        profileCreated = true;
         console.log(`Successfully created linked profile for ${savedUser.fullName}`);
       }
+    }
+
+    // Create default profile if not linked to directory member
+    if (!profileCreated) {
+      const newProfile = new Profile({
+        userId: savedUser._id,
+        gender: gender || 'Male',
+        dateOfBirth: dateOfBirth || '',
+        phoneNumber: sanitizedPhone || '',
+        profilePhoto: profilePhoto || '',
+        bloodGroup: '',
+        village: nativePlace || '',
+        city: city || '',
+        state: state || '',
+        address: address || '',
+        qualification: '',
+        profession: occupation || '',
+        fatherName: fatherName || '',
+        motherName: '',
+        grandfather: '',
+        grandmother: '',
+        nana: '',
+        nani: '',
+        bio: '',
+        familyId: '',
+        relationshipToHead: 'Other',
+        familyHeadPhone: '',
+        spouseName: '',
+        isDeceased: false,
+      });
+      await newProfile.save();
+      console.log(`Successfully created profile for ${savedUser.fullName}`);
     }
 
     return res.status(201).json({
       success: true,
       user: savedUser,
     });
-=======
-    const newUser = new User({
-      fullName: fullName.trim(),
-      surname: surname ? surname.trim() : '',
-      fatherName: fatherName ? fatherName.trim() : '',
-      phoneNumber: sanitizedPhone,
-      gender: gender.trim(),
-      dateOfBirth: dateOfBirth.trim(),
-      nativePlace: nativePlace ? nativePlace.trim() : '',
-      address: address ? address.trim() : (nativePlace ? nativePlace.trim() : ''),
-      city: city.trim(),
-      state: state ? state.trim() : '',
-      maritalStatus: maritalStatus ? maritalStatus.trim() : '',
-      occupation: occupation ? occupation.trim() : '',
-      profilePhoto: profilePhoto ? profilePhoto.trim() : '',
-      role: role && ['admin', 'organizer', 'user'].includes(role) ? role : 'user',
-    });
-
-    const savedUser = await newUser.save();
-    return res.status(201).json({ success: true, user: savedUser });
->>>>>>> 1868b567f0c8c3c223969b0f07549dd266a461e5
   } catch (error) {
     console.error('Error in register:', error);
     return res.status(500).json({ success: false, message: 'Server error. User registration failed.' });
   }
 });
 
-<<<<<<< HEAD
+
+
 /**
  * @route   GET /api/users/profile/:identifier
  * @desc    Fetch a user profile by email or phone number (hybrid lookup)
@@ -2271,14 +2318,16 @@ app.post('/api/community/reels/:id/share', async (req, res) => {
   }
 });
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-=======
 app.get('/api/users/by-phone/:phone', async (req, res) => {
   try {
-    const sanitizedPhone = req.params.phone.replace(/\s+/g, '').trim();
-    const user = await User.findOne({ phoneNumber: sanitizedPhone });
+    const sanitizedPhone = req.params.phone.replace(/\\s+/g, '').trim();
+    let user = await User.findOne({ phoneNumber: sanitizedPhone });
+    if (!user) {
+      const profile = await Profile.findOne({ phoneNumber: sanitizedPhone });
+      if (profile) {
+        user = await User.findById(profile.userId);
+      }
+    }
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
@@ -2286,7 +2335,6 @@ app.get('/api/users/by-phone/:phone', async (req, res) => {
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
   }
->>>>>>> 1868b567f0c8c3c223969b0f07549dd266a461e5
 });
 
 app.patch('/api/users/:id/role', async (req, res) => {

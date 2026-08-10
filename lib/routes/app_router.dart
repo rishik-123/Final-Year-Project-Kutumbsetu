@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../models/campaign_model.dart';
 import '../models/member_model.dart';
-<<<<<<< HEAD
 import '../screens/login_screen.dart';
 import '../screens/register_screen.dart';
 import '../screens/home_screen.dart';
@@ -18,17 +17,13 @@ import '../screens/matrimonial/success_stories_screen.dart';
 import '../screens/matrimonial/matrimonial_admin_screen.dart';
 import '../screens/matrimonial/premium_benefits_screen.dart';
 import '../screens/profile_completion_screen.dart';
-=======
 import '../screens/admin_registrations_screen.dart';
 import '../screens/campaign_create_screen.dart';
 import '../screens/campaign_detail_screen.dart';
 import '../screens/campaign_listing_screen.dart';
 import '../screens/campaign_registration_screen.dart';
-import '../screens/member_directory_screen.dart';
-import '../screens/member_profile_screen.dart';
 import '../screens/my_registrations_screen.dart';
 import '../screens/registration_success_screen.dart';
->>>>>>> 1868b567f0c8c3c223969b0f07549dd266a461e5
 
 final appRouter = GoRouter(
   initialLocation: '/',
@@ -61,8 +56,8 @@ final appRouter = GoRouter(
         return MemberProfileScreen(memberId: id, member: member);
       },
     ),
+    // Matrimonial Routes
     GoRoute(
-<<<<<<< HEAD
       path: '/matrimonial',
       builder: (context, state) => const MatrimonialHubScreen(),
     ),
@@ -107,7 +102,9 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/matrimonial/premium-benefits',
       builder: (context, state) => const PremiumBenefitsScreen(),
-=======
+    ),
+    // Campaign Routes
+    GoRoute(
       path: '/campaigns',
       builder: (context, state) => const CampaignListingScreen(),
     ),
@@ -148,7 +145,6 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/my-registrations',
       builder: (context, state) => const MyRegistrationsScreen(),
->>>>>>> 1868b567f0c8c3c223969b0f07549dd266a461e5
     ),
   ],
   errorBuilder: (context, state) => Scaffold(

@@ -1,15 +1,9 @@
-<<<<<<< HEAD
 import '../api_config.dart';
 
 class UserModel {
   final String id;
   final String fullName;
   final String email;
-=======
-class UserModel {
-  final String id;
-  final String fullName;
->>>>>>> 1868b567f0c8c3c223969b0f07549dd266a461e5
   final String surname;
   final String fatherName;
   final String phoneNumber;
@@ -21,7 +15,6 @@ class UserModel {
   final String state;
   final String maritalStatus;
   final String occupation;
-<<<<<<< HEAD
   final String education;
   final String bloodGroup;
   final String profilePhoto;
@@ -35,49 +28,13 @@ class UserModel {
   final String grandmother;
   final String nana;
   final String nani;
-=======
-  final String profilePhoto;
   final String role; // 'user', 'admin', 'organizer'
   final DateTime? createdAt;
->>>>>>> 1868b567f0c8c3c223969b0f07549dd266a461e5
 
   const UserModel({
     required this.id,
     required this.fullName,
-<<<<<<< HEAD
-    required this.email,
-    required this.surname,
-    required this.fatherName,
-    required this.phoneNumber,
-    required this.gender,
-    required this.dateOfBirth,
-    required this.nativePlace,
-    required this.address,
-    required this.city,
-    required this.state,
-    required this.maritalStatus,
-    required this.occupation,
-    required this.education,
-    required this.bloodGroup,
-    required this.profilePhoto,
-    required this.familyId,
-    required this.familyName,
-    required this.relationshipToHead,
-    required this.motherName,
-    required this.spouseName,
-    required this.familyHeadPhone,
-    required this.grandfather,
-    required this.grandmother,
-    required this.nana,
-    required this.nani,
-  });
-
-  factory UserModel.fromJson(Map<String, dynamic> json) {
-    return UserModel(
-      id: json['_id'] as String? ?? '',
-      fullName: json['fullName'] as String? ?? '',
-      email: json['email'] as String? ?? '',
-=======
+    this.email = '',
     this.surname = '',
     this.fatherName = '',
     required this.phoneNumber,
@@ -89,7 +46,19 @@ class UserModel {
     this.state = '',
     this.maritalStatus = '',
     this.occupation = '',
+    this.education = '',
+    this.bloodGroup = '',
     this.profilePhoto = '',
+    this.familyId = '',
+    this.familyName = '',
+    this.relationshipToHead = '',
+    this.motherName = '',
+    this.spouseName = '',
+    this.familyHeadPhone = '',
+    this.grandfather = '',
+    this.grandmother = '',
+    this.nana = '',
+    this.nani = '',
     this.role = 'user',
     this.createdAt,
   });
@@ -97,10 +66,16 @@ class UserModel {
   bool get isAdmin => role == 'admin' || role == 'organizer';
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
+    DateTime? parseDate(dynamic dateVal) {
+      if (dateVal == null) return null;
+      if (dateVal is String) return DateTime.tryParse(dateVal);
+      return null;
+    }
+
     return UserModel(
       id: json['_id'] as String? ?? json['id'] as String? ?? '',
       fullName: json['fullName'] as String? ?? '',
->>>>>>> 1868b567f0c8c3c223969b0f07549dd266a461e5
+      email: json['email'] as String? ?? '',
       surname: json['surname'] as String? ?? '',
       fatherName: json['fatherName'] as String? ?? '',
       phoneNumber: json['phoneNumber'] as String? ?? '',
@@ -110,8 +85,7 @@ class UserModel {
       address: json['address'] as String? ?? '',
       city: json['city'] as String? ?? '',
       state: json['state'] as String? ?? '',
-<<<<<<< HEAD
-      maritalStatus: json['maritalStatus'] as String? ?? 'Single',
+      maritalStatus: json['maritalStatus'] as String? ?? '',
       occupation: json['occupation'] as String? ?? '',
       education: json['education'] as String? ?? '',
       bloodGroup: json['bloodGroup'] as String? ?? '',
@@ -132,13 +106,8 @@ class UserModel {
       grandmother: json['grandmother'] as String? ?? '',
       nana: json['nana'] as String? ?? '',
       nani: json['nani'] as String? ?? '',
-=======
-      maritalStatus: json['maritalStatus'] as String? ?? '',
-      occupation: json['occupation'] as String? ?? '',
-      profilePhoto: json['profilePhoto'] as String? ?? '',
       role: json['role'] as String? ?? 'user',
-      createdAt: json['createdAt'] != null ? DateTime.tryParse(json['createdAt'].toString()) : null,
->>>>>>> 1868b567f0c8c3c223969b0f07549dd266a461e5
+      createdAt: parseDate(json['createdAt']),
     );
   }
 
@@ -146,10 +115,7 @@ class UserModel {
     return {
       '_id': id,
       'fullName': fullName,
-<<<<<<< HEAD
       'email': email,
-=======
->>>>>>> 1868b567f0c8c3c223969b0f07549dd266a461e5
       'surname': surname,
       'fatherName': fatherName,
       'phoneNumber': phoneNumber,
@@ -161,7 +127,6 @@ class UserModel {
       'state': state,
       'maritalStatus': maritalStatus,
       'occupation': occupation,
-<<<<<<< HEAD
       'education': education,
       'bloodGroup': bloodGroup,
       'profilePhoto': profilePhoto,
@@ -175,6 +140,8 @@ class UserModel {
       'grandmother': grandmother,
       'nana': nana,
       'nani': nani,
+      'role': role,
+      'createdAt': createdAt?.toIso8601String(),
     };
   }
 
@@ -206,6 +173,8 @@ class UserModel {
     String? grandmother,
     String? nana,
     String? nani,
+    String? role,
+    DateTime? createdAt,
   }) {
     return UserModel(
       id: id ?? this.id,
@@ -235,13 +204,8 @@ class UserModel {
       grandmother: grandmother ?? this.grandmother,
       nana: nana ?? this.nana,
       nani: nani ?? this.nani,
+      role: role ?? this.role,
+      createdAt: createdAt ?? this.createdAt,
     );
   }
-=======
-      'profilePhoto': profilePhoto,
-      'role': role,
-      'createdAt': createdAt?.toIso8601String(),
-    };
-  }
->>>>>>> 1868b567f0c8c3c223969b0f07549dd266a461e5
 }

@@ -12,9 +12,14 @@
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "mongoose": "^8.3.1",
+<<<<<<< HEAD
     "nodemailer": "^9.0.3"
+=======
+    "multer": "^1.4.5-lts.1"
+>>>>>>> 1868b567f0c8c3c223969b0f07549dd266a461e5
   },
   "devDependencies": {
+    "mongodb-memory-server": "^11.2.0",
     "nodemon": "^3.1.0"
   }
 }

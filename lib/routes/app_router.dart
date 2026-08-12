@@ -24,10 +24,26 @@ import '../screens/campaign_listing_screen.dart';
 import '../screens/campaign_registration_screen.dart';
 import '../screens/my_registrations_screen.dart';
 import '../screens/registration_success_screen.dart';
+import '../screens/post_detail_screen.dart';
+import '../screens/reel_detail_screen.dart';
 
 final appRouter = GoRouter(
   initialLocation: '/',
   routes: [
+    GoRoute(
+      path: '/post/:id',
+      builder: (context, state) {
+        final id = state.pathParameters['id'] ?? '';
+        return PostDetailScreen(postId: id);
+      },
+    ),
+    GoRoute(
+      path: '/reel/:id',
+      builder: (context, state) {
+        final id = state.pathParameters['id'] ?? '';
+        return ReelDetailScreen(reelId: id);
+      },
+    ),
     GoRoute(
       path: '/',
       builder: (context, state) => const LoginScreen(),

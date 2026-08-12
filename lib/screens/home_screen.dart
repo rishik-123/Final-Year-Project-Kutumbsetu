@@ -1767,6 +1767,8 @@ Contact: ${user.phoneNumber}
                             const Spacer(),
                             GestureDetector(
                               onTap: () async {
+                                final shareLink = "${ApiConfig.baseUrl.replaceAll('/api', '')}/share/post/${p['_id']}";
+                                final shareText = "$content\n\nView post: $shareLink";
                                 if (mediaUrl != null) {
                                   try {
                                     final response = await http.get(Uri.parse(mediaUrl));
@@ -1774,16 +1776,16 @@ Contact: ${user.phoneNumber}
                                       final tempDir = Directory.systemTemp;
                                       final file = File('${tempDir.path}/shared_image.png');
                                       await file.writeAsBytes(response.bodyBytes);
-                                      await Share.shareXFiles([XFile(file.path)], text: "$content\n\nShared via KutumbSetu Community");
+                                      await Share.shareXFiles([XFile(file.path)], text: shareText);
                                     } else {
-                                      await Share.share("$content\n\nShared via KutumbSetu Community");
+                                      await Share.share(shareText);
                                     }
                                   } catch (e) {
                                     print("Error sharing image: $e");
-                                    await Share.share("$content\n\nShared via KutumbSetu Community");
+                                    await Share.share(shareText);
                                   }
                                 } else {
-                                  await Share.share("$content\n\nShared via KutumbSetu Community");
+                                  await Share.share(shareText);
                                 }
                               },
                               child: Row(

@@ -447,6 +447,8 @@ class _PostCardState extends ConsumerState<PostCard> {
               const SizedBox(width: 16),
               GestureDetector(
                 onTap: () async {
+                  final shareLink = "${ApiConfig.baseUrl.replaceAll('/api', '')}/share/post/${widget.post['_id']}";
+                  final shareText = "$content\n\nView post: $shareLink";
                   if (mediaUrl != null) {
                     try {
                       final response = await http.get(Uri.parse(mediaUrl));
@@ -454,19 +456,19 @@ class _PostCardState extends ConsumerState<PostCard> {
                         final tempDir = Directory.systemTemp;
                         final file = File('${tempDir.path}/shared_image.png');
                         await file.writeAsBytes(response.bodyBytes);
-                        await Share.shareXFiles([XFile(file.path)], text: "$content\n\nShared via KutumbSetu Community");
+                        await Share.shareXFiles([XFile(file.path)], text: shareText);
                         _incrementShareCount();
                       } else {
-                        await Share.share("$content\n\nShared via KutumbSetu Community");
+                        await Share.share(shareText);
                         _incrementShareCount();
                       }
                     } catch (e) {
                       print("Error sharing image: $e");
-                      await Share.share("$content\n\nShared via KutumbSetu Community");
+                      await Share.share(shareText);
                       _incrementShareCount();
                     }
                   } else {
-                    await Share.share("$content\n\nShared via KutumbSetu Community");
+                    await Share.share(shareText);
                     _incrementShareCount();
                   }
                 },
@@ -741,7 +743,8 @@ class _InstagramStyleReelState extends ConsumerState<InstagramStyleReel> {
                   iconColor: Colors.white,
                   label: sharesCount,
                   onTap: () async {
-                    await Share.share("$caption\n\nCheck out this reel on KutumbSetu!");
+                    final shareLink = "${ApiConfig.baseUrl.replaceAll('/api', '')}/share/reel/${widget.reel['_id']}";
+                    await Share.share("$caption\n\nView reel: $shareLink");
                     _incrementReelShareCount();
                   },
                 ),

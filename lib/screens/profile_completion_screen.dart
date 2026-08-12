@@ -969,10 +969,16 @@ class _ProfileCompletionScreenState extends ConsumerState<ProfileCompletionScree
                     _buildSectionHeader('Family Tree Association', Icons.account_tree_outlined),
                     TextFormField(
                       controller: _familyIdController,
+                      readOnly: true,
                       decoration: InputDecoration(
-                        labelText: 'Family ID (e.g. FAM-101)',
+                        labelText: 'Family ID',
+                        hintText: 'Auto-generated on save',
                         prefixIcon: const Icon(Icons.lan_rounded),
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        filled: true,
+                        fillColor: Colors.grey.shade100,
+                        helperText: 'Assigned automatically based on your name when saved.',
+                        helperStyle: const TextStyle(color: Colors.blueGrey, fontSize: 11),
                       ),
                     ),
                     const SizedBox(height: 16),

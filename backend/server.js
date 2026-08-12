@@ -810,15 +810,13 @@ app.post('/api/users/profile', async (req, res) => {
     const validUserId = await getValidUserId(userId);
     let profile = await Profile.findOne({ userId: validUserId });
 
-    let finalFamilyId = familyId || '';
-    if (!finalFamilyId) {
-      if (profile && profile.familyId) {
-        finalFamilyId = profile.familyId;
-      } else {
-        const user = await User.findById(validUserId);
-        const name = user ? user.fullName : '';
-        finalFamilyId = generateFamilyId(name, dateOfBirth);
-      }
+    let finalFamilyId = '';
+    if (profile && profile.familyId) {
+      finalFamilyId = profile.familyId;
+    } else {
+      const user = await User.findById(validUserId);
+      const name = user ? user.fullName : '';
+      finalFamilyId = await generateUniqueFamilyId(name);
     }
 
     let finalProfilePhoto = profilePhoto;
@@ -1955,6 +1953,35 @@ const generateFamilyId = (fullName, dob) => {
   return `${fCode}${sCode}${yearDigits}${randomStr}`;
 };
 
+const generateUniqueFamilyId = async (fullName) => {
+  const parts = (fullName || '').trim().split(/\s+/);
+  const firstName = parts[0] || 'KUTUMB';
+  const lastName = parts.length > 1 ? parts[parts.length - 1] : 'SETU';
+
+  const cleanFirst = firstName.replace(/[^a-zA-Z]/g, '').toUpperCase();
+  const cleanLast = lastName.replace(/[^a-zA-Z]/g, '').toUpperCase();
+
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let isUnique = false;
+  let familyId = '';
+  
+  while (!isUnique) {
+    let randomStr = '';
+    for (let i = 0; i < 4; i++) {
+      randomStr += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    familyId = `${cleanFirst}-${cleanLast}-${randomStr}`;
+    
+    // Check if this familyId already exists in Profile collection
+    const existing = await Profile.findOne({ familyId });
+    if (!existing) {
+      isUnique = true;
+    }
+  }
+  
+  return familyId;
+};
+
 // --- COMMUNITY POSTS ENDPOINTS ---
 
 // Fetch all posts (sorted by newest first)
@@ -2030,6 +2057,405 @@ app.post('/api/community/posts', async (req, res) => {
   } catch (err) {
     console.error('Error creating post:', err);
     return res.status(500).json({ success: false, message: 'Failed to create post.' });
+  }
+});
+
+// Fetch a single post by ID
+app.get('/api/community/posts/:id', async (req, res) => {
+  try {
+    const post = await Post.findById(req.params.id);
+    if (!post) {
+      return res.status(404).json({ success: false, message: 'Post not found.' });
+    }
+    return res.status(200).json({ success: true, post });
+  } catch (err) {
+    console.error('Error fetching single post:', err);
+    return res.status(500).json({ success: false, message: 'Failed to fetch post.' });
+  }
+});
+
+// Fetch a single reel by ID
+app.get('/api/community/reels/:id', async (req, res) => {
+  try {
+    const reel = await Reel.findById(req.params.id);
+    if (!reel) {
+      return res.status(404).json({ success: false, message: 'Reel not found.' });
+    }
+    return res.status(200).json({ success: true, reel });
+  } catch (err) {
+    console.error('Error fetching single reel:', err);
+    return res.status(500).json({ success: false, message: 'Failed to fetch reel.' });
+  }
+});
+
+// Render share preview page for a post
+app.get('/share/post/:id', async (req, res) => {
+  try {
+    const post = await Post.findById(req.params.id);
+    if (!post) {
+      return res.status(404).send('Post not found');
+    }
+    
+    const baseUrl = `${req.protocol}://${req.get('host')}`;
+    const mediaUrl = post.mediaUrl 
+      ? (post.mediaUrl.startsWith('http') ? post.mediaUrl : `${baseUrl}${post.mediaUrl}`) 
+      : '';
+      
+    res.send(`
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>KutumbSetu Post by ${post.authorName}</title>
+        <!-- Open Graph Meta Tags for rich messaging previews -->
+        <meta property="og:title" content="KutumbSetu Post by ${post.authorName}">
+        <meta property="og:description" content="${post.content.replace(/"/g, '&quot;')}">
+        \${mediaUrl ? \`<meta property="og:image" content="\${mediaUrl}">\` : ''}
+        <meta property="og:type" content="article">
+        <meta property="og:site_name" content="KutumbSetu">
+        <style>
+          @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;700;800&display=swap');
+          body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #fff3e0 0%, #eceff1 100%);
+            margin: 0;
+            padding: 24px 16px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: #1a202c;
+          }
+          .app-logo {
+            font-family: 'Outfit', sans-serif;
+            font-size: 28px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #e67e22, #1b4f72);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 24px;
+            letter-spacing: 0.5px;
+          }
+          .card {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            border-radius: 20px;
+            max-width: 500px;
+            width: 100%;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+            transition: transform 0.3s ease;
+          }
+          .header {
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+          }
+          .avatar {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: ${post.avatarColor || '#0288D1'};
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 16px;
+            font-family: 'Outfit', sans-serif;
+            margin-right: 14px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+          }
+          .author-info {
+            display: flex;
+            flex-direction: column;
+          }
+          .author {
+            font-weight: 700;
+            color: #2d3748;
+            font-size: 16px;
+          }
+          .tag {
+            font-size: 11px;
+            color: #718096;
+            margin-top: 2px;
+          }
+          .content {
+            padding: 20px;
+            font-size: 15px;
+            line-height: 1.6;
+            color: #2d3748;
+            white-space: pre-wrap;
+          }
+          .media-container {
+            position: relative;
+            width: 100%;
+            background: #f7fafc;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+          }
+          .media {
+            width: 100%;
+            max-height: 380px;
+            object-fit: cover;
+            display: block;
+          }
+          .footer {
+            padding: 24px 20px;
+            text-align: center;
+            background: rgba(255,255,255,0.4);
+            border-top: 1px solid rgba(0,0,0,0.03);
+          }
+          .btn {
+            display: inline-block;
+            background: linear-gradient(135deg, #e67e22, #d35400);
+            color: white;
+            padding: 14px 32px;
+            border-radius: 30px;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 15px;
+            font-family: 'Outfit', sans-serif;
+            box-shadow: 0 6px 20px rgba(230, 126, 34, 0.4);
+            transition: all 0.2s ease;
+            animation: pulse 2s infinite;
+          }
+          .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(230, 126, 34, 0.5);
+          }
+          @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.03); }
+            100% { transform: scale(1); }
+          }
+        </style>
+        <script>
+          window.onload = function() {
+            setTimeout(function() {
+              window.location.href = "kutumbsetu://post/${post._id}";
+            }, 500);
+          };
+        </script>
+      </head>
+      <body>
+        <div class="app-logo">KutumbSetu</div>
+        <div class="card">
+          <div class="header">
+            <div class="avatar">${post.avatarText || 'U'}</div>
+            <div class="author-info">
+              <div class="author">${post.authorName}</div>
+              <div class="tag">Shared from KutumbSetu Feed</div>
+            </div>
+          </div>
+          <div class="content">${post.content}</div>
+          \${post.mediaUrl ? \`
+            <div class="media-container">
+              <img class="media" src="\${post.mediaUrl}" alt="Post Media">
+            </div>
+          \` : ''}
+          <div class="footer">
+            <a class="btn" href="kutumbsetu://post/${post._id}">Open in KutumbSetu App</a>
+          </div>
+        </div>
+      </body>
+      </html>
+    `);
+  } catch (err) {
+    console.error('Error rendering post share page:', err);
+    res.status(500).send('Server Error');
+  }
+});
+
+// Render share preview page for a reel
+app.get('/share/reel/:id', async (req, res) => {
+  try {
+    const reel = await Reel.findById(req.params.id);
+    if (!reel) {
+      return res.status(404).send('Reel not found');
+    }
+    
+    const baseUrl = `${req.protocol}://${req.get('host')}`;
+    const videoUrl = reel.videoUrl 
+      ? (reel.videoUrl.startsWith('http') ? reel.videoUrl : `${baseUrl}${reel.videoUrl}`) 
+      : '';
+      
+    res.send(`
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>KutumbSetu Reel by ${reel.authorName}</title>
+        <meta property="og:title" content="KutumbSetu Reel by ${reel.authorName}">
+        <meta property="og:description" content="${reel.caption.replace(/"/g, '&quot;')}">
+        <meta property="og:type" content="video.other">
+        <meta property="og:site_name" content="KutumbSetu">
+        <style>
+          @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;700;800&display=swap');
+          body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #1b4f72 0%, #121212 100%);
+            margin: 0;
+            padding: 24px 16px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: #ffffff;
+          }
+          .app-logo {
+            font-family: 'Outfit', sans-serif;
+            font-size: 28px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #e67e22, #3498db);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 24px;
+            letter-spacing: 0.5px;
+          }
+          .card {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            max-width: 500px;
+            width: 100%;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+          }
+          .header {
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+          }
+          .avatar {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: ${reel.avatarColor || '#0288D1'};
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 16px;
+            font-family: 'Outfit', sans-serif;
+            margin-right: 14px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+          }
+          .author-info {
+            display: flex;
+            flex-direction: column;
+          }
+          .author {
+            font-weight: 700;
+            color: #ffffff;
+            font-size: 16px;
+          }
+          .tag {
+            font-size: 11px;
+            color: #94a3b8;
+            margin-top: 2px;
+          }
+          .content {
+            padding: 20px;
+            font-size: 15px;
+            line-height: 1.6;
+            color: #e2e8f0;
+            white-space: pre-wrap;
+          }
+          .video-container {
+            position: relative;
+            width: 100%;
+            background: #000000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+          }
+          .media-video {
+            width: 100%;
+            max-height: 450px;
+            display: block;
+          }
+          .footer {
+            padding: 24px 20px;
+            text-align: center;
+            background: rgba(15, 23, 42, 0.4);
+            border-top: 1px solid rgba(255,255,255,0.05);
+          }
+          .btn {
+            display: inline-block;
+            background: linear-gradient(135deg, #e67e22, #d35400);
+            color: white;
+            padding: 14px 32px;
+            border-radius: 30px;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 15px;
+            font-family: 'Outfit', sans-serif;
+            box-shadow: 0 6px 20px rgba(230, 126, 34, 0.4);
+            transition: all 0.2s ease;
+            animation: pulse 2s infinite;
+          }
+          .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(230, 126, 34, 0.5);
+          }
+          @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.03); }
+            100% { transform: scale(1); }
+          }
+        </style>
+        <script>
+          window.onload = function() {
+            setTimeout(function() {
+              window.location.href = "kutumbsetu://reel/${reel._id}";
+            }, 500);
+          };
+        </script>
+      </head>
+      <body>
+        <div class="app-logo">KutumbSetu</div>
+        <div class="card">
+          <div class="header">
+            <div class="avatar">${reel.avatarText || 'U'}</div>
+            <div class="author-info">
+              <div class="author">${reel.authorName}</div>
+              <div class="tag">Shared from KutumbSetu Reels</div>
+            </div>
+          </div>
+          <div class="content">${reel.caption}</div>
+          \${videoUrl ? \`
+            <div class="video-container">
+              <video class="media-video" controls autoplay muted loop>
+                <source src="\${videoUrl}" type="video/mp4">
+                Your browser does not support the video tag.
+              </video>
+            </div>
+          \` : ''}
+          <div class="footer">
+            <a class="btn" href="kutumbsetu://reel/${reel._id}">Open in KutumbSetu App</a>
+          </div>
+        </div>
+      </body>
+      </html>
+    `);
+  } catch (err) {
+    console.error('Error rendering reel share page:', err);
+    res.status(500).send('Server Error');
   }
 });
 

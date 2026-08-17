@@ -15,6 +15,7 @@ import 'profile_completion_screen.dart';
 import '../community/community_feed.dart';
 import 'package:http/http.dart' as http;
 import '../api_config.dart';
+import '../widgets/admin_user_approvals_widget.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -26,11 +27,33 @@ class HomeScreen extends ConsumerStatefulWidget {
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   int _currentIndex = 0;
   final PageController _newsPageController = PageController();
+  final ScrollController _birthdayScrollController = ScrollController();
   int _activeNewsIndex = 0;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Future.delayed(const Duration(milliseconds: 600), () {
+        if (mounted && _birthdayScrollController.hasClients) {
+          final maxScroll = _birthdayScrollController.position.maxScrollExtent;
+          if (maxScroll > 0) {
+            _birthdayScrollController.animateTo(
+              maxScroll,
+              duration: const Duration(seconds: 10),
+              curve: Curves.linear,
+            );
+          }
+        }
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _newsPageController.dispose();
+    _birthdayScrollController.dispose();
+    super.dispose();
   }
 
   bool _showLanguageToggle = false;
@@ -573,6 +596,67 @@ Contact: ${user.phoneNumber}
       end: Alignment.bottomCenter,
     );
 
+    // If user is not admin and not approved, block navigation
+    if (user.role != 'admin' && !user.isApproved) {
+      return Scaffold(
+        body: Container(
+          decoration: BoxDecoration(gradient: bgGradient),
+          child: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.admin_panel_settings_outlined,
+                    size: 80,
+                    color: Color(0xFFE67E22),
+                  ),
+                  const SizedBox(height: 24),
+                  Text(
+                    'Request Sent to Admin!',
+                    style: GoogleFonts.poppins(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? Colors.white : Colors.black87,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'You will be able to navigate the app once the Admin accepts your request.',
+                    style: GoogleFonts.inter(
+                      fontSize: 14,
+                      color: Colors.grey.shade600,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 48),
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      ref.read(currentUserProvider.notifier).state = null;
+                      context.go('/');
+                    },
+                    icon: const Icon(Icons.logout_rounded),
+                    label: const Text('Back to Login'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFE67E22),
+                      foregroundColor: Colors.white,
+                      minimumSize: const Size(200, 48),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: Container(
@@ -587,11 +671,11 @@ Contact: ${user.phoneNumber}
                   const FamilyTreeScreen(),
                   const MatrimonialHubScreen(),
                   const CommunityFeedScreen(),
-                  const ProfileCompletionScreen(),
+                  user.role == 'admin' ? const AdminUserApprovalsWidget() : const ProfileCompletionScreen(),
                 ],
               ),
             ),
-            _buildBottomNavBar(isDark),
+            _buildBottomNavBar(isDark, user),
           ],
         ),
       ),
@@ -1039,6 +1123,7 @@ Contact: ${user.phoneNumber}
         SizedBox(
           height: 115,
           child: ListView.builder(
+            controller: _birthdayScrollController,
             scrollDirection: Axis.horizontal,
             physics: const BouncingScrollPhysics(),
             padding: const EdgeInsets.symmetric(horizontal: 12.0),
@@ -1843,7 +1928,7 @@ Contact: ${user.phoneNumber}
 
 
   // --- BOTTOM NAV BAR (IMAGE 1 / 4) ---
-  Widget _buildBottomNavBar(bool isDark) {
+  Widget _buildBottomNavBar(bool isDark, UserModel user) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 8),
       decoration: BoxDecoration(
@@ -1866,7 +1951,9 @@ Contact: ${user.phoneNumber}
             _buildNavBarItem(1, Icons.park_rounded, 'Tree', isDark),
             _buildNavBarCenterButton(isDark),
             _buildNavBarItem(3, Icons.people_alt_rounded, 'Community Hub', isDark),
-            _buildNavBarItem(4, Icons.assignment_ind_rounded, 'Build Profile', isDark),
+            user.role == 'admin'
+                ? _buildNavBarItem(4, Icons.admin_panel_settings_rounded, 'Approvals', isDark)
+                : _buildNavBarItem(4, Icons.assignment_ind_rounded, 'Build Profile', isDark),
           ],
         ),
       ),

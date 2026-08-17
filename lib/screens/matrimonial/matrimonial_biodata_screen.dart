@@ -44,22 +44,15 @@ class _MatrimonialBiodataScreenState extends ConsumerState<MatrimonialBiodataScr
   String _nani = '';
   String _familyOccupation = '';
 
-  // Lifestyle
-  String _diet = 'Vegetarian';
-  String _smoking = 'No';
-  String _drinking = 'No';
-  final List<String> _languages = [];
-  final List<String> _hobbies = [];
-
-  // Preferences
-  int _prefAgeMin = 18;
-  int _prefAgeMax = 60;
-  int _prefHeightMin = 120;
-  int _prefHeightMax = 220;
-  String _prefEducation = '';
-  String _prefOccupation = '';
-  String _prefCity = '';
-  String _prefVillage = '';
+  // New Fields
+  String _workingCountry = 'India';
+  String _description = '';
+  String _partnerExpectations = '';
+  List<String> _partnerExpectationsHobbies = [];
+  bool _addSocialLinks = false;
+  String _instagramUrl = '';
+  String _facebookUrl = '';
+  List<String> _additionalPhotos = [];
 
   // Visibility
   bool _showPhone = true;
@@ -68,6 +61,20 @@ class _MatrimonialBiodataScreenState extends ConsumerState<MatrimonialBiodataScr
 
   String _profilePhoto = '';
   String _introVideo = '';
+
+  final List<String> _availableHobbies = [
+    'Singing',
+    'Dancing',
+    'Cooking',
+    'Traveling',
+    'Reading',
+    'Sports',
+    'Photography',
+    'Music',
+    'Gardening',
+    'Yoga',
+    'Painting',
+  ];
 
   @override
   void initState() {
@@ -80,27 +87,13 @@ class _MatrimonialBiodataScreenState extends ConsumerState<MatrimonialBiodataScr
     final user = ref.read(currentUserProvider);
     if (user != null) {
       _name = user.fullName + (user.surname.isNotEmpty ? ' ${user.surname}' : '');
-      
-      // Normalize Gender to ['Male', 'Female']
       final genderVal = user.gender.trim().toLowerCase();
-      if (genderVal == 'female') {
-        _gender = 'Female';
-      } else {
-        _gender = 'Male';
-      }
-
+      _gender = genderVal == 'female' ? 'Female' : 'Male';
       _dob = user.dateOfBirth.isNotEmpty ? DateTime.parse(user.dateOfBirth) : DateTime(2000, 1, 1);
-
-      // Normalize Blood Group to ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']
       final allowedBGs = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
       final bgVal = user.bloodGroup.trim().toUpperCase();
-      if (allowedBGs.contains(bgVal)) {
-        _bloodGroup = bgVal;
-      } else {
-        _bloodGroup = 'B+';
-      }
+      _bloodGroup = allowedBGs.contains(bgVal) ? bgVal : 'B+';
 
-      // Normalize Marital Status to ['Never Married', 'Divorced', 'Widowed']
       final msVal = user.maritalStatus.trim().toLowerCase();
       if (msVal == 'single' || msVal == 'never married' || msVal == 'unmarried') {
         _maritalStatus = 'Never Married';
@@ -120,6 +113,44 @@ class _MatrimonialBiodataScreenState extends ConsumerState<MatrimonialBiodataScr
       _motherName = user.motherName;
       _profilePhoto = user.profilePhoto;
     }
+
+    final myProfile = ref.read(myMatrimonialProfileProvider).value;
+    if (myProfile != null) {
+      _gender = myProfile.gender;
+      _dob = myProfile.dateOfBirth;
+      _heightCm = myProfile.heightCm;
+      _weightKg = myProfile.weightKg;
+      _bloodGroup = myProfile.bloodGroup;
+      _maritalStatus = myProfile.maritalStatus;
+      _education = myProfile.education;
+      _occupation = myProfile.occupation;
+      _company = myProfile.company;
+      _annualIncome = myProfile.annualIncome;
+      _village = myProfile.village;
+      _city = myProfile.city;
+      _fatherName = myProfile.family['fatherName'] ?? '';
+      _motherName = myProfile.family['motherName'] ?? '';
+      _grandfather = myProfile.family['grandfather'] ?? '';
+      _grandmother = myProfile.family['grandmother'] ?? '';
+      _nana = myProfile.family['nana'] ?? '';
+      _nani = myProfile.family['nani'] ?? '';
+      _familyOccupation = myProfile.family['familyOccupation'] ?? '';
+      _showPhone = myProfile.visibility['showPhone'] ?? true;
+      _showAddress = myProfile.visibility['showAddress'] ?? true;
+      _showEmail = myProfile.visibility['showEmail'] ?? false;
+      _profilePhoto = myProfile.profilePhotoUrl;
+      _introVideo = myProfile.introductionVideoUrl;
+
+      // New fields prefill
+      _workingCountry = myProfile.workingCountry.isNotEmpty ? myProfile.workingCountry : 'India';
+      _description = myProfile.description;
+      _partnerExpectations = myProfile.partnerExpectations;
+      _partnerExpectationsHobbies = List<String>.from(myProfile.partnerExpectationsHobbies);
+      _addSocialLinks = myProfile.socialLinks['showSocialLinks'] ?? false;
+      _instagramUrl = myProfile.socialLinks['instagramUrl'] ?? '';
+      _facebookUrl = myProfile.socialLinks['facebookUrl'] ?? '';
+      _additionalPhotos = List<String>.from(myProfile.additionalPhotos);
+    }
   }
 
   @override
@@ -130,9 +161,8 @@ class _MatrimonialBiodataScreenState extends ConsumerState<MatrimonialBiodataScr
 
   Future<void> _pickImage() async {
     final picker = ImagePicker();
-    final img = await picker.pickImage(source: ImageSource.gallery);
+    final img = await picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
     if (img != null) {
-      // Simulate photo upload by setting path
       setState(() {
         _profilePhoto = img.path;
       });
@@ -143,9 +173,24 @@ class _MatrimonialBiodataScreenState extends ConsumerState<MatrimonialBiodataScr
     final picker = ImagePicker();
     final vid = await picker.pickVideo(source: ImageSource.gallery, maxDuration: const Duration(seconds: 30));
     if (vid != null) {
-      // Simulate video intro path
       setState(() {
         _introVideo = vid.path;
+      });
+    }
+  }
+
+  Future<void> _pickAdditionalPhoto() async {
+    if (_additionalPhotos.length >= 3) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('You can upload up to 3 additional photos.')),
+      );
+      return;
+    }
+    final picker = ImagePicker();
+    final img = await picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
+    if (img != null) {
+      setState(() {
+        _additionalPhotos.add(img.path);
       });
     }
   }
@@ -175,11 +220,10 @@ class _MatrimonialBiodataScreenState extends ConsumerState<MatrimonialBiodataScr
     final user = ref.read(currentUserProvider);
     if (user == null) return;
 
-    // Show loading spinner
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => const Center(child: CircularProgressIndicator()),
+      builder: (context) => const Center(child: CircularProgressIndicator(color: Color(0xFFE67E22))),
     );
 
     String? profilePhotoBase64;
@@ -193,12 +237,24 @@ class _MatrimonialBiodataScreenState extends ConsumerState<MatrimonialBiodataScr
     }
 
     String? introductionVideoBase64;
-    if (_introVideo.isNotEmpty && !_introVideo.startsWith('/uploads') && !_introVideo.startsWith('http') && !_introVideo.startsWith('https') && !_introVideo.contains('mixkit.co')) {
+    if (_introVideo.isNotEmpty && !_introVideo.startsWith('/uploads') && !_introVideo.startsWith('http') && !_introVideo.startsWith('https')) {
       try {
         final bytes = await File(_introVideo).readAsBytes();
         introductionVideoBase64 = base64Encode(bytes);
       } catch (e) {
         print('Error encoding intro video: $e');
+      }
+    }
+
+    List<String> additionalPhotosBase64 = [];
+    for (String path in _additionalPhotos) {
+      if (path.isNotEmpty && !path.startsWith('http') && !path.startsWith('/uploads')) {
+        try {
+          final bytes = await File(path).readAsBytes();
+          additionalPhotosBase64.add(base64Encode(bytes));
+        } catch (e) {
+          print('Error encoding additional photo: $e');
+        }
       }
     }
 
@@ -227,22 +283,22 @@ class _MatrimonialBiodataScreenState extends ConsumerState<MatrimonialBiodataScr
         'familyOccupation': _familyOccupation,
       },
       'lifestyle': {
-        'languages': _languages.isEmpty ? ['Gujarati', 'Hindi', 'English'] : _languages,
-        'hobbies': _hobbies.isEmpty ? ['Reading', 'Traveling'] : _hobbies,
-        'diet': _diet,
-        'smoking': _smoking,
-        'drinking': _drinking,
-        'phone': user.phoneNumber, // Include real phone for request validation
+        'languages': ['Gujarati', 'Hindi', 'English'],
+        'hobbies': ['Reading', 'Traveling'],
+        'diet': 'Vegetarian',
+        'smoking': 'No',
+        'drinking': 'No',
+        'phone': user.phoneNumber,
       },
       'partnerPreferences': {
-        'ageMin': _prefAgeMin,
-        'ageMax': _prefAgeMax,
-        'heightMin': _prefHeightMin,
-        'heightMax': _prefHeightMax,
-        'education': _prefEducation,
-        'occupation': _prefOccupation,
-        'city': _prefCity,
-        'village': _prefVillage,
+        'ageMin': 21,
+        'ageMax': 50,
+        'heightMin': 120,
+        'heightMax': 220,
+        'education': '',
+        'occupation': '',
+        'city': '',
+        'village': '',
       },
       'visibilitySettings': {
         'showPhone': _showPhone,
@@ -251,6 +307,18 @@ class _MatrimonialBiodataScreenState extends ConsumerState<MatrimonialBiodataScr
       },
       'profilePhoto': _profilePhoto.isNotEmpty ? _profilePhoto : 'avatar_generic',
       'introductionVideo': _introVideo.isNotEmpty ? _introVideo : 'https://assets.mixkit.co/videos/preview/mixkit-dramatic-waterfall-in-forest-42289-large.mp4',
+      
+      // New fields payload
+      'workingCountry': _workingCountry,
+      'description': _description,
+      'partnerExpectations': _partnerExpectations,
+      'partnerExpectationsHobbies': _partnerExpectationsHobbies,
+      'socialLinks': {
+        'showSocialLinks': _addSocialLinks,
+        'instagramUrl': _instagramUrl,
+        'facebookUrl': _facebookUrl,
+      },
+      'additionalPhotos': _additionalPhotos.where((p) => p.startsWith('http') || p.startsWith('/uploads')).toList(),
     };
 
     if (profilePhotoBase64 != null) {
@@ -258,6 +326,9 @@ class _MatrimonialBiodataScreenState extends ConsumerState<MatrimonialBiodataScr
     }
     if (introductionVideoBase64 != null) {
       payload['introductionVideoBase64'] = introductionVideoBase64;
+    }
+    if (additionalPhotosBase64.isNotEmpty) {
+      payload['additionalPhotosBase64'] = additionalPhotosBase64;
     }
 
     final service = ref.read(matrimonialServiceProvider);
@@ -308,7 +379,7 @@ class _MatrimonialBiodataScreenState extends ConsumerState<MatrimonialBiodataScr
             Tab(text: 'Personal'),
             Tab(text: 'Work / Edu'),
             Tab(text: 'Family'),
-            Tab(text: 'Visibility'),
+            Tab(text: 'Expectations & Social'),
           ],
         ),
       ),
@@ -320,7 +391,7 @@ class _MatrimonialBiodataScreenState extends ConsumerState<MatrimonialBiodataScr
             _buildPersonalTab(primaryOrange, primaryBlue),
             _buildWorkEduTab(),
             _buildFamilyTab(),
-            _buildVisibilityTab(primaryOrange, primaryBlue),
+            _buildExpectationsSocialTab(primaryOrange, primaryBlue),
           ],
         ),
       ),
@@ -349,14 +420,8 @@ class _MatrimonialBiodataScreenState extends ConsumerState<MatrimonialBiodataScr
                   _saveBiodata();
                 }
               },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: primaryBlue,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              ),
-              child: Text(
-                _tabController.index == 3 ? 'Publish Biodata' : 'Next',
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-              ),
+              style: ElevatedButton.styleFrom(backgroundColor: primaryOrange, foregroundColor: Colors.white),
+              child: Text(_tabController.index == 3 ? 'Publish Biodata' : 'Next'),
             ),
           ],
         ),
@@ -368,47 +433,35 @@ class _MatrimonialBiodataScreenState extends ConsumerState<MatrimonialBiodataScr
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Avatar upload row
-          GestureDetector(
-            onTap: _pickImage,
-            child: CircleAvatar(
-              radius: 50,
-              backgroundColor: orange.withValues(alpha: 0.1),
-              backgroundImage: _getProfileImageProvider(),
-              child: _profilePhoto.isEmpty || _profilePhoto.startsWith('avatar')
-                  ? Icon(Icons.add_a_photo_outlined, size: 36, color: orange)
-                  : null,
+          Center(
+            child: Stack(
+              children: [
+                CircleAvatar(
+                  radius: 50,
+                  backgroundColor: Colors.grey.shade300,
+                  backgroundImage: _getProfileImageProvider(),
+                  child: _profilePhoto.isEmpty
+                      ? const Icon(Icons.person, size: 50, color: Colors.grey)
+                      : null,
+                ),
+                Positioned(
+                  bottom: 0,
+                  right: 0,
+                  child: GestureDetector(
+                    onTap: _pickImage,
+                    child: CircleAvatar(
+                      radius: 18,
+                      backgroundColor: orange,
+                      child: const Icon(Icons.camera_alt, size: 16, color: Colors.white),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 6),
-          Text('Upload Profile Photo', style: GoogleFonts.poppins(fontSize: 11, color: Colors.grey)),
-          
-          // Video upload button
-          const SizedBox(height: 12),
-          ElevatedButton.icon(
-            onPressed: _pickVideo,
-            icon: const Icon(Icons.video_call_rounded),
-            label: Text(
-              _introVideo.isEmpty || _introVideo.startsWith('http') || _introVideo.contains('mixkit.co')
-                  ? 'Select Introduction Video'
-                  : 'Video Selected (Tap to Change)',
-            ),
-            style: ElevatedButton.styleFrom(
-              foregroundColor: Colors.white,
-              backgroundColor: blue,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-          ),
-          if (_introVideo.isNotEmpty && !_introVideo.startsWith('http') && !_introVideo.contains('mixkit.co')) ...[
-            const SizedBox(height: 4),
-            Text(
-              "Selected local path: ${_introVideo.split('/').last.split('\\').last}",
-              style: GoogleFonts.inter(fontSize: 10, color: Colors.grey),
-            ),
-          ],
-          const SizedBox(height: 18),
-
+          const SizedBox(height: 20),
           TextFormField(
             initialValue: _name,
             decoration: const InputDecoration(labelText: 'Full Name *'),
@@ -416,16 +469,33 @@ class _MatrimonialBiodataScreenState extends ConsumerState<MatrimonialBiodataScr
             onSaved: (v) => _name = v ?? '',
           ),
           const SizedBox(height: 14),
-
           DropdownButtonFormField<String>(
             value: _gender,
             decoration: const InputDecoration(labelText: 'Gender'),
-            items: ['Male', 'Female'].map((g) => DropdownMenuItem(value: g, child: Text(g))).toList(),
-            onChanged: (v) => setState(() => _gender = v ?? 'Male'),
+            items: ['Male', 'Female']
+                .map((g) => DropdownMenuItem(value: g, child: Text(g)))
+                .toList(),
+            onChanged: (val) => setState(() => _gender = val ?? 'Male'),
           ),
           const SizedBox(height: 14),
-
-          // Height & Weight
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('Date of Birth *'),
+            subtitle: Text('${_dob.day}/${_dob.month}/${_dob.year}'),
+            trailing: const Icon(Icons.calendar_today),
+            onTap: () async {
+              final picked = await showDatePicker(
+                context: context,
+                initialDate: _dob,
+                firstDate: DateTime(1960),
+                lastDate: DateTime.now().subtract(const Duration(days: 6570)),
+              );
+              if (picked != null) {
+                setState(() => _dob = picked);
+              }
+            },
+          ),
+          const SizedBox(height: 14),
           Row(
             children: [
               Expanded(
@@ -433,8 +503,8 @@ class _MatrimonialBiodataScreenState extends ConsumerState<MatrimonialBiodataScr
                   initialValue: _heightCm.toString(),
                   decoration: const InputDecoration(labelText: 'Height (cm) *'),
                   keyboardType: TextInputType.number,
-                  validator: (v) => v!.isEmpty ? 'Required' : null,
-                  onSaved: (v) => _heightCm = int.tryParse(v ?? '') ?? 165,
+                  validator: (v) => int.tryParse(v ?? '') == null ? 'Invalid height' : null,
+                  onSaved: (v) => _heightCm = int.parse(v!),
                 ),
               ),
               const SizedBox(width: 14),
@@ -443,31 +513,43 @@ class _MatrimonialBiodataScreenState extends ConsumerState<MatrimonialBiodataScr
                   initialValue: _weightKg.toString(),
                   decoration: const InputDecoration(labelText: 'Weight (kg) *'),
                   keyboardType: TextInputType.number,
-                  validator: (v) => v!.isEmpty ? 'Required' : null,
-                  onSaved: (v) => _weightKg = int.tryParse(v ?? '') ?? 60,
+                  validator: (v) => int.tryParse(v ?? '') == null ? 'Invalid weight' : null,
+                  onSaved: (v) => _weightKg = int.parse(v!),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 14),
-
           DropdownButtonFormField<String>(
             value: _bloodGroup,
             decoration: const InputDecoration(labelText: 'Blood Group'),
             items: ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']
                 .map((bg) => DropdownMenuItem(value: bg, child: Text(bg)))
                 .toList(),
-            onChanged: (v) => setState(() => _bloodGroup = v ?? 'B+'),
+            onChanged: (val) => setState(() => _bloodGroup = val ?? 'B+'),
           ),
           const SizedBox(height: 14),
-
           DropdownButtonFormField<String>(
             value: _maritalStatus,
             decoration: const InputDecoration(labelText: 'Marital Status'),
             items: ['Never Married', 'Divorced', 'Widowed']
-                .map((m) => DropdownMenuItem(value: m, child: Text(m)))
+                .map((ms) => DropdownMenuItem(value: ms, child: Text(ms)))
                 .toList(),
-            onChanged: (v) => setState(() => _maritalStatus = v ?? 'Never Married'),
+            onChanged: (val) => setState(() => _maritalStatus = val ?? 'Never Married'),
+          ),
+          const SizedBox(height: 14),
+          TextFormField(
+            initialValue: _village,
+            decoration: const InputDecoration(labelText: 'Native Village *'),
+            validator: (v) => v!.isEmpty ? 'Native village is required' : null,
+            onSaved: (v) => _village = v ?? '',
+          ),
+          const SizedBox(height: 14),
+          TextFormField(
+            initialValue: _city,
+            decoration: const InputDecoration(labelText: 'Current City *'),
+            validator: (v) => v!.isEmpty ? 'Current city is required' : null,
+            onSaved: (v) => _city = v ?? '',
           ),
         ],
       ),
@@ -481,43 +563,29 @@ class _MatrimonialBiodataScreenState extends ConsumerState<MatrimonialBiodataScr
         children: [
           TextFormField(
             initialValue: _education,
-            decoration: const InputDecoration(labelText: 'Highest Education *', hintText: 'e.g. B.E. Computer Engineering'),
+            decoration: const InputDecoration(labelText: 'Highest Qualification *', hintText: 'e.g. B.Tech / MBA'),
             validator: (v) => v!.isEmpty ? 'Education is required' : null,
             onSaved: (v) => _education = v ?? '',
           ),
           const SizedBox(height: 14),
           TextFormField(
             initialValue: _occupation,
-            decoration: const InputDecoration(labelText: 'Occupation *', hintText: 'e.g. Software Architect'),
-            validator: (v) => v!.isEmpty ? 'Occupation is required' : null,
+            decoration: const InputDecoration(labelText: 'Profession *', hintText: 'e.g. Software Engineer'),
+            validator: (v) => v!.isEmpty ? 'Profession is required' : null,
             onSaved: (v) => _occupation = v ?? '',
           ),
           const SizedBox(height: 14),
           TextFormField(
             initialValue: _company,
-            decoration: const InputDecoration(labelText: 'Company / Employer Name', hintText: 'e.g. Samaj Tech Solutions'),
+            decoration: const InputDecoration(labelText: 'Company Name', hintText: 'e.g. Google'),
             onSaved: (v) => _company = v ?? '',
           ),
           const SizedBox(height: 14),
           TextFormField(
             initialValue: _annualIncome.toString(),
-            decoration: const InputDecoration(labelText: 'Annual Income (INR)', hintText: 'e.g. 600000'),
+            decoration: const InputDecoration(labelText: 'Annual Income (INR)', hintText: 'e.g. 800000'),
             keyboardType: TextInputType.number,
             onSaved: (v) => _annualIncome = double.tryParse(v ?? '') ?? 0,
-          ),
-          const SizedBox(height: 14),
-          TextFormField(
-            initialValue: _village,
-            decoration: const InputDecoration(labelText: 'Native Village *', hintText: 'e.g. Karamsad'),
-            validator: (v) => v!.isEmpty ? 'Native village is required' : null,
-            onSaved: (v) => _village = v ?? '',
-          ),
-          const SizedBox(height: 14),
-          TextFormField(
-            initialValue: _city,
-            decoration: const InputDecoration(labelText: 'Current City *', hintText: 'e.g. Vadodara'),
-            validator: (v) => v!.isEmpty ? 'Current city is required' : null,
-            onSaved: (v) => _city = v ?? '',
           ),
         ],
       ),
@@ -575,42 +643,174 @@ class _MatrimonialBiodataScreenState extends ConsumerState<MatrimonialBiodataScr
     );
   }
 
-
-
-  Widget _buildVisibilityTab(Color orange, Color blue) {
+  Widget _buildExpectationsSocialTab(Color orange, Color blue) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Privacy & Visibility Settings',
-            style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 15, color: blue),
+          TextFormField(
+            initialValue: _workingCountry,
+            decoration: const InputDecoration(
+              labelText: 'Current Working Country',
+              hintText: 'e.g. India, USA, Canada',
+            ),
+            onSaved: (v) => _workingCountry = v ?? 'India',
           ),
-          const SizedBox(height: 6),
-          Text(
-            'Control who within the community can see your direct contact details. If disabled, they will remain private.',
-            style: GoogleFonts.inter(fontSize: 12, color: Colors.grey.shade600),
+          const SizedBox(height: 14),
+          TextFormField(
+            initialValue: _description,
+            maxLines: 3,
+            decoration: const InputDecoration(
+              labelText: 'About Me (Description) *',
+              hintText: 'Describe your personality, values, hobbies...',
+            ),
+            validator: (v) => v!.isEmpty ? 'Description is required' : null,
+            onSaved: (v) => _description = v ?? '',
+          ),
+          const SizedBox(height: 14),
+          TextFormField(
+            initialValue: _partnerExpectations,
+            maxLines: 3,
+            decoration: const InputDecoration(
+              labelText: 'Expectations from Partner *',
+              hintText: 'Describe what you expect from your life partner...',
+            ),
+            validator: (v) => v!.isEmpty ? 'Expectations is required' : null,
+            onSaved: (v) => _partnerExpectations = v ?? '',
           ),
           const SizedBox(height: 20),
+          Text(
+            'Partner Preferred Hobbies / Activities',
+            style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 13, color: blue),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: _availableHobbies.map((hob) {
+              final isSelected = _partnerExpectationsHobbies.contains(hob);
+              return ChoiceChip(
+                label: Text(hob),
+                selected: isSelected,
+                selectedColor: orange.withValues(alpha: 0.2),
+                checkmarkColor: orange,
+                onSelected: (val) {
+                  setState(() {
+                    if (val) {
+                      _partnerExpectationsHobbies.add(hob);
+                    } else {
+                      _partnerExpectationsHobbies.remove(hob);
+                    }
+                  });
+                },
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 20),
+          CheckboxListTile(
+            title: const Text('Add Instagram / Facebook Handles'),
+            value: _addSocialLinks,
+            onChanged: (val) => setState(() => _addSocialLinks = val ?? false),
+          ),
+          if (_addSocialLinks) ...[
+            TextFormField(
+              initialValue: _instagramUrl,
+              decoration: const InputDecoration(labelText: 'Instagram Profile URL'),
+              onSaved: (v) => _instagramUrl = v ?? '',
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              initialValue: _facebookUrl,
+              decoration: const InputDecoration(labelText: 'Facebook Profile URL'),
+              onSaved: (v) => _facebookUrl = v ?? '',
+            ),
+          ],
+          const SizedBox(height: 20),
+          Text(
+            'Upload Additional Photos (Max 3)',
+            style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 13, color: blue),
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            height: 90,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: _additionalPhotos.length + (_additionalPhotos.length < 3 ? 1 : 0),
+              itemBuilder: (context, index) {
+                if (index == _additionalPhotos.length) {
+                  return GestureDetector(
+                    onTap: _pickAdditionalPhoto,
+                    child: Container(
+                      width: 90,
+                      margin: const EdgeInsets.only(right: 12),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey.shade400, style: BorderStyle.dashed),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.add_a_photo_rounded, color: Colors.grey),
+                    ),
+                  );
+                }
 
+                final path = _additionalPhotos[index];
+                final isNetwork = path.startsWith('http') || path.startsWith('/uploads');
+
+                return Stack(
+                  children: [
+                    Container(
+                      width: 90,
+                      margin: const EdgeInsets.only(right: 12),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        image: DecorationImage(
+                          image: isNetwork
+                              ? NetworkImage(path.startsWith('/uploads') ? '${ApiConfig.baseUrl.replaceAll('/api', '')}$path' : path)
+                              : FileImage(File(path)) as ImageProvider,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      top: 4,
+                      right: 16,
+                      child: GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _additionalPhotos.removeAt(index);
+                          });
+                        },
+                        child: const CircleAvatar(
+                          radius: 10,
+                          backgroundColor: Colors.redAccent,
+                          child: Icon(Icons.close, size: 10, color: Colors.white),
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: 24),
+          Text(
+            'Privacy Settings',
+            style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 13, color: blue),
+          ),
+          const SizedBox(height: 8),
           SwitchListTile(
             title: const Text('Show Mobile Number publicly'),
-            subtitle: const Text('If off, phone is hidden publicly'),
             value: _showPhone,
-            activeColor: orange,
             onChanged: (val) => setState(() => _showPhone = val),
           ),
           SwitchListTile(
             title: const Text('Show Full Address publicly'),
             value: _showAddress,
-            activeColor: orange,
             onChanged: (val) => setState(() => _showAddress = val),
           ),
           SwitchListTile(
             title: const Text('Show Email Address publicly'),
             value: _showEmail,
-            activeColor: orange,
             onChanged: (val) => setState(() => _showEmail = val),
           ),
         ],

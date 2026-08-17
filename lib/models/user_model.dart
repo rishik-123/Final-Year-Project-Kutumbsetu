@@ -29,6 +29,8 @@ class UserModel {
   final String nana;
   final String nani;
   final String role; // 'user', 'admin', 'organizer'
+  final bool isApproved;
+  final bool willingToDonateBlood;
   final DateTime? createdAt;
 
   const UserModel({
@@ -60,6 +62,8 @@ class UserModel {
     this.nana = '',
     this.nani = '',
     this.role = 'user',
+    this.isApproved = false,
+    this.willingToDonateBlood = false,
     this.createdAt,
   });
 
@@ -107,6 +111,8 @@ class UserModel {
       nana: json['nana'] as String? ?? '',
       nani: json['nani'] as String? ?? '',
       role: json['role'] as String? ?? 'user',
+      isApproved: json['isApproved'] as bool? ?? false,
+      willingToDonateBlood: json['willingToDonateBlood'] as bool? ?? false,
       createdAt: parseDate(json['createdAt']),
     );
   }
@@ -141,6 +147,8 @@ class UserModel {
       'nana': nana,
       'nani': nani,
       'role': role,
+      'isApproved': isApproved,
+      'willingToDonateBlood': willingToDonateBlood,
       'createdAt': createdAt?.toIso8601String(),
     };
   }
@@ -174,6 +182,8 @@ class UserModel {
     String? nana,
     String? nani,
     String? role,
+    bool? isApproved,
+    bool? willingToDonateBlood,
     DateTime? createdAt,
   }) {
     return UserModel(
@@ -205,6 +215,8 @@ class UserModel {
       nana: nana ?? this.nana,
       nani: nani ?? this.nani,
       role: role ?? this.role,
+      isApproved: isApproved ?? this.isApproved,
+      willingToDonateBlood: willingToDonateBlood ?? this.willingToDonateBlood,
       createdAt: createdAt ?? this.createdAt,
     );
   }

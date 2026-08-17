@@ -24,6 +24,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   String _currentStep = 'email'; // 'email' or 'otp'
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _otpController = TextEditingController();
+  final TextEditingController _adminUsernameController = TextEditingController();
+  final TextEditingController _adminPasswordController = TextEditingController();
 
   bool _isSendingOtp = false;
   bool _isVerifyingOtp = false;
@@ -33,6 +35,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   void dispose() {
     _emailController.dispose();
     _otpController.dispose();
+    _adminUsernameController.dispose();
+    _adminPasswordController.dispose();
     super.dispose();
   }
 
@@ -205,6 +209,53 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
   }
 
+  Future<void> _handleAdminLogin() async {
+    final username = _adminUsernameController.text.trim();
+    final password = _adminPasswordController.text.trim();
+
+    if (username.isEmpty || password.isEmpty) {
+      _showErrorSnackBar('Please enter both username and password.');
+      return;
+    }
+
+    setState(() {
+      _isVerifyingOtp = true;
+    });
+
+    try {
+      final response = await http.post(
+        Uri.parse('${ApiConfig.baseUrl}/auth/admin-login'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'username': username,
+          'password': password,
+        }),
+      );
+
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode == 200 && data['success'] == true) {
+        final userModel = UserModel.fromJson(data['user']);
+        setState(() {
+          _isVerifyingOtp = false;
+        });
+        ref.read(currentUserProvider.notifier).state = userModel;
+        _showSuccessSnackBar('Welcome, Admin!');
+        context.go('/home');
+      } else {
+        setState(() {
+          _isVerifyingOtp = false;
+        });
+        _showErrorSnackBar(data['message'] ?? 'Invalid admin credentials.');
+      }
+    } catch (e) {
+      setState(() {
+        _isVerifyingOtp = false;
+      });
+      _showErrorSnackBar('Connection failed. Please check backend.');
+    }
+  }
+
   void _showSuccessSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -349,7 +400,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               ),
                             ),
                             const SizedBox(height: 24),
-
                             if (_currentStep == 'email') ...[
                               // Email Address Input
                               TextFormField(
@@ -387,7 +437,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                       )
                                     : Text('Send OTP Code', style: GoogleFonts.poppins(fontWeight: FontWeight.bold)),
                               ),
-                            ] else ...[
+                              const SizedBox(height: 16),
+                              OutlinedButton.icon(
+                                onPressed: () {
+                                  setState(() {
+                                    _currentStep = 'admin';
+                                  });
+                                },
+                                icon: const Icon(Icons.admin_panel_settings_rounded, color: Color(0xFFE67E22)),
+                                label: const Text('Login as Admin', style: TextStyle(color: Color(0xFFE67E22), fontWeight: FontWeight.bold)),
+                                style: OutlinedButton.styleFrom(
+                                  minimumSize: const Size(double.infinity, 50),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  side: const BorderSide(color: Color(0xFFE67E22)),
+                                ),
+                              ),
+                            ] else if (_currentStep == 'otp') ...[
                               // OTP Input
                               TextFormField(
                                 controller: _otpController,
@@ -433,6 +498,57 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                         child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                                       )
                                     : Text('Verify & Log In', style: GoogleFonts.poppins(fontWeight: FontWeight.bold)),
+                              ),
+                            ] else if (_currentStep == 'admin') ...[
+                              // Admin input
+                              TextFormField(
+                                controller: _adminUsernameController,
+                                decoration: InputDecoration(
+                                  labelText: 'Admin Username',
+                                  prefixIcon: const Icon(Icons.person_outline),
+                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              TextFormField(
+                                controller: _adminPasswordController,
+                                obscureText: true,
+                                decoration: InputDecoration(
+                                  labelText: 'Admin Password',
+                                  prefixIcon: const Icon(Icons.lock_outline),
+                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  TextButton(
+                                    onPressed: () {
+                                      setState(() {
+                                        _currentStep = 'email';
+                                      });
+                                    },
+                                    child: const Text('Back to Email Login', style: TextStyle(color: Colors.grey)),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 24),
+                              ElevatedButton(
+                                onPressed: _isVerifyingOtp ? null : _handleAdminLogin,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF1B4F72),
+                                  foregroundColor: Colors.white,
+                                  minimumSize: const Size(double.infinity, 50),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                ),
+                                child: _isVerifyingOtp
+                                    ? const SizedBox(
+                                        height: 20,
+                                        width: 20,
+                                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                                      )
+                                    : Text('Verify Admin & Log In', style: GoogleFonts.poppins(fontWeight: FontWeight.bold)),
                               ),
                             ],
                           ],

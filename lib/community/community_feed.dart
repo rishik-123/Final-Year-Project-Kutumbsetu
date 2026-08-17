@@ -10,6 +10,7 @@ import 'package:go_router/go_router.dart';
 import '../api_config.dart';
 import '../providers/auth_provider.dart';
 import '../providers/theme_provider.dart';
+import 'package:image_picker/image_picker.dart';
 
 // --- DESIGN TOKENS ---
 const Color kSaffron = Color(0xFFF57C00);
@@ -86,6 +87,178 @@ class _CommunityFeedScreenState extends ConsumerState<CommunityFeedScreen> with 
     } finally {
       setState(() => _isLoadingReels = false);
     }
+  }
+
+  void _showCreatePostBottomSheet(BuildContext context) {
+    final picker = ImagePicker();
+    XFile? pickedImage;
+    final contentController = TextEditingController();
+    bool uploading = false;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom,
+                left: 20,
+                right: 20,
+                top: 20,
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      'Create Community Post',
+                      style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold, color: const Color(0xFFD35400)),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: contentController,
+                      maxLines: 4,
+                      decoration: InputDecoration(
+                        hintText: "What's on your mind? Share announcements, achievements...",
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    if (pickedImage != null)
+                      Container(
+                        height: 180,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.grey.shade300),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: FutureBuilder<List<int>>(
+                            future: pickedImage!.readAsBytes(),
+                            builder: (context, snapshot) {
+                              if (snapshot.hasData) {
+                                return Image.memory(
+                                  snapshot.data as dynamic,
+                                  fit: BoxFit.cover,
+                                  width: double.infinity,
+                                );
+                              }
+                              return const Center(child: CircularProgressIndicator());
+                            },
+                          ),
+                        ),
+                      )
+                    else
+                      OutlinedButton.icon(
+                        onPressed: () async {
+                          final img = await picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
+                          if (img != null) {
+                            setSheetState(() {
+                              pickedImage = img;
+                            });
+                          }
+                        },
+                        icon: const Icon(Icons.add_photo_alternate_rounded),
+                        label: const Text('Pick Image from Gallery'),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                      ),
+                    const SizedBox(height: 20),
+                    ElevatedButton(
+                      onPressed: uploading
+                          ? null
+                          : () async {
+                              final text = contentController.text.trim();
+                              if (text.isEmpty) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Please enter some text content.')),
+                                );
+                                return;
+                              }
+                              setSheetState(() => uploading = true);
+                              try {
+                                final user = ref.read(currentUserProvider);
+                                if (user == null) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('User profile not loaded. Please log in again.')),
+                                  );
+                                  return;
+                                }
+
+                                String? base64Image;
+                                if (pickedImage != null) {
+                                  final bytes = await pickedImage!.readAsBytes();
+                                  base64Image = base64Encode(bytes);
+                                }
+
+                                final response = await http.post(
+                                  Uri.parse('${ApiConfig.baseUrl}/community/posts'),
+                                  headers: {'Content-Type': 'application/json'},
+                                  body: jsonEncode({
+                                    'userId': user.id,
+                                    'content': text,
+                                    'mediaBase64': base64Image,
+                                  }),
+                                );
+
+                                if (response.statusCode == 201) {
+                                  Navigator.pop(context);
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('Post published successfully!')),
+                                  );
+                                  _fetchPosts();
+                                } else {
+                                  String errMsg = 'Failed to publish post.';
+                                  try {
+                                    final body = jsonDecode(response.body);
+                                    if (body != null && body['message'] != null) {
+                                      errMsg = body['message'].toString();
+                                    }
+                                  } catch (_) {}
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text(errMsg)),
+                                  );
+                                }
+                              } catch (e) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Error uploading post: $e')),
+                                );
+                              } finally {
+                                setSheetState(() => uploading = false);
+                              }
+                            },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFD35400),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: uploading
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                            )
+                          : Text('Publish Post', style: GoogleFonts.poppins(fontWeight: FontWeight.bold)),
+                    ),
+                    const SizedBox(height: 20),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   @override
@@ -195,6 +368,13 @@ class _CommunityFeedScreenState extends ConsumerState<CommunityFeedScreen> with 
           ),
         ],
       ),
+      floatingActionButton: ref.watch(currentUserProvider)?.role == 'admin'
+          ? FloatingActionButton(
+              onPressed: () => _showCreatePostBottomSheet(context),
+              backgroundColor: kSaffron,
+              child: const Icon(Icons.add, color: Colors.white),
+            )
+          : null,
     );
   }
 }

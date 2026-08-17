@@ -489,6 +489,85 @@ app.post('/api/auth/verify-otp', async (req, res) => {
 });
 
 /**
+ * @route   POST /api/auth/admin-login
+ * @desc    Log in as admin using Username and Password
+ * @access  Public
+ */
+app.post('/api/auth/admin-login', async (req, res) => {
+  try {
+    const { username, password } = req.body;
+    const adminUsername = process.env.ADMIN_USERNAME || 'admin';
+    const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
+
+    if (username === adminUsername && password === adminPassword) {
+      let adminUser = await User.findOne({ email: 'admin@kutumbsetu.org' });
+      if (!adminUser) {
+        adminUser = new User({
+          fullName: 'System Admin',
+          email: 'admin@kutumbsetu.org',
+          role: 'admin',
+          isApproved: true,
+        });
+        await adminUser.save();
+      }
+      return res.status(200).json({
+        success: true,
+        user: adminUser,
+      });
+    } else {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid Admin username or password.',
+      });
+    }
+  } catch (error) {
+    console.error('Error in admin-login:', error);
+    return res.status(500).json({ success: false, message: 'Server error logging in admin.' });
+  }
+});
+
+/**
+ * @route   GET /api/admin/pending-users
+ * @desc    Get all users pending approval
+ * @access  Admin
+ */
+app.get('/api/admin/pending-users', async (req, res) => {
+  try {
+    const pendingUsers = await User.find({ isApproved: false, role: 'user' });
+    return res.status(200).json({
+      success: true,
+      users: pendingUsers,
+    });
+  } catch (error) {
+    console.error('Error fetching pending users:', error);
+    return res.status(500).json({ success: false, message: 'Server error fetching pending users.' });
+  }
+});
+
+/**
+ * @route   PATCH /api/admin/approve-user/:id
+ * @desc    Approve a pending user
+ * @access  Admin
+ */
+app.patch('/api/admin/approve-user/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const user = await User.findByIdAndUpdate(id, { isApproved: true }, { new: true });
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found.' });
+    }
+    return res.status(200).json({
+      success: true,
+      message: 'User approved successfully.',
+      user,
+    });
+  } catch (error) {
+    console.error('Error approving user:', error);
+    return res.status(500).json({ success: false, message: 'Server error approving user.' });
+  }
+});
+
+/**
  * @route   POST /api/users/register
  * @desc    Register a new user and create their Profile
  * @access  Public
@@ -755,6 +834,7 @@ app.get('/api/users/profile/:identifier', async (req, res) => {
       nani: profile.nani || '',
       bio: profile.bio || '',
       isDeceased: profile.isDeceased || false,
+      willingToDonateBlood: profile.willingToDonateBlood || false,
     };
 
     return res.status(200).json({ success: true, user: mergedUser });
@@ -797,7 +877,8 @@ app.post('/api/users/profile', async (req, res) => {
       relationshipToHead,
       familyHeadPhone,
       spouseName,
-      isDeceased
+      isDeceased,
+      willingToDonateBlood
     } = req.body;
 
     if (!userId || !gender || !dateOfBirth || !phoneNumber || !city) {
@@ -864,6 +945,7 @@ app.post('/api/users/profile', async (req, res) => {
       familyHeadPhone: familyHeadPhone || '',
       spouseName: spouseName || '',
       isDeceased: isDeceased || false,
+      willingToDonateBlood: willingToDonateBlood === true || willingToDonateBlood === 'true',
     };
 
     if (profile) {
@@ -894,6 +976,8 @@ app.get('/api/users/all', async (req, res) => {
     const profiles = await Profile.find({}).populate('userId');
     const mergedList = profiles.map(p => {
       if (!p.userId) return null;
+      
+      const willing = p.willingToDonateBlood || false;
       return {
         _id: p.userId._id,
         fullName: p.userId.fullName,
@@ -907,7 +991,7 @@ app.get('/api/users/all', async (req, res) => {
         state: p.state,
         occupation: p.profession,
         education: p.qualification + (p.college ? ' (' + p.college + ')' : ''),
-        bloodGroup: p.bloodGroup,
+        bloodGroup: willing ? p.bloodGroup : '',
         profilePhoto: p.profilePhoto,
         familyId: p.familyId,
         relationshipToHead: p.relationshipToHead,
@@ -916,6 +1000,7 @@ app.get('/api/users/all', async (req, res) => {
         familyHeadPhone: p.familyHeadPhone,
         fatherName: p.fatherName,
         isDeceased: p.isDeceased || false,
+        willingToDonateBlood: willing,
       };
     }).filter(Boolean);
 
@@ -1452,7 +1537,7 @@ app.post('/api/matrimonial/profile', async (req, res) => {
   }
 });
 
-// 2. Fetch Matrimonial Profile by User ID (applies masking based on visibility settings)
+// 2. Fetch Matrimonial Profile by User ID (applies masking based on visibility settings / requests)
 app.get('/api/matrimonial/profile/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
@@ -1473,17 +1558,68 @@ app.get('/api/matrimonial/profile/:userId', async (req, res) => {
     doc.emailAddress = userDoc ? userDoc.email : '';
     doc.fullAddressText = userProfile ? (userProfile.address || '') : '';
 
-    // Mask fields if not own profile and visibility settings are disabled
+    // Check connection status
+    let connectionStatus = 'None';
+    if (requesterId) {
+      const requestDoc = await MatrimonialRequest.findOne({
+        $or: [
+          { senderId: requesterId, receiverId: userId },
+          { senderId: userId, receiverId: requesterId }
+        ]
+      });
+      if (requestDoc) {
+        connectionStatus = requestDoc.status;
+      }
+    }
+    doc.connectionStatus = connectionStatus;
+
     const isOwnProfile = requesterId && requesterId.toString() === userId.toString();
-    if (!isOwnProfile) {
-      if (!doc.visibilitySettings || !doc.visibilitySettings.showPhone) {
-        doc.mobileNumber = doc.mobileNumber ? doc.mobileNumber.substring(0, 6) + '••••' : '';
-      }
-      if (!doc.visibilitySettings || !doc.visibilitySettings.showAddress) {
-        doc.fullAddressText = '••••••••••••';
-      }
-      if (!doc.visibilitySettings || !doc.visibilitySettings.showEmail) {
-        doc.emailAddress = '••••@••••.•••';
+    
+    if (!isOwnProfile && connectionStatus !== 'Accepted') {
+      // Clear/Mask all fields except name and basic ids
+      doc.gender = '';
+      doc.dateOfBirth = '';
+      doc.dob = '';
+      doc.heightCm = 0;
+      doc.weightKg = 0;
+      doc.maritalStatus = '';
+      doc.religion = '';
+      doc.caste = '';
+      doc.subCaste = '';
+      doc.gothra = '';
+      doc.motherTongue = '';
+      doc.education = '';
+      doc.occupation = '';
+      doc.company = '';
+      doc.annualIncome = 0;
+      doc.village = '';
+      doc.city = '';
+      doc.workingCountry = '';
+      doc.description = '';
+      doc.partnerExpectations = '';
+      doc.partnerExpectationsHobbies = [];
+      doc.additionalPhotos = [];
+      doc.socialLinks = { showSocialLinks: false, instagramUrl: '', facebookUrl: '' };
+      doc.mobileNumber = '';
+      doc.emailAddress = '';
+      doc.fullAddressText = '';
+      doc.profilePhoto = '';
+      doc.introductionVideo = '';
+      doc.lifestyle = {};
+      doc.partnerPreferences = {};
+      doc.familyInformation = {};
+    } else {
+      // Mask fields based on visibility settings
+      if (!isOwnProfile) {
+        if (!doc.visibilitySettings || !doc.visibilitySettings.showPhone) {
+          doc.mobileNumber = doc.mobileNumber ? doc.mobileNumber.substring(0, 6) + '••••' : '';
+        }
+        if (!doc.visibilitySettings || !doc.visibilitySettings.showAddress) {
+          doc.fullAddressText = '••••••••••••';
+        }
+        if (!doc.visibilitySettings || !doc.visibilitySettings.showEmail) {
+          doc.emailAddress = '••••@••••.•••';
+        }
       }
     }
 
@@ -1500,7 +1636,7 @@ app.get('/api/matrimonial/profiles', async (req, res) => {
     const {
       search, ageMin, ageMax, heightMin, heightMax, village, city,
       occupation, education, incomeMin, incomeMax, maritalStatus, gender,
-      requesterId, page = 1, limit = 10
+      requesterId, page = 1, limit = 10, weightMin, weightMax, workLocation
     } = req.query;
 
     const query = { profileStatus: 'Approved' };
@@ -1528,6 +1664,16 @@ app.get('/api/matrimonial/profiles', async (req, res) => {
       query.heightCm = {};
       if (heightMin) query.heightCm.$gte = parseInt(heightMin);
       if (heightMax) query.heightCm.$lte = parseInt(heightMax);
+    }
+
+    if (weightMin || weightMax) {
+      query.weightKg = {};
+      if (weightMin) query.weightKg.$gte = parseInt(weightMin);
+      if (weightMax) query.weightKg.$lte = parseInt(weightMax);
+    }
+
+    if (workLocation) {
+      query.workingCountry = new RegExp(workLocation, 'i');
     }
 
     if (incomeMin || incomeMax) {
@@ -1570,6 +1716,36 @@ app.get('/api/matrimonial/profiles', async (req, res) => {
       }
     }
 
+    // Fetch accepted connection requests once for masking logic
+    let acceptedUserIds = new Set();
+    let sentReqMap = {};
+    if (requesterId) {
+      const acceptedReqDocs = await MatrimonialRequest.find({
+        status: 'Accepted',
+        $or: [
+          { senderId: requesterId },
+          { receiverId: requesterId }
+        ]
+      });
+      acceptedReqDocs.forEach(reqDoc => {
+        acceptedUserIds.add(reqDoc.senderId.toString());
+        acceptedUserIds.add(reqDoc.receiverId.toString());
+      });
+
+      const allUserReqs = await MatrimonialRequest.find({
+        $or: [
+          { senderId: requesterId },
+          { receiverId: requesterId }
+        ]
+      });
+      allUserReqs.forEach(reqDoc => {
+        const otherId = reqDoc.senderId.toString() === requesterId.toString() 
+          ? reqDoc.receiverId.toString() 
+          : reqDoc.senderId.toString();
+        sentReqMap[otherId] = reqDoc.status;
+      });
+    }
+
     const listWithMatch = profiles.map(p => {
       const doc = p.toObject();
       doc.age = calculateAge(doc.dob);
@@ -1599,6 +1775,47 @@ app.get('/api/matrimonial/profiles', async (req, res) => {
         }
       }
       doc.match = Math.min(Math.max(matchScore, 50), 98); // clamp between 50 and 98
+
+      // Apply Request-based detail masking
+      const uIdStr = doc.userId ? doc.userId.toString() : '';
+      const isOwnProfile = requesterId && requesterId.toString() === uIdStr;
+      const isAccepted = isOwnProfile || (requesterId && acceptedUserIds.has(uIdStr));
+      doc.connectionStatus = sentReqMap[uIdStr] || 'None';
+
+      if (!isOwnProfile && !isAccepted) {
+        doc.gender = '';
+        doc.dateOfBirth = '';
+        doc.dob = '';
+        doc.heightCm = 0;
+        doc.weightKg = 0;
+        doc.maritalStatus = '';
+        doc.religion = '';
+        doc.caste = '';
+        doc.subCaste = '';
+        doc.gothra = '';
+        doc.motherTongue = '';
+        doc.education = '';
+        doc.occupation = '';
+        doc.company = '';
+        doc.annualIncome = 0;
+        doc.village = '';
+        doc.city = '';
+        doc.workingCountry = '';
+        doc.description = '';
+        doc.partnerExpectations = '';
+        doc.partnerExpectationsHobbies = [];
+        doc.additionalPhotos = [];
+        doc.socialLinks = { showSocialLinks: false, instagramUrl: '', facebookUrl: '' };
+        doc.mobileNumber = '';
+        doc.emailAddress = '';
+        doc.fullAddressText = '';
+        doc.profilePhoto = '';
+        doc.introductionVideo = '';
+        doc.lifestyle = {};
+        doc.partnerPreferences = {};
+        doc.familyInformation = {};
+      }
+
       return doc;
     });
 

@@ -224,10 +224,7 @@ Contact: ${member.mobileNumber}
                   );
                 },
               ),
-              IconButton(
-                icon: const Icon(Icons.share, color: Colors.white),
-                onPressed: () => _shareProfile(context, m),
-              ),
+              const SizedBox(),
             ],
             flexibleSpace: FlexibleSpaceBar(
               background: Container(
@@ -313,23 +310,13 @@ Contact: ${member.mobileNumber}
                     ),
 
                     const SizedBox(height: 6),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(
-                          Icons.location_on_outlined,
-                          size: 14,
-                          color: Colors.white60,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          m.fullLocation,
-                          style: const TextStyle(
-                            fontSize: 13,
-                            color: Colors.white70,
-                          ),
-                        ),
-                      ],
+                    Text(
+                      'Age: ${m.age} • Gender: ${m.gender}',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: Colors.white70,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ],
                 ),
@@ -343,59 +330,7 @@ Contact: ${member.mobileNumber}
               padding: const EdgeInsets.all(16.0),
               child: Column(
                 children: [
-                  // Action Toolbar (Call, WhatsApp, Email, Share)
-                  Card(
-                    elevation: 0,
-                    color: isDark ? AppColors.cardDark : AppColors.cardLight,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                      side: BorderSide(
-                        color: isDark
-                            ? AppColors.borderDark
-                            : AppColors.borderLight,
-                      ),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                          vertical: 12, horizontal: 8),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          ProfileActionButton(
-                            icon: Icons.phone_in_talk,
-                            label: 'Call',
-                            color: AppColors.accentBlue,
-                            backgroundColor: AppColors.accentBlue
-                                .withValues(alpha: 0.1),
-                            isFilled: true,
-                            onTap: () => _makeCall(context, m.mobileNumber),
-                          ),
-                          ProfileActionButton(
-                            icon: Icons.chat_outlined,
-                            label: 'WhatsApp',
-                            color: AppColors.whatsappGreen,
-                            backgroundColor: AppColors.whatsappGreen
-                                .withValues(alpha: 0.1),
-                            isFilled: true,
-                            onTap: () => _sendMessage(context, m),
-                          ),
-                          ProfileActionButton(
-                            icon: Icons.email_outlined,
-                            label: 'Email',
-                            color: isDark
-                                ? AppColors.lightBlue
-                                : AppColors.primaryBlue,
-                            backgroundColor: isDark
-                                ? AppColors.bgDark
-                                : AppColors.bgLight,
-                            onTap: () => _sendEmail(context, m.email),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 16),
+                  const SizedBox(),
 
                   // 1. Professional & Business Details Card
                   _buildSectionCard(
@@ -410,33 +345,16 @@ Contact: ${member.mobileNumber}
                     ],
                   ),
 
-                  const SizedBox(height: 16),
+                  const SizedBox(),
 
-                  // 2. Location & Address Card
-                  _buildSectionCard(
-                    context,
-                    title: 'Location & Address',
-                    icon: Icons.map_outlined,
-                    children: [
-                      _buildInfoRow(context, 'Native Village', m.village),
-                      _buildInfoRow(context, 'Current City', m.city),
-                      _buildInfoRow(context, 'District', m.district),
-                      _buildInfoRow(context, 'State', m.state),
-                    ],
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  // 3. Personal & Contact Info Card
+                  // 3. Personal Information Card
                   _buildSectionCard(
                     context,
                     title: 'Personal Information',
                     icon: Icons.person_outline_rounded,
                     children: [
-                      _buildInfoRow(context, 'Mobile Number', m.mobileNumber),
-                      _buildInfoRow(context, 'Email Address', m.email),
-                      _buildInfoRow(context, 'Blood Group', m.bloodGroup,
-                          isHighlight: true),
+                      if (m.bloodGroup.isNotEmpty)
+                        _buildInfoRow(context, 'Blood Group', m.bloodGroup, isHighlight: true),
                       _buildInfoRow(context, 'Age & Gender', '${m.age} years • ${m.gender}'),
                       _buildInfoRow(context, 'Marital Status', m.maritalStatus),
                       _buildInfoRow(context, 'Joined Date', m.joinedDate),

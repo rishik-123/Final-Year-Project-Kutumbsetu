@@ -393,6 +393,7 @@ class _ProfileCompletionScreenState extends ConsumerState<ProfileCompletionScree
         
         final bg = user.bloodGroup.trim().toUpperCase();
         _bloodGroup = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].contains(bg) ? bg : 'B+';
+        _willingToDonateBlood = user.willingToDonateBlood;
         
         _villageController.text = user.nativePlace;
         _cityController.text = user.city;
@@ -421,6 +422,7 @@ class _ProfileCompletionScreenState extends ConsumerState<ProfileCompletionScree
   final _phoneController = TextEditingController();
   String _profilePhoto = 'avatar_male_1';
   String _bloodGroup = 'B+';
+  bool _willingToDonateBlood = false;
 
   // Address
   final _villageController = TextEditingController();
@@ -534,6 +536,7 @@ class _ProfileCompletionScreenState extends ConsumerState<ProfileCompletionScree
       'profilePhoto': _profilePhoto,
       'profilePhotoBase64': profilePhotoBase64,
       'bloodGroup': _bloodGroup,
+      'willingToDonateBlood': _willingToDonateBlood,
       'village': _villageController.text.trim(),
       'city': _cityController.text.trim(),
       'state': _stateController.text.trim(),
@@ -662,12 +665,11 @@ class _ProfileCompletionScreenState extends ConsumerState<ProfileCompletionScree
                     ),
                     const SizedBox(height: 12),
 
-                    // If profile is complete, show social upload shortcuts
-                    if (ref.watch(currentUserProvider)?.phoneNumber.isNotEmpty == true &&
-                        ref.watch(currentUserProvider)?.city.isNotEmpty == true) ...[
+                    // If user is admin, show post upload shortcut
+                    if (ref.watch(currentUserProvider)?.role == 'admin') ...[
                       const SizedBox(height: 12),
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           ElevatedButton.icon(
                             onPressed: () => _showCreatePostBottomSheet(context),
@@ -676,18 +678,7 @@ class _ProfileCompletionScreenState extends ConsumerState<ProfileCompletionScree
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFFD35400),
                               foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            ),
-                          ),
-                          ElevatedButton.icon(
-                            onPressed: () => _showCreateReelBottomSheet(context),
-                            icon: const Icon(Icons.video_call_rounded, color: Colors.white),
-                            label: Text('Create Reel', style: GoogleFonts.poppins(fontWeight: FontWeight.bold)),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF0288D1),
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                             ),
                           ),
@@ -823,6 +814,18 @@ class _ProfileCompletionScreenState extends ConsumerState<ProfileCompletionScree
                             _bloodGroup = val;
                           });
                         }
+                      },
+                    ),
+                    const SizedBox(height: 8),
+                    CheckboxListTile(
+                      title: const Text('Willing to donate blood for campaigns'),
+                      subtitle: const Text('Show blood group in directory for blood donation campaigns'),
+                      value: _willingToDonateBlood,
+                      activeColor: const Color(0xFFD35400),
+                      onChanged: (val) {
+                        setState(() {
+                          _willingToDonateBlood = val ?? false;
+                        });
                       },
                     ),
 

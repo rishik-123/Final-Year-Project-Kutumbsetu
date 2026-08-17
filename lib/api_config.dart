@@ -11,7 +11,7 @@ class ApiConfig {
   /// (which allows connecting even when your device is on mobile data or a different network),
   /// enter the public URL here (e.g., 'https://xxxx-xx-xx-xx.ngrok-free.app').
   /// Leave empty to use local network/emulator detection.
-  static const String publicTunnelUrl = '';
+  static const String publicTunnelUrl = 'https://final-year-project-kutumbsetu.onrender.com';
 
   /// Alternatively, enter your computer's local Wi-Fi IP address here (e.g., '192.168.1.15')
   /// if your physical device is connected to the same Wi-Fi network.

@@ -670,19 +670,6 @@ app.post('/api/users/register', async (req, res) => {
       }
     }
 
-    let sanitizedPhone = '';
-    if (phoneNumber) {
-      sanitizedPhone = phoneNumber.replace(/\s+/g, '').trim();
-      // Check duplicate phone number in active profiles
-      const Profile = require('./models/Profile');
-      const existingProfile = await Profile.findOne({ phoneNumber: sanitizedPhone });
-      if (existingProfile) {
-        return res.status(400).json({
-          success: false,
-          message: 'Phone number already registered. Please login or use a different number.',
-        });
-      }
-    }
 
     // Create and save new user record
     const newUser = new User({

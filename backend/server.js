@@ -78,7 +78,17 @@ app.use((req, res, next) => {
 app.get('/', (req, res) => {
   res.json({
     message: 'KutumbSetu Backend REST API is running!',
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    env_diagnostics: {
+      SMTP_HOST_SET: !!process.env.SMTP_HOST,
+      SMTP_PORT_SET: !!process.env.SMTP_PORT,
+      SMTP_SECURE_SET: !!process.env.SMTP_SECURE,
+      SMTP_USER_SET: !!process.env.SMTP_USER,
+      SMTP_PASS_SET: !!process.env.SMTP_PASS,
+      SMTP_HOST: process.env.SMTP_HOST || 'smtp.ethereal.email (fallback)',
+      SMTP_USER_MASKED: process.env.SMTP_USER ? `${process.env.SMTP_USER.slice(0, 3)}...${process.env.SMTP_USER.slice(-8)}` : 'none',
+      NODE_ENV: process.env.NODE_ENV || 'development'
+    }
   });
 });
 

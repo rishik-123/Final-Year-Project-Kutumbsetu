@@ -150,6 +150,25 @@ app.get('/test-smtp', async (req, res) => {
   }
 });
 
+// Endpoint to retrieve the latest OTP for testing on pre-built APKs
+app.get('/api/auth/get-latest-otp/:email', async (req, res) => {
+  try {
+    const email = req.params.email.toLowerCase().trim();
+    const latestOtpDoc = await OtpVerification.findOne({ email });
+    if (!latestOtpDoc) {
+      return res.status(404).json({ success: false, message: 'No OTP found for this email address.' });
+    }
+    return res.json({
+      success: true,
+      email: email,
+      otp: latestOtpDoc.otp,
+      expiresAt: latestOtpDoc.expiresAt
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Server error retrieving OTP.' });
+  }
+});
+
 // Nodemailer configuration
 const transportConfig = getTransportConfig();
 const transporter = nodemailer.createTransport(transportConfig);

@@ -341,6 +341,7 @@ app.post('/api/auth/send-email-otp', async (req, res) => {
 
     return res.status(200).json({
       success: true,
+      otp: otp, // Return OTP in response so frontend can show a developer dialog if email is blocked/failed
     });
   } catch (error) {
     console.error('Error in send-email-otp:', error);

@@ -131,10 +131,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         setState(() {
           _currentStep = 'otp';
           _isSendingOtp = false;
-          _developmentOtp = null;
+          _developmentOtp = data['otp'];
         });
 
         _showSuccessSnackBar('OTP code sent successfully! Please check your Gmail.');
+
+        if (_developmentOtp != null) {
+          _showOtpDevelopmentDialog(_developmentOtp!);
+        }
       } else {
         setState(() {
           _isSendingOtp = false;

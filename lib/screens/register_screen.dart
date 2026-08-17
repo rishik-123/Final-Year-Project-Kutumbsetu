@@ -144,7 +144,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         setState(() {
           _isOtpSent = true;
           _isSendingOtp = false;
-          _developmentOtp = null;
+          _developmentOtp = data['otp'];
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
@@ -155,6 +155,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
         );
+
+        if (_developmentOtp != null) {
+          _showOtpDevelopmentDialog(_developmentOtp!);
+        }
       } else {
         setState(() {
           _isSendingOtp = false;

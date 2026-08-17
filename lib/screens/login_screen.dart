@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../api_config.dart';
 import '../providers/theme_provider.dart';
 import '../providers/auth_provider.dart';
+import '../models/user_model.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -463,13 +464,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   prefixIcon: const Icon(Icons.lock_clock_outlined),
                                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                                 ),
-                                child: _isVerifyingOtp
-                                    ? const SizedBox(
-                                        height: 20,
-                                        width: 20,
-                                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                                      )
-                                    : Text('Verify & Log In', style: GoogleFonts.poppins(fontWeight: FontWeight.bold)),
                               ),
                               const SizedBox(height: 8),
                               Row(

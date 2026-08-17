@@ -74,6 +74,14 @@ app.use((req, res, next) => {
   next();
 });
 
+// Welcome root route
+app.get('/', (req, res) => {
+  res.json({
+    message: 'KutumbSetu Backend REST API is running!',
+    timestamp: new Date().toISOString()
+  });
+});
+
 // Nodemailer configuration
 const isGmail = (process.env.SMTP_HOST || '').includes('gmail.com');
 const transportConfig = isGmail

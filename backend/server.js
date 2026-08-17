@@ -74,108 +74,41 @@ app.use((req, res, next) => {
   next();
 });
 
-// Welcome root route
-app.get('/', (req, res) => {
-  res.json({
-    message: 'KutumbSetu Backend REST API is running!',
-    timestamp: new Date().toISOString(),
-    env_diagnostics: {
-      SMTP_HOST_SET: !!process.env.SMTP_HOST,
-      SMTP_PORT_SET: !!process.env.SMTP_PORT,
-      SMTP_SECURE_SET: !!process.env.SMTP_SECURE,
-      SMTP_USER_SET: !!process.env.SMTP_USER,
-      SMTP_PASS_SET: !!process.env.SMTP_PASS,
-      SMTP_HOST: process.env.SMTP_HOST || 'smtp.ethereal.email (fallback)',
-      SMTP_PORT: process.env.SMTP_PORT || 'not-set',
-      SMTP_SECURE: process.env.SMTP_SECURE || 'not-set',
-      SMTP_USER_MASKED: process.env.SMTP_USER ? `${process.env.SMTP_USER.slice(0, 3)}...${process.env.SMTP_USER.slice(-8)}` : 'none',
-      NODE_ENV: process.env.NODE_ENV || 'development'
-    }
-  });
-});
-
-// Helper to build transport configuration dynamically from environment variables
-const getTransportConfig = () => {
-  const isGmail = (process.env.SMTP_HOST || '').includes('gmail.com');
-  // Default to secure SSL port 465 for Gmail on production servers to prevent port 587 blockages
-  const defaultPort = isGmail ? 465 : 587;
-  const port = parseInt(process.env.SMTP_PORT || defaultPort);
-  const secure = process.env.SMTP_SECURE === 'true' || port === 465;
-
-  return {
-    host: process.env.SMTP_HOST || 'smtp.ethereal.email',
-    port: port,
-    secure: secure,
-    auth: {
-      user: process.env.SMTP_USER || 'test@ethereal.email',
-      pass: process.env.SMTP_PASS || 'testpassword',
-    },
-    tls: {
-      rejectUnauthorized: false,
-      minVersion: 'TLSv1.2',
-    },
-  };
-};
-
-// Test SMTP connection and return direct error message
-app.get('/test-smtp', async (req, res) => {
-  try {
-    const transportConfig = getTransportConfig();
-    const testTransporter = nodemailer.createTransport(transportConfig);
-    await testTransporter.verify();
-    return res.json({
-      success: true,
-      message: 'SMTP connection verified successfully!',
-      configUsed: {
-        host: transportConfig.host,
-        port: transportConfig.port,
-        secure: transportConfig.secure,
-        user: transportConfig.auth.user ? `${transportConfig.auth.user.slice(0, 3)}...${transportConfig.auth.user.slice(-8)}` : 'none'
-      }
-    });
-  } catch (err) {
-    return res.status(500).json({
-      success: false,
-      message: 'SMTP connection failed',
-      error: err.message,
-      code: err.code,
-      command: err.command,
-      configAttempted: {
-        host: process.env.SMTP_HOST || 'not-set',
-        port: process.env.SMTP_PORT || 'not-set',
-        secure: process.env.SMTP_SECURE || 'not-set'
-      },
-      stack: err.stack
-    });
-  }
-});
-
-// Endpoint to retrieve the latest OTP for testing on pre-built APKs
-app.get('/api/auth/get-latest-otp/:email', async (req, res) => {
-  try {
-    const email = req.params.email.toLowerCase().trim();
-    const latestOtpDoc = await OtpVerification.findOne({ email });
-    if (!latestOtpDoc) {
-      return res.status(404).json({ success: false, message: 'No OTP found for this email address.' });
-    }
-    return res.json({
-      success: true,
-      email: email,
-      otp: latestOtpDoc.otp,
-      expiresAt: latestOtpDoc.expiresAt
-    });
-  } catch (error) {
-    return res.status(500).json({ success: false, message: 'Server error retrieving OTP.' });
-  }
-});
-
 // Nodemailer configuration
-const transportConfig = getTransportConfig();
+const isGmail = (process.env.SMTP_HOST || '').includes('gmail.com');
+const transportConfig = isGmail
+  ? {
+      host: 'smtp.gmail.com',
+      port: 587,
+      secure: false,
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+      },
+      tls: {
+        rejectUnauthorized: false,
+        minVersion: 'TLSv1.2',
+      },
+    }
+  : {
+      host: process.env.SMTP_HOST || 'smtp.ethereal.email',
+      port: parseInt(process.env.SMTP_PORT || '587'),
+      secure: process.env.SMTP_SECURE === 'true',
+      auth: {
+        user: process.env.SMTP_USER || 'test@ethereal.email',
+        pass: process.env.SMTP_PASS || 'testpassword',
+      },
+    };
+
 const transporter = nodemailer.createTransport(transportConfig);
 
 // Helper: Send OTP Email
 const sendOtpEmail = (email, name, otp) => {
-  const emailHtml = `
+  const mailOptions = {
+    from: '"KutumbSetu Portal" <no-reply@kutumbsetu.org>',
+    to: email.toLowerCase().trim(),
+    subject: 'KutumbSetu - Your Email Verification OTP',
+    html: `
       <div style="font-family: 'Poppins', 'Inter', sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
         <!-- Saffron Top Banner -->
         <div style="background: linear-gradient(135deg, #e67e22, #1b4f72); padding: 24px; text-align: center; color: #ffffff;">
@@ -207,67 +140,16 @@ const sendOtpEmail = (email, name, otp) => {
           © 2026 KutumbSetu Community Management System. All rights reserved.
         </div>
       </div>
-    `;
+    `,
+  };
 
-  const resendApiKey = process.env.RESEND_API_KEY;
-
-  if (resendApiKey) {
-    // Send email using Resend API over HTTPS (Bypasses Render's port blockage)
-    const https = require('https');
-    
-    const postData = JSON.stringify({
-      from: 'KutumbSetu <onboarding@resend.dev>',
-      to: email.toLowerCase().trim(),
-      subject: 'KutumbSetu - Your Email Verification OTP',
-      html: emailHtml
-    });
-
-    const options = {
-      hostname: 'api.resend.com',
-      path: '/emails',
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${resendApiKey}`,
-        'Content-Length': Buffer.byteLength(postData)
-      }
-    };
-
-    const req = https.request(options, (res) => {
-      let data = '';
-      res.on('data', (chunk) => { data += chunk; });
-      res.on('end', () => {
-        if (res.statusCode === 200 || res.statusCode === 201) {
-          console.log(`[Resend SUCCESS] OTP email sent to ${email} (StatusCode: ${res.statusCode})`);
-        } else {
-          console.error(`[Resend ERROR] Failed to send email (StatusCode: ${res.statusCode}):`, data);
-        }
-      });
-    });
-
-    req.on('error', (e) => {
-      console.error('[Resend Request Error] Failed to send email:', e);
-    });
-
-    req.write(postData);
-    req.end();
-  } else {
-    // Fallback to standard SMTP Nodemailer config (Local testing)
-    const mailOptions = {
-      from: '"KutumbSetu Portal" <no-reply@kutumbsetu.org>',
-      to: email.toLowerCase().trim(),
-      subject: 'KutumbSetu - Your Email Verification OTP',
-      html: emailHtml
-    };
-
-    transporter.sendMail(mailOptions, (error, info) => {
-      if (error) {
-        console.error(`[Nodemailer ERROR] Failed to send OTP to ${email}:`, error);
-      } else {
-        console.log(`[Nodemailer SUCCESS] OTP email sent to ${email}: ${info.messageId}`);
-      }
-    });
-  }
+  transporter.sendMail(mailOptions, (error, info) => {
+    if (error) {
+      console.error(`[Nodemailer ERROR] Failed to send OTP to ${email}:`, error);
+    } else {
+      console.log(`[Nodemailer SUCCESS] OTP email sent to ${email}: ${info.messageId}`);
+    }
+  });
 };
 
 // Configure Multer for File Uploads
@@ -407,7 +289,6 @@ app.post('/api/auth/send-email-otp', async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      otp: otp, // Return OTP in response so frontend can show a developer dialog if email is blocked/failed
     });
   } catch (error) {
     console.error('Error in send-email-otp:', error);
@@ -789,6 +670,19 @@ app.post('/api/users/register', async (req, res) => {
       }
     }
 
+    let sanitizedPhone = '';
+    if (phoneNumber) {
+      sanitizedPhone = phoneNumber.replace(/\s+/g, '').trim();
+      // Check duplicate phone number in active profiles
+      const Profile = require('./models/Profile');
+      const existingProfile = await Profile.findOne({ phoneNumber: sanitizedPhone });
+      if (existingProfile) {
+        return res.status(400).json({
+          success: false,
+          message: 'Phone number already registered. Please login or use a different number.',
+        });
+      }
+    }
 
     // Create and save new user record
     const newUser = new User({

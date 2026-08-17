@@ -765,22 +765,18 @@ class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
           top: 195,
           child: Tooltip(
             message: 'Shift focus upwards',
-            child: Material(
+            child: CircleAvatar(
+              radius: 18,
+              backgroundColor: Colors.white,
               elevation: 4,
-              type: MaterialType.circle,
-              color: Colors.white,
-              child: CircleAvatar(
-                radius: 18,
-                backgroundColor: Colors.white,
-                child: IconButton(
-                  padding: EdgeInsets.zero,
-                  icon: const Icon(Icons.arrow_upward_rounded, color: Color(0xFFD35400), size: 18),
-                  onPressed: () {
-                    setState(() {
-                      _focalNode = fatherNode ?? motherNode;
-                    });
-                  },
-                ),
+              child: IconButton(
+                padding: EdgeInsets.zero,
+                icon: const Icon(Icons.arrow_upward_rounded, color: Color(0xFFD35400), size: 18),
+                onPressed: () {
+                  setState(() {
+                    _focalNode = fatherNode ?? motherNode;
+                  });
+                },
               ),
             ),
           ),
@@ -796,22 +792,18 @@ class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
           top: 360,
           child: Tooltip(
             message: 'Shift focus downwards',
-            child: Material(
+            child: CircleAvatar(
+              radius: 18,
+              backgroundColor: Colors.white,
               elevation: 4,
-              type: MaterialType.circle,
-              color: Colors.white,
-              child: CircleAvatar(
-                radius: 18,
-                backgroundColor: Colors.white,
-                child: IconButton(
-                  padding: EdgeInsets.zero,
-                  icon: const Icon(Icons.arrow_downward_rounded, color: Color(0xFFD35400), size: 18),
-                  onPressed: () {
-                    setState(() {
-                      _focalNode = childrenNodes.first;
-                    });
-                  },
-                ),
+              child: IconButton(
+                padding: EdgeInsets.zero,
+                icon: const Icon(Icons.arrow_downward_rounded, color: Color(0xFFD35400), size: 18),
+                onPressed: () {
+                  setState(() {
+                    _focalNode = childrenNodes.first;
+                  });
+                },
               ),
             ),
           ),

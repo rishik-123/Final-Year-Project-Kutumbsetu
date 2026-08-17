@@ -460,8 +460,8 @@ class _MatrimonialProfileDetailScreenState extends ConsumerState<MatrimonialProf
                                           ),
                                         ),
                                       ),
-                                    if ((p.socialLinks['instagramUrl']?.toString().isNotEmpty ?? false) &&
-                                        (p.socialLinks['facebookUrl']?.toString().isNotEmpty ?? false))
+                                    if (p.socialLinks['instagramUrl']?.toString().isNotEmpty ?? false &&
+                                        p.socialLinks['facebookUrl']?.toString().isNotEmpty ?? false)
                                       const SizedBox(width: 12),
                                     if (p.socialLinks['facebookUrl']?.toString().isNotEmpty ?? false)
                                       Expanded(

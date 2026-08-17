@@ -745,7 +745,7 @@ class _MatrimonialBiodataScreenState extends ConsumerState<MatrimonialBiodataScr
                       width: 90,
                       margin: const EdgeInsets.only(right: 12),
                       decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey.shade400, style: BorderStyle.solid),
+                        border: Border.all(color: Colors.grey.shade400, style: BorderStyle.dashed),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: const Icon(Icons.add_a_photo_rounded, color: Colors.grey),

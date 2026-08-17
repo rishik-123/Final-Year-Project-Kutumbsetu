@@ -86,44 +86,52 @@ app.get('/', (req, res) => {
       SMTP_USER_SET: !!process.env.SMTP_USER,
       SMTP_PASS_SET: !!process.env.SMTP_PASS,
       SMTP_HOST: process.env.SMTP_HOST || 'smtp.ethereal.email (fallback)',
+      SMTP_PORT: process.env.SMTP_PORT || 'not-set',
+      SMTP_SECURE: process.env.SMTP_SECURE || 'not-set',
       SMTP_USER_MASKED: process.env.SMTP_USER ? `${process.env.SMTP_USER.slice(0, 3)}...${process.env.SMTP_USER.slice(-8)}` : 'none',
       NODE_ENV: process.env.NODE_ENV || 'development'
     }
   });
 });
 
+// Helper to build transport configuration dynamically from environment variables
+const getTransportConfig = () => {
+  const isGmail = (process.env.SMTP_HOST || '').includes('gmail.com');
+  // Default to secure SSL port 465 for Gmail on production servers to prevent port 587 blockages
+  const defaultPort = isGmail ? 465 : 587;
+  const port = parseInt(process.env.SMTP_PORT || defaultPort);
+  const secure = process.env.SMTP_SECURE === 'true' || port === 465;
+
+  return {
+    host: process.env.SMTP_HOST || 'smtp.ethereal.email',
+    port: port,
+    secure: secure,
+    auth: {
+      user: process.env.SMTP_USER || 'test@ethereal.email',
+      pass: process.env.SMTP_PASS || 'testpassword',
+    },
+    tls: {
+      rejectUnauthorized: false,
+      minVersion: 'TLSv1.2',
+    },
+  };
+};
+
 // Test SMTP connection and return direct error message
 app.get('/test-smtp', async (req, res) => {
   try {
-    const isGmail = (process.env.SMTP_HOST || '').includes('gmail.com');
-    const transportConfig = isGmail
-      ? {
-          host: 'smtp.gmail.com',
-          port: 587,
-          secure: false,
-          auth: {
-            user: process.env.SMTP_USER,
-            pass: process.env.SMTP_PASS,
-          },
-          tls: {
-            rejectUnauthorized: false,
-            minVersion: 'TLSv1.2',
-          },
-        }
-      : {
-          host: process.env.SMTP_HOST || 'smtp.ethereal.email',
-          port: parseInt(process.env.SMTP_PORT || '587'),
-          secure: process.env.SMTP_SECURE === 'true',
-          auth: {
-            user: process.env.SMTP_USER || 'test@ethereal.email',
-            pass: process.env.SMTP_PASS || 'testpassword',
-          },
-        };
+    const transportConfig = getTransportConfig();
     const testTransporter = nodemailer.createTransport(transportConfig);
     await testTransporter.verify();
     return res.json({
       success: true,
-      message: 'SMTP connection verified successfully!'
+      message: 'SMTP connection verified successfully!',
+      configUsed: {
+        host: transportConfig.host,
+        port: transportConfig.port,
+        secure: transportConfig.secure,
+        user: transportConfig.auth.user ? `${transportConfig.auth.user.slice(0, 3)}...${transportConfig.auth.user.slice(-8)}` : 'none'
+      }
     });
   } catch (err) {
     return res.status(500).json({
@@ -132,37 +140,18 @@ app.get('/test-smtp', async (req, res) => {
       error: err.message,
       code: err.code,
       command: err.command,
+      configAttempted: {
+        host: process.env.SMTP_HOST || 'not-set',
+        port: process.env.SMTP_PORT || 'not-set',
+        secure: process.env.SMTP_SECURE || 'not-set'
+      },
       stack: err.stack
     });
   }
 });
 
 // Nodemailer configuration
-const isGmail = (process.env.SMTP_HOST || '').includes('gmail.com');
-const transportConfig = isGmail
-  ? {
-      host: 'smtp.gmail.com',
-      port: 587,
-      secure: false,
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      },
-      tls: {
-        rejectUnauthorized: false,
-        minVersion: 'TLSv1.2',
-      },
-    }
-  : {
-      host: process.env.SMTP_HOST || 'smtp.ethereal.email',
-      port: parseInt(process.env.SMTP_PORT || '587'),
-      secure: process.env.SMTP_SECURE === 'true',
-      auth: {
-        user: process.env.SMTP_USER || 'test@ethereal.email',
-        pass: process.env.SMTP_PASS || 'testpassword',
-      },
-    };
-
+const transportConfig = getTransportConfig();
 const transporter = nodemailer.createTransport(transportConfig);
 
 // Helper: Send OTP Email

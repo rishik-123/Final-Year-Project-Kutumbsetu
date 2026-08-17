@@ -1,6 +1,8 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../constants/app_colors.dart';
@@ -13,6 +15,7 @@ import 'profile_completion_screen.dart';
 import '../community/community_feed.dart';
 import 'package:http/http.dart' as http;
 import '../api_config.dart';
+import '../widgets/admin_user_approvals_widget.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -24,11 +27,33 @@ class HomeScreen extends ConsumerStatefulWidget {
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   int _currentIndex = 0;
   final PageController _newsPageController = PageController();
+  final ScrollController _birthdayScrollController = ScrollController();
   int _activeNewsIndex = 0;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Future.delayed(const Duration(milliseconds: 600), () {
+        if (mounted && _birthdayScrollController.hasClients) {
+          final maxScroll = _birthdayScrollController.position.maxScrollExtent;
+          if (maxScroll > 0) {
+            _birthdayScrollController.animateTo(
+              maxScroll,
+              duration: const Duration(seconds: 10),
+              curve: Curves.linear,
+            );
+          }
+        }
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _newsPageController.dispose();
+    _birthdayScrollController.dispose();
+    super.dispose();
   }
 
   bool _showLanguageToggle = false;
@@ -44,6 +69,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     'Events': 'કાર્યક્રમો',
     'Donations': 'દાન',
     'News': 'સમાચાર',
+    'Community Hub': 'સમાજ હબ',
     'Business': 'વ્યવસાય',
     'More': 'વધુ',
     'Birthdays today 🎂': 'આજના જન્મદિવસ 🎂',
@@ -549,8 +575,11 @@ Contact: ${user.phoneNumber}
       motherName: 'Savitaben',
       spouseName: 'Priyaben',
       familyHeadPhone: '+919825010042',
+      grandfather: 'Manilalbhai',
+      grandmother: 'Maniben',
+      nana: 'Nanabhai',
+      nani: 'Naniben',
     );
-
     final isDark = ref.watch(themeModeProvider) == ThemeMode.dark;
 
     final bgGradient = LinearGradient(
@@ -567,6 +596,67 @@ Contact: ${user.phoneNumber}
       end: Alignment.bottomCenter,
     );
 
+    // If user is not admin and not approved, block navigation
+    if (user.role != 'admin' && !user.isApproved) {
+      return Scaffold(
+        body: Container(
+          decoration: BoxDecoration(gradient: bgGradient),
+          child: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.admin_panel_settings_outlined,
+                    size: 80,
+                    color: Color(0xFFE67E22),
+                  ),
+                  const SizedBox(height: 24),
+                  Text(
+                    'Request Sent to Admin!',
+                    style: GoogleFonts.poppins(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? Colors.white : Colors.black87,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'You will be able to navigate the app once the Admin accepts your request.',
+                    style: GoogleFonts.inter(
+                      fontSize: 14,
+                      color: Colors.grey.shade600,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 48),
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      ref.read(currentUserProvider.notifier).state = null;
+                      context.go('/');
+                    },
+                    icon: const Icon(Icons.logout_rounded),
+                    label: const Text('Back to Login'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFE67E22),
+                      foregroundColor: Colors.white,
+                      minimumSize: const Size(200, 48),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: Container(
@@ -581,11 +671,11 @@ Contact: ${user.phoneNumber}
                   const FamilyTreeScreen(),
                   const MatrimonialHubScreen(),
                   const CommunityFeedScreen(),
-                  const ProfileCompletionScreen(),
+                  user.role == 'admin' ? const AdminUserApprovalsWidget() : const ProfileCompletionScreen(),
                 ],
               ),
             ),
-            _buildBottomNavBar(isDark),
+            _buildBottomNavBar(isDark, user),
           ],
         ),
       ),
@@ -823,6 +913,24 @@ Contact: ${user.phoneNumber}
                   const SizedBox(width: 8),
                   GestureDetector(
                     onTap: () {
+                      ref.read(themeModeProvider.notifier).toggleTheme();
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white.withValues(alpha: 0.15),
+                      ),
+                      child: Icon(
+                        isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+                        color: Colors.amberAccent,
+                        size: 20,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: () {
                       setState(() {
                         _currentIndex = 4;
                       });
@@ -843,41 +951,49 @@ Contact: ${user.phoneNumber}
           const SizedBox(height: 20),
 
           // Search Bar
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            height: 50,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(25),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.search_rounded, color: Color(0xFF2E86C1), size: 20),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: TextField(
-                    decoration: InputDecoration(
-                      hintText: 'Search families, villages, members...',
-                      hintStyle: GoogleFonts.inter(
-                        color: Colors.grey.shade500,
-                        fontSize: 14,
-                      ),
-                      border: InputBorder.none,
-                      enabledBorder: InputBorder.none,
-                      focusedBorder: InputBorder.none,
-                      contentPadding: EdgeInsets.zero,
+          Builder(
+            builder: (context) {
+              final isDark = Theme.of(context).brightness == Brightness.dark;
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                height: 50,
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                  borderRadius: BorderRadius.circular(25),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
                     ),
-                  ),
+                  ],
                 ),
-              ],
-            ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.search_rounded, color: Color(0xFF2E86C1), size: 20),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: TextField(
+                        style: TextStyle(
+                          color: isDark ? Colors.white : Colors.black87,
+                        ),
+                        decoration: InputDecoration(
+                          hintText: 'Search families, villages, members...',
+                          hintStyle: GoogleFonts.inter(
+                            color: isDark ? Colors.grey : Colors.grey.shade500,
+                            fontSize: 14,
+                          ),
+                          border: InputBorder.none,
+                          enabledBorder: InputBorder.none,
+                          focusedBorder: InputBorder.none,
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }
           ),
         ],
       ),
@@ -1007,6 +1123,7 @@ Contact: ${user.phoneNumber}
         SizedBox(
           height: 115,
           child: ListView.builder(
+            controller: _birthdayScrollController,
             scrollDirection: Axis.horizontal,
             physics: const BouncingScrollPhysics(),
             padding: const EdgeInsets.symmetric(horizontal: 12.0),
@@ -1733,9 +1850,37 @@ Contact: ${user.phoneNumber}
                             const SizedBox(width: 4),
                             Text(commentsCount.toString(), style: GoogleFonts.inter(fontSize: 11, color: Colors.grey)),
                             const Spacer(),
-                            const Icon(Icons.share_outlined, color: Colors.blue, size: 16),
-                            const SizedBox(width: 4),
-                            Text(_translate('Share'), style: GoogleFonts.inter(fontSize: 11, color: Colors.blue)),
+                            GestureDetector(
+                              onTap: () async {
+                                final shareLink = "${ApiConfig.baseUrl.replaceAll('/api', '')}/share/post/${p['_id']}";
+                                final shareText = "$content\n\nView post: $shareLink";
+                                if (mediaUrl != null) {
+                                  try {
+                                    final response = await http.get(Uri.parse(mediaUrl));
+                                    if (response.statusCode == 200) {
+                                      final tempDir = Directory.systemTemp;
+                                      final file = File('${tempDir.path}/shared_image.png');
+                                      await file.writeAsBytes(response.bodyBytes);
+                                      await Share.shareXFiles([XFile(file.path)], text: shareText);
+                                    } else {
+                                      await Share.share(shareText);
+                                    }
+                                  } catch (e) {
+                                    print("Error sharing image: $e");
+                                    await Share.share(shareText);
+                                  }
+                                } else {
+                                  await Share.share(shareText);
+                                }
+                              },
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.share_outlined, color: Colors.blue, size: 16),
+                                  const SizedBox(width: 4),
+                                  Text(_translate('Share'), style: GoogleFonts.inter(fontSize: 11, color: Colors.blue)),
+                                ],
+                              ),
+                            ),
                           ],
                         )
                       ],
@@ -1783,7 +1928,7 @@ Contact: ${user.phoneNumber}
 
 
   // --- BOTTOM NAV BAR (IMAGE 1 / 4) ---
-  Widget _buildBottomNavBar(bool isDark) {
+  Widget _buildBottomNavBar(bool isDark, UserModel user) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 8),
       decoration: BoxDecoration(
@@ -1805,8 +1950,10 @@ Contact: ${user.phoneNumber}
             _buildNavBarItem(0, Icons.home_rounded, 'Home', isDark),
             _buildNavBarItem(1, Icons.park_rounded, 'Tree', isDark),
             _buildNavBarCenterButton(isDark),
-            _buildNavBarItem(3, Icons.newspaper_rounded, 'News', isDark),
-            _buildNavBarItem(4, Icons.assignment_ind_rounded, 'Build Profile', isDark),
+            _buildNavBarItem(3, Icons.people_alt_rounded, 'Community Hub', isDark),
+            user.role == 'admin'
+                ? _buildNavBarItem(4, Icons.admin_panel_settings_rounded, 'Approvals', isDark)
+                : _buildNavBarItem(4, Icons.assignment_ind_rounded, 'Build Profile', isDark),
           ],
         ),
       ),

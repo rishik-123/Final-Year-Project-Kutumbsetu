@@ -8,10 +8,23 @@ const userSchema = new mongoose.Schema({
   },
   email: {
     type: String,
-    required: true,
-    unique: true,
     trim: true,
     lowercase: true,
+    index: { unique: true, sparse: true },
+  },
+  phoneNumber: {
+    type: String,
+    trim: true,
+    index: { unique: true, sparse: true },
+  },
+  role: {
+    type: String,
+    enum: ['user', 'admin', 'organizer'],
+    default: 'user',
+  },
+  isApproved: {
+    type: Boolean,
+    default: false,
   },
   createdAt: {
     type: Date,

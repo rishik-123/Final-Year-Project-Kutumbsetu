@@ -12,6 +12,7 @@ import '../widgets/member_card.dart';
 import '../widgets/search_bar_widget.dart';
 import '../widgets/sort_modal_sheet.dart';
 import '../widgets/sticky_alphabet_index.dart';
+import '../widgets/app_bottom_nav_bar.dart';
 
 class MemberDirectoryScreen extends ConsumerStatefulWidget {
   const MemberDirectoryScreen({super.key});
@@ -138,7 +139,7 @@ class _MemberDirectoryScreenState
                                     color: Colors.white, size: 14),
                                 SizedBox(width: 4),
                                 Text(
-                                  'Gujarati Patidar Samaj',
+                                  'Babriyawad Darji Samaj',
                                   style: TextStyle(
                                     color: Colors.white,
                                     fontSize: 11,
@@ -378,6 +379,7 @@ class _MemberDirectoryScreenState
           ],
         ),
       ),
+      bottomNavigationBar: const AppBottomNavBar(currentRoute: '/'),
     );
   }
 

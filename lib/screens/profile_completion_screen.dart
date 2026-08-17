@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -126,7 +127,12 @@ class _ProfileCompletionScreenState extends ConsumerState<ProfileCompletionScree
                               setSheetState(() => uploading = true);
                               try {
                                 final user = ref.read(currentUserProvider);
-                                if (user == null) return;
+                                if (user == null) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('User profile not loaded. Please log in again.')),
+                                  );
+                                  return;
+                                }
 
                                 String? base64Image;
                                 if (pickedImage != null) {
@@ -150,8 +156,15 @@ class _ProfileCompletionScreenState extends ConsumerState<ProfileCompletionScree
                                     const SnackBar(content: Text('Post published successfully!')),
                                   );
                                 } else {
+                                  String errMsg = 'Failed to publish post.';
+                                  try {
+                                    final body = jsonDecode(response.body);
+                                    if (body != null && body['message'] != null) {
+                                      errMsg = body['message'].toString();
+                                    }
+                                  } catch (_) {}
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('Failed to publish post.')),
+                                    SnackBar(content: Text(errMsg)),
                                   );
                                 }
                               } catch (e) {
@@ -299,7 +312,12 @@ class _ProfileCompletionScreenState extends ConsumerState<ProfileCompletionScree
                               setSheetState(() => uploading = true);
                               try {
                                 final user = ref.read(currentUserProvider);
-                                if (user == null) return;
+                                if (user == null) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('User profile not loaded. Please log in again.')),
+                                  );
+                                  return;
+                                }
 
                                 final bytes = await pickedVideo!.readAsBytes();
                                 final base64Video = base64Encode(bytes);
@@ -320,8 +338,15 @@ class _ProfileCompletionScreenState extends ConsumerState<ProfileCompletionScree
                                     const SnackBar(content: Text('Reel published successfully!')),
                                   );
                                 } else {
+                                  String errMsg = 'Failed to upload reel.';
+                                  try {
+                                    final body = jsonDecode(response.body);
+                                    if (body != null && body['message'] != null) {
+                                      errMsg = body['message'].toString();
+                                    }
+                                  } catch (_) {}
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('Failed to upload reel.')),
+                                    SnackBar(content: Text(errMsg)),
                                   );
                                 }
                               } catch (e) {
@@ -368,6 +393,7 @@ class _ProfileCompletionScreenState extends ConsumerState<ProfileCompletionScree
         
         final bg = user.bloodGroup.trim().toUpperCase();
         _bloodGroup = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].contains(bg) ? bg : 'B+';
+        _willingToDonateBlood = user.willingToDonateBlood;
         
         _villageController.text = user.nativePlace;
         _cityController.text = user.city;
@@ -378,6 +404,10 @@ class _ProfileCompletionScreenState extends ConsumerState<ProfileCompletionScree
         _fatherNameController.text = user.fatherName;
         _motherNameController.text = user.motherName;
         _spouseNameController.text = user.spouseName;
+        _grandfatherController.text = user.grandfather;
+        _grandmotherController.text = user.grandmother;
+        _nanaController.text = user.nana;
+        _naniController.text = user.nani;
         _relationshipToHead = ['Self', 'Father', 'Mother', 'Wife', 'Son', 'Daughter', 'Brother', 'Sister', 'Grandfather', 'Grandmother', 'Other']
             .contains(user.relationshipToHead) ? user.relationshipToHead : 'Self';
         _familyHeadPhoneController.text = user.familyHeadPhone;
@@ -392,6 +422,7 @@ class _ProfileCompletionScreenState extends ConsumerState<ProfileCompletionScree
   final _phoneController = TextEditingController();
   String _profilePhoto = 'avatar_male_1';
   String _bloodGroup = 'B+';
+  bool _willingToDonateBlood = false;
 
   // Address
   final _villageController = TextEditingController();
@@ -487,13 +518,25 @@ class _ProfileCompletionScreenState extends ConsumerState<ProfileCompletionScree
       _isLoading = true;
     });
 
+    String? profilePhotoBase64;
+    if (_profilePhoto.isNotEmpty && !_profilePhoto.startsWith('/uploads') && !_profilePhoto.startsWith('http') && !_profilePhoto.startsWith('avatar')) {
+      try {
+        final bytes = await File(_profilePhoto).readAsBytes();
+        profilePhotoBase64 = base64Encode(bytes);
+      } catch (e) {
+        print('Error encoding profile photo: $e');
+      }
+    }
+
     final payload = {
       'userId': user.id,
       'gender': _gender,
       'dateOfBirth': _dobController.text.trim(),
       'phoneNumber': _phoneController.text.trim(),
       'profilePhoto': _profilePhoto,
+      'profilePhotoBase64': profilePhotoBase64,
       'bloodGroup': _bloodGroup,
+      'willingToDonateBlood': _willingToDonateBlood,
       'village': _villageController.text.trim(),
       'city': _cityController.text.trim(),
       'state': _stateController.text.trim(),
@@ -622,12 +665,11 @@ class _ProfileCompletionScreenState extends ConsumerState<ProfileCompletionScree
                     ),
                     const SizedBox(height: 12),
 
-                    // If profile is complete, show social upload shortcuts
-                    if (ref.watch(currentUserProvider)?.phoneNumber.isNotEmpty == true &&
-                        ref.watch(currentUserProvider)?.city.isNotEmpty == true) ...[
+                    // If user is admin, show post upload shortcut
+                    if (ref.watch(currentUserProvider)?.role == 'admin') ...[
                       const SizedBox(height: 12),
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           ElevatedButton.icon(
                             onPressed: () => _showCreatePostBottomSheet(context),
@@ -636,18 +678,7 @@ class _ProfileCompletionScreenState extends ConsumerState<ProfileCompletionScree
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFFD35400),
                               foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            ),
-                          ),
-                          ElevatedButton.icon(
-                            onPressed: () => _showCreateReelBottomSheet(context),
-                            icon: const Icon(Icons.video_call_rounded, color: Colors.white),
-                            label: Text('Create Reel', style: GoogleFonts.poppins(fontWeight: FontWeight.bold)),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF0288D1),
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                             ),
                           ),
@@ -659,6 +690,49 @@ class _ProfileCompletionScreenState extends ConsumerState<ProfileCompletionScree
 
                     // SECTION 1: Personal Details
                     _buildSectionHeader('Personal Details', Icons.person_outline_rounded),
+                    
+                    // Profile Photo Picker Row
+                    const SizedBox(height: 10),
+                    Center(
+                      child: GestureDetector(
+                        onTap: () async {
+                          final picker = ImagePicker();
+                          final img = await picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
+                          if (img != null) {
+                            setState(() {
+                              _profilePhoto = img.path;
+                            });
+                          }
+                        },
+                        child: CircleAvatar(
+                          radius: 45,
+                          backgroundColor: Colors.orange.withValues(alpha: 0.1),
+                          backgroundImage: (() {
+                            if (_profilePhoto.isEmpty || _profilePhoto.startsWith('avatar_m') || _profilePhoto.startsWith('avatar_f')) {
+                              return null;
+                            }
+                            if (_profilePhoto.startsWith('http')) {
+                              return NetworkImage(_profilePhoto);
+                            }
+                            if (_profilePhoto.startsWith('/uploads')) {
+                              return NetworkImage('${ApiConfig.baseUrl.replaceAll('/api', '')}$_profilePhoto');
+                            }
+                            return FileImage(File(_profilePhoto));
+                          })() as ImageProvider<Object>?,
+                          child: (_profilePhoto.isEmpty || _profilePhoto.startsWith('avatar_m') || _profilePhoto.startsWith('avatar_f'))
+                              ? const Icon(Icons.add_a_photo_outlined, size: 28, color: Colors.orange)
+                              : null,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    const Center(
+                      child: Text(
+                        'Upload Profile Photo',
+                        style: TextStyle(fontSize: 11, color: Colors.grey),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
                     
                     // Phone Number
                     TextFormField(
@@ -740,6 +814,18 @@ class _ProfileCompletionScreenState extends ConsumerState<ProfileCompletionScree
                             _bloodGroup = val;
                           });
                         }
+                      },
+                    ),
+                    const SizedBox(height: 8),
+                    CheckboxListTile(
+                      title: const Text('Willing to donate blood for campaigns'),
+                      subtitle: const Text('Show blood group in directory for blood donation campaigns'),
+                      value: _willingToDonateBlood,
+                      activeColor: const Color(0xFFD35400),
+                      onChanged: (val) {
+                        setState(() {
+                          _willingToDonateBlood = val ?? false;
+                        });
                       },
                     ),
 
@@ -886,10 +972,16 @@ class _ProfileCompletionScreenState extends ConsumerState<ProfileCompletionScree
                     _buildSectionHeader('Family Tree Association', Icons.account_tree_outlined),
                     TextFormField(
                       controller: _familyIdController,
+                      readOnly: true,
                       decoration: InputDecoration(
-                        labelText: 'Family ID (e.g. FAM-101)',
+                        labelText: 'Family ID',
+                        hintText: 'Auto-generated on save',
                         prefixIcon: const Icon(Icons.lan_rounded),
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        filled: true,
+                        fillColor: Colors.grey.shade100,
+                        helperText: 'Assigned automatically based on your name when saved.',
+                        helperStyle: const TextStyle(color: Colors.blueGrey, fontSize: 11),
                       ),
                     ),
                     const SizedBox(height: 16),

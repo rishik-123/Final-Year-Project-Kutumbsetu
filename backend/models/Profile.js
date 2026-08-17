@@ -32,6 +32,10 @@ const profileSchema = new mongoose.Schema({
     trim: true,
     default: '',
   },
+  willingToDonateBlood: {
+    type: Boolean,
+    default: false,
+  },
   village: {
     type: String,
     trim: true,
@@ -126,6 +130,13 @@ const profileSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  addedMembers: [
+    {
+      name: { type: String, required: true },
+      relation: { type: String, required: true },
+      isDeceased: { type: Boolean, default: false },
+    }
+  ],
   createdAt: {
     type: Date,
     default: Date.now,

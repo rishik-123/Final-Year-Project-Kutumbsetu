@@ -27,14 +27,16 @@ class _MatrimonialProfileListScreenState extends ConsumerState<MatrimonialProfil
   bool _isLoading = true;
 
   // Filter values
-  RangeValues _ageRange = const RangeValues(18, 60);
+  RangeValues _ageRange = const RangeValues(21, 50);
   RangeValues _heightRange = const RangeValues(120, 220);
+  RangeValues _weightRange = const RangeValues(40, 120);
   RangeValues _incomeRange = const RangeValues(0, 50); // in lakhs
   String _selectedMaritalStatus = 'Any';
   String _filterCity = '';
   String _filterVillage = '';
   String _filterEducation = '';
   String _filterOccupation = '';
+  String _filterWorkLocation = '';
 
   @override
   void initState() {
@@ -75,6 +77,9 @@ class _MatrimonialProfileListScreenState extends ConsumerState<MatrimonialProfil
       heightMax: _heightRange.end.toInt(),
       incomeMin: _incomeRange.start * 100000,
       incomeMax: _incomeRange.end * 100000,
+      weightMin: _weightRange.start.toInt(),
+      weightMax: _weightRange.end.toInt(),
+      workLocation: _filterWorkLocation.isEmpty ? null : _filterWorkLocation,
     );
 
     setState(() {
@@ -122,14 +127,16 @@ class _MatrimonialProfileListScreenState extends ConsumerState<MatrimonialProfil
                         TextButton(
                           onPressed: () {
                             setModalState(() {
-                              _ageRange = const RangeValues(18, 60);
+                              _ageRange = const RangeValues(21, 50);
                               _heightRange = const RangeValues(120, 220);
+                              _weightRange = const RangeValues(40, 120);
                               _incomeRange = const RangeValues(0, 50);
                               _selectedMaritalStatus = 'Any';
                               _filterCity = '';
                               _filterVillage = '';
                               _filterEducation = '';
                               _filterOccupation = '';
+                              _filterWorkLocation = '';
                             });
                           },
                           child: Text('Reset', style: TextStyle(color: primaryOrange)),
@@ -189,6 +196,23 @@ class _MatrimonialProfileListScreenState extends ConsumerState<MatrimonialProfil
                     ),
                     const SizedBox(height: 16),
 
+                    // Weight Slider
+                    Text(
+                      'Weight: ${_weightRange.start.toInt()} - ${_weightRange.end.toInt()} kg',
+                      style: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 13),
+                    ),
+                    RangeSlider(
+                      values: _weightRange,
+                      min: 30,
+                      max: 150,
+                      activeColor: primaryOrange,
+                      inactiveColor: Colors.grey.shade300,
+                      onChanged: (RangeValues values) {
+                        setModalState(() => _weightRange = values);
+                      },
+                    ),
+                    const SizedBox(height: 16),
+
                     // Text Field Filters
                     TextField(
                       decoration: const InputDecoration(labelText: 'Preferred City', hintText: 'e.g. Vadodara'),
@@ -206,6 +230,12 @@ class _MatrimonialProfileListScreenState extends ConsumerState<MatrimonialProfil
                       decoration: const InputDecoration(labelText: 'Education', hintText: 'e.g. Engineering'),
                       onChanged: (val) => _filterEducation = val,
                       controller: TextEditingController(text: _filterEducation),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      decoration: const InputDecoration(labelText: 'Work Location', hintText: 'e.g. India / USA'),
+                      onChanged: (val) => _filterWorkLocation = val,
+                      controller: TextEditingController(text: _filterWorkLocation),
                     ),
                     const SizedBox(height: 24),
 
@@ -325,6 +355,7 @@ class _MatrimonialProfileListScreenState extends ConsumerState<MatrimonialProfil
               padding: const EdgeInsets.all(12.0),
               child: Card(
                 elevation: 2,
+                color: isDark ? const Color(0xFF1E293B) : Colors.white,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 14.0),
@@ -335,20 +366,24 @@ class _MatrimonialProfileListScreenState extends ConsumerState<MatrimonialProfil
                       Expanded(
                         child: TextField(
                           controller: _searchController,
-                          decoration: const InputDecoration(
+                          style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+                          decoration: InputDecoration(
                             hintText: 'Search by name, education, occupation...',
+                            hintStyle: TextStyle(color: isDark ? Colors.grey : Colors.grey.shade600),
                             border: InputBorder.none,
                           ),
                           onSubmitted: (_) => _loadProfiles(),
                         ),
                       ),
-                      IconButton(
-                        icon: const Icon(Icons.clear),
-                        onPressed: () {
-                          _searchController.clear();
-                          _loadProfiles();
-                        },
-                      ),
+                      if (_searchController.text.isNotEmpty)
+                        IconButton(
+                          icon: const Icon(Icons.clear, size: 18),
+                          color: isDark ? Colors.white : Colors.black54,
+                          onPressed: () {
+                            _searchController.clear();
+                            _loadProfiles();
+                          },
+                        ),
                     ],
                   ),
                 ),
@@ -441,7 +476,9 @@ class _MatrimonialProfileListScreenState extends ConsumerState<MatrimonialProfil
                                               const SizedBox(height: 4),
                                               Text(
                                                 '${p.age} Yrs • ${p.heightCm} cm • ${p.maritalStatus}',
-                                                style: GoogleFonts.inter(fontSize: 12, color: Colors.grey.shade600),
+                                                style: GoogleFonts.inter(fontSize: 12, color: isDark ? Colors.grey.shade400 : Colors.grey.shade600),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
                                               ),
                                               const SizedBox(height: 2),
                                               Text(

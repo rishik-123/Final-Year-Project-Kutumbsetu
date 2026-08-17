@@ -51,6 +51,33 @@ const reelSchema = new mongoose.Schema({
         type: String,
         required: true,
       },
+      likes: [
+        {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'User',
+        }
+      ],
+      replies: [
+        {
+          userId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User',
+            required: true,
+          },
+          authorName: {
+            type: String,
+            required: true,
+          },
+          content: {
+            type: String,
+            required: true,
+          },
+          createdAt: {
+            type: Date,
+            default: Date.now,
+          }
+        }
+      ],
       createdAt: {
         type: Date,
         default: Date.now,

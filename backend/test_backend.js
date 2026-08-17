@@ -52,9 +52,21 @@ const cleanupDatabase = async () => {
   
   console.log(`Deleting test user: ${testPhone}`);
   await mongoose.connection.db.collection('directory').deleteMany({ phoneNumber: testPhone });
+  await mongoose.connection.db.collection('users').deleteMany({ phoneNumber: testPhone });
+  
+  // Clean up profile collection too since registration creates it
+  const userDocs = await mongoose.connection.db.collection('users').find({ phoneNumber: testPhone }).toArray();
+  const userIds = userDocs.map(u => u._id);
+  await mongoose.connection.db.collection('profiles').deleteMany({ 
+    $or: [
+      { phoneNumber: testPhone },
+      { userId: { $in: userIds } }
+    ]
+  });
   
   console.log(`Deleting test OTPs for: ${testPhone}`);
   await mongoose.connection.db.collection('otp_verifications').deleteMany({ phone: testPhone });
+  await mongoose.connection.db.collection('otp_verifications').deleteMany({ email: testPhone });
   
   await mongoose.connection.close();
   console.log('Cleanup completed and database connection closed.\n');

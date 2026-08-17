@@ -1,13 +1,16 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'package:video_player/video_player.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:go_router/go_router.dart';
 import '../api_config.dart';
 import '../providers/auth_provider.dart';
 import '../providers/theme_provider.dart';
+import 'package:image_picker/image_picker.dart';
 
 // --- DESIGN TOKENS ---
 const Color kSaffron = Color(0xFFF57C00);
@@ -84,6 +87,178 @@ class _CommunityFeedScreenState extends ConsumerState<CommunityFeedScreen> with 
     } finally {
       setState(() => _isLoadingReels = false);
     }
+  }
+
+  void _showCreatePostBottomSheet(BuildContext context) {
+    final picker = ImagePicker();
+    XFile? pickedImage;
+    final contentController = TextEditingController();
+    bool uploading = false;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom,
+                left: 20,
+                right: 20,
+                top: 20,
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      'Create Community Post',
+                      style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold, color: const Color(0xFFD35400)),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: contentController,
+                      maxLines: 4,
+                      decoration: InputDecoration(
+                        hintText: "What's on your mind? Share announcements, achievements...",
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    if (pickedImage != null)
+                      Container(
+                        height: 180,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.grey.shade300),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: FutureBuilder<List<int>>(
+                            future: pickedImage!.readAsBytes(),
+                            builder: (context, snapshot) {
+                              if (snapshot.hasData) {
+                                return Image.memory(
+                                  snapshot.data as dynamic,
+                                  fit: BoxFit.cover,
+                                  width: double.infinity,
+                                );
+                              }
+                              return const Center(child: CircularProgressIndicator());
+                            },
+                          ),
+                        ),
+                      )
+                    else
+                      OutlinedButton.icon(
+                        onPressed: () async {
+                          final img = await picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
+                          if (img != null) {
+                            setSheetState(() {
+                              pickedImage = img;
+                            });
+                          }
+                        },
+                        icon: const Icon(Icons.add_photo_alternate_rounded),
+                        label: const Text('Pick Image from Gallery'),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                      ),
+                    const SizedBox(height: 20),
+                    ElevatedButton(
+                      onPressed: uploading
+                          ? null
+                          : () async {
+                              final text = contentController.text.trim();
+                              if (text.isEmpty) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Please enter some text content.')),
+                                );
+                                return;
+                              }
+                              setSheetState(() => uploading = true);
+                              try {
+                                final user = ref.read(currentUserProvider);
+                                if (user == null) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('User profile not loaded. Please log in again.')),
+                                  );
+                                  return;
+                                }
+
+                                String? base64Image;
+                                if (pickedImage != null) {
+                                  final bytes = await pickedImage!.readAsBytes();
+                                  base64Image = base64Encode(bytes);
+                                }
+
+                                final response = await http.post(
+                                  Uri.parse('${ApiConfig.baseUrl}/community/posts'),
+                                  headers: {'Content-Type': 'application/json'},
+                                  body: jsonEncode({
+                                    'userId': user.id,
+                                    'content': text,
+                                    'mediaBase64': base64Image,
+                                  }),
+                                );
+
+                                if (response.statusCode == 201) {
+                                  Navigator.pop(context);
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('Post published successfully!')),
+                                  );
+                                  _fetchPosts();
+                                } else {
+                                  String errMsg = 'Failed to publish post.';
+                                  try {
+                                    final body = jsonDecode(response.body);
+                                    if (body != null && body['message'] != null) {
+                                      errMsg = body['message'].toString();
+                                    }
+                                  } catch (_) {}
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text(errMsg)),
+                                  );
+                                }
+                              } catch (e) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Error uploading post: $e')),
+                                );
+                              } finally {
+                                setSheetState(() => uploading = false);
+                              }
+                            },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFD35400),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: uploading
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                            )
+                          : Text('Publish Post', style: GoogleFonts.poppins(fontWeight: FontWeight.bold)),
+                    ),
+                    const SizedBox(height: 20),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   @override
@@ -193,6 +368,13 @@ class _CommunityFeedScreenState extends ConsumerState<CommunityFeedScreen> with 
           ),
         ],
       ),
+      floatingActionButton: ref.watch(currentUserProvider)?.role == 'admin'
+          ? FloatingActionButton(
+              onPressed: () => _showCreatePostBottomSheet(context),
+              backgroundColor: kSaffron,
+              child: const Icon(Icons.add, color: Colors.white),
+            )
+          : null,
     );
   }
 }
@@ -232,6 +414,20 @@ class _PostCardState extends ConsumerState<PostCard> {
       print('Error liking post: $e');
     } finally {
       setState(() => _isLiking = false);
+    }
+  }
+
+  Future<void> _incrementShareCount() async {
+    try {
+      final response = await http.post(
+        Uri.parse('${ApiConfig.baseUrl}/community/posts/${widget.post['_id']}/share'),
+        headers: {'Content-Type': 'application/json'},
+      );
+      if (response.statusCode == 200) {
+        widget.onRefresh();
+      }
+    } catch (e) {
+      print('Error incrementing share count: $e');
     }
   }
 
@@ -312,35 +508,51 @@ class _PostCardState extends ConsumerState<PostCard> {
           // Header
           Row(
             children: [
-              CircleAvatar(
-                backgroundColor: avatarColor,
-                radius: 19,
-                child: Text(
-                  init,
-                  style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+              GestureDetector(
+                onTap: () {
+                  final userId = p['userId']?.toString() ?? '';
+                  if (userId.isNotEmpty) {
+                    context.push('/member/$userId');
+                  }
+                },
+                child: CircleAvatar(
+                  backgroundColor: avatarColor,
+                  radius: 19,
+                  child: Text(
+                    init,
+                    style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                  ),
                 ),
               ),
               const SizedBox(width: 10),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      author,
-                      style: GoogleFonts.poppins(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
-                        color: isDark ? Colors.white : kTextColor,
+                child: GestureDetector(
+                  onTap: () {
+                    final userId = p['userId']?.toString() ?? '';
+                    if (userId.isNotEmpty) {
+                      context.push('/member/$userId');
+                    }
+                  },
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        author,
+                        style: GoogleFonts.poppins(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                          color: isDark ? Colors.white : kTextColor,
+                        ),
                       ),
-                    ),
-                    Text(
-                      time,
-                      style: GoogleFonts.inter(
-                        color: isDark ? Colors.grey : kTextSoft,
-                        fontSize: 10,
+                      Text(
+                        time,
+                        style: GoogleFonts.inter(
+                          color: isDark ? Colors.grey : kTextSoft,
+                          fontSize: 10,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
               Container(
@@ -414,8 +626,31 @@ class _PostCardState extends ConsumerState<PostCard> {
               ),
               const SizedBox(width: 16),
               GestureDetector(
-                onTap: () {
-                  Share.share("$content\n\nShared via KutumbSetu Community");
+                onTap: () async {
+                  final shareLink = "${ApiConfig.baseUrl.replaceAll('/api', '')}/share/post/${widget.post['_id']}";
+                  final shareText = "$content\n\nView post: $shareLink";
+                  if (mediaUrl != null) {
+                    try {
+                      final response = await http.get(Uri.parse(mediaUrl));
+                      if (response.statusCode == 200) {
+                        final tempDir = Directory.systemTemp;
+                        final file = File('${tempDir.path}/shared_image.png');
+                        await file.writeAsBytes(response.bodyBytes);
+                        await Share.shareXFiles([XFile(file.path)], text: shareText);
+                        _incrementShareCount();
+                      } else {
+                        await Share.share(shareText);
+                        _incrementShareCount();
+                      }
+                    } catch (e) {
+                      print("Error sharing image: $e");
+                      await Share.share(shareText);
+                      _incrementShareCount();
+                    }
+                  } else {
+                    await Share.share(shareText);
+                    _incrementShareCount();
+                  }
                 },
                 child: Icon(
                   Icons.send_outlined,
@@ -430,7 +665,7 @@ class _PostCardState extends ConsumerState<PostCard> {
 
           // Likes & Comments Text
           Text(
-            "$likesCount likes",
+            "$likesCount likes • ${p['sharesCount'] ?? 0} shares",
             style: GoogleFonts.poppins(
               fontWeight: FontWeight.bold,
               fontSize: 13,
@@ -518,6 +753,20 @@ class _InstagramStyleReelState extends ConsumerState<InstagramStyleReel> {
     }
   }
 
+  Future<void> _incrementReelShareCount() async {
+    try {
+      final response = await http.post(
+        Uri.parse('${ApiConfig.baseUrl}/community/reels/${widget.reel['_id']}/share'),
+        headers: {'Content-Type': 'application/json'},
+      );
+      if (response.statusCode == 200) {
+        widget.onRefresh();
+      }
+    } catch (e) {
+      print('Error incrementing reel share count: $e');
+    }
+  }
+
   void _showCommentsSheet() {
     showModalBottomSheet(
       context: context,
@@ -593,26 +842,34 @@ class _InstagramStyleReelState extends ConsumerState<InstagramStyleReel> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    CircleAvatar(
-                      backgroundColor: avatarColor,
-                      radius: 16,
-                      child: Text(
-                        init,
-                        style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                GestureDetector(
+                  onTap: () {
+                    final userId = r['userId']?.toString() ?? '';
+                    if (userId.isNotEmpty) {
+                      context.push('/member/$userId');
+                    }
+                  },
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        backgroundColor: avatarColor,
+                        radius: 16,
+                        child: Text(
+                          init,
+                          style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      author,
-                      style: GoogleFonts.poppins(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
+                      const SizedBox(width: 8),
+                      Text(
+                        author,
+                        style: GoogleFonts.poppins(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 12),
                 Text(
@@ -665,8 +922,10 @@ class _InstagramStyleReelState extends ConsumerState<InstagramStyleReel> {
                   icon: Icons.send_rounded,
                   iconColor: Colors.white,
                   label: sharesCount,
-                  onTap: () {
-                    Share.share("$caption\n\nCheck out this reel on KutumbSetu!");
+                  onTap: () async {
+                    final shareLink = "${ApiConfig.baseUrl.replaceAll('/api', '')}/share/reel/${widget.reel['_id']}";
+                    await Share.share("$caption\n\nView reel: $shareLink");
+                    _incrementReelShareCount();
                   },
                 ),
               ],
@@ -849,6 +1108,7 @@ class _CommentsBottomSheetState extends ConsumerState<CommentsBottomSheet> {
   final TextEditingController _commentController = TextEditingController();
   List<dynamic> _localComments = [];
   bool _isSubmitting = false;
+  dynamic _replyingToComment; // holds the comment map we are replying to
 
   @override
   void initState() {
@@ -862,6 +1122,31 @@ class _CommentsBottomSheetState extends ConsumerState<CommentsBottomSheet> {
     super.dispose();
   }
 
+  Future<void> _toggleCommentLike(String commentId) async {
+    final user = ref.read(currentUserProvider);
+    if (user == null || commentId.isEmpty) return;
+    
+    final routeType = widget.isPost ? 'posts' : 'reels';
+    try {
+      final response = await http.post(
+        Uri.parse('${ApiConfig.baseUrl}/community/$routeType/${widget.itemId}/comment/$commentId/like'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'userId': user.id}),
+      );
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['success'] == true) {
+          setState(() {
+            _localComments = data['comments'];
+          });
+          widget.onCommentAdded();
+        }
+      }
+    } catch (e) {
+      print('Error toggling comment like: $e');
+    }
+  }
+
   Future<void> _submitComment() async {
     final text = _commentController.text.trim();
     if (text.isEmpty) return;
@@ -871,8 +1156,13 @@ class _CommentsBottomSheetState extends ConsumerState<CommentsBottomSheet> {
     setState(() => _isSubmitting = true);
     final routeType = widget.isPost ? 'posts' : 'reels';
     try {
+      final isReplying = _replyingToComment != null;
+      final url = isReplying
+          ? '${ApiConfig.baseUrl}/community/$routeType/${widget.itemId}/comment/${_replyingToComment['_id']}/reply'
+          : '${ApiConfig.baseUrl}/community/$routeType/${widget.itemId}/comment';
+
       final response = await http.post(
-        Uri.parse('${ApiConfig.baseUrl}/community/$routeType/${widget.itemId}/comment'),
+        Uri.parse(url),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'userId': user.id,
@@ -880,18 +1170,19 @@ class _CommentsBottomSheetState extends ConsumerState<CommentsBottomSheet> {
         }),
       );
 
-      if (response.statusCode == 201) {
+      if (response.statusCode == 201 || response.statusCode == 200) {
         final data = jsonDecode(response.body);
         if (data['success'] == true) {
           setState(() {
             _localComments = data['comments'];
             _commentController.clear();
+            _replyingToComment = null;
           });
           widget.onCommentAdded();
         }
       }
     } catch (e) {
-      print('Error adding comment: $e');
+      print('Error adding comment/reply: $e');
     } finally {
       setState(() => _isSubmitting = false);
     }
@@ -945,44 +1236,187 @@ class _CommentsBottomSheetState extends ConsumerState<CommentsBottomSheet> {
                       itemCount: _localComments.length,
                       itemBuilder: (context, index) {
                         final c = _localComments[index];
+                        final commentId = c['_id'] ?? '';
                         final author = c['authorName'] ?? 'User';
                         final text = c['content'] ?? '';
+                        final commentUserId = c['userId'] ?? '';
                         final init = author.isNotEmpty ? author[0].toUpperCase() : 'U';
+
+                        final user = ref.read(currentUserProvider);
+                        final likesList = c['likes'] is List ? c['likes'] as List : [];
+                        final isLiked = user != null && likesList.contains(user.id);
+                        final likesCount = likesList.length;
+                        final repliesList = c['replies'] is List ? c['replies'] as List : [];
 
                         return Padding(
                           padding: const EdgeInsets.symmetric(vertical: 8.0),
-                          child: Row(
+                          child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              CircleAvatar(
-                                backgroundColor: kSaffron,
-                                radius: 14,
-                                child: Text(init, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  GestureDetector(
+                                    onTap: () {
+                                      if (commentUserId.isNotEmpty) {
+                                        Navigator.pop(context);
+                                        context.push('/member/$commentUserId');
+                                      }
+                                    },
+                                    child: CircleAvatar(
+                                      backgroundColor: kSaffron,
+                                      radius: 14,
+                                      child: Text(init, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        GestureDetector(
+                                          onTap: () {
+                                            if (commentUserId.isNotEmpty) {
+                                              Navigator.pop(context);
+                                              context.push('/member/$commentUserId');
+                                            }
+                                          },
+                                          child: Text(
+                                            author,
+                                            style: GoogleFonts.poppins(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 12,
+                                              color: isDark ? Colors.white : kTextColor,
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          text,
+                                          style: GoogleFonts.inter(
+                                            fontSize: 12,
+                                            color: isDark ? Colors.grey.shade300 : kTextColor,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Row(
+                                          children: [
+                                            GestureDetector(
+                                              onTap: () {
+                                                setState(() {
+                                                  _replyingToComment = c;
+                                                });
+                                              },
+                                              child: Text(
+                                                'Reply',
+                                                style: GoogleFonts.inter(
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: isDark ? Colors.grey : Colors.grey.shade600,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Column(
+                                    children: [
+                                      GestureDetector(
+                                        onTap: () => _toggleCommentLike(commentId),
+                                        child: Icon(
+                                          isLiked ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                                          size: 16,
+                                          color: isLiked ? Colors.pink : (isDark ? Colors.grey : Colors.grey.shade600),
+                                        ),
+                                      ),
+                                      if (likesCount > 0) ...[
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          '$likesCount',
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            color: isDark ? Colors.grey : Colors.grey.shade600,
+                                          ),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ],
                               ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      author,
-                                      style: GoogleFonts.poppins(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 12,
-                                        color: isDark ? Colors.white : kTextColor,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      text,
-                                      style: GoogleFonts.inter(
-                                        fontSize: 12,
-                                        color: isDark ? Colors.grey.shade300 : kTextColor,
-                                      ),
-                                    ),
-                                  ],
+                              if (repliesList.isNotEmpty)
+                                Padding(
+                                  padding: const EdgeInsets.only(left: 36.0, top: 8.0),
+                                  child: ListView.builder(
+                                    shrinkWrap: true,
+                                    physics: const NeverScrollableScrollPhysics(),
+                                    itemCount: repliesList.length,
+                                    itemBuilder: (context, rIndex) {
+                                      final r = repliesList[rIndex];
+                                      final replyAuthor = r['authorName'] ?? 'User';
+                                      final replyText = r['content'] ?? '';
+                                      final replyUserId = r['userId'] ?? '';
+                                      final replyInit = replyAuthor.isNotEmpty ? replyAuthor[0].toUpperCase() : 'U';
+                                      
+                                      return Padding(
+                                        padding: const EdgeInsets.symmetric(vertical: 4.0),
+                                        child: Row(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            GestureDetector(
+                                              onTap: () {
+                                                if (replyUserId.isNotEmpty) {
+                                                  Navigator.pop(context);
+                                                  context.push('/member/$replyUserId');
+                                                }
+                                              },
+                                              child: CircleAvatar(
+                                                backgroundColor: kPeacock.withOpacity(0.8),
+                                                radius: 10,
+                                                child: Text(
+                                                  replyInit,
+                                                  style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold),
+                                                ),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: [
+                                                  GestureDetector(
+                                                    onTap: () {
+                                                      if (replyUserId.isNotEmpty) {
+                                                        Navigator.pop(context);
+                                                        context.push('/member/$replyUserId');
+                                                      }
+                                                    },
+                                                    child: Text(
+                                                      replyAuthor,
+                                                      style: GoogleFonts.poppins(
+                                                        fontWeight: FontWeight.bold,
+                                                        fontSize: 11,
+                                                        color: isDark ? Colors.white : kTextColor,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  Text(
+                                                    replyText,
+                                                    style: GoogleFonts.inter(
+                                                      fontSize: 11,
+                                                      color: isDark ? Colors.grey.shade300 : kTextColor,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    },
+                                  ),
                                 ),
-                              )
                             ],
                           ),
                         );
@@ -991,6 +1425,33 @@ class _CommentsBottomSheetState extends ConsumerState<CommentsBottomSheet> {
             ),
 
             const Divider(height: 1),
+
+            if (_replyingToComment != null)
+              Container(
+                color: isDark ? const Color(0xFF0F172A) : Colors.grey.shade100,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      "Replying to ${_replyingToComment['authorName']}",
+                      style: GoogleFonts.inter(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: kSaffron,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close_rounded, size: 16),
+                      onPressed: () {
+                        setState(() {
+                          _replyingToComment = null;
+                        });
+                      },
+                    ),
+                  ],
+                ),
+              ),
 
             // Input panel
             Container(

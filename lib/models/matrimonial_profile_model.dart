@@ -1,3 +1,5 @@
+import '../api_config.dart';
+
 class MatrimonialProfileModel {
   final String id;
   final String userId;
@@ -30,6 +32,15 @@ class MatrimonialProfileModel {
   final String emailAddress;
   final String fullAddressText;
 
+  // New Matrimonial Biodata Fields
+  final String workingCountry;
+  final String description;
+  final String partnerExpectations;
+  final List<String> partnerExpectationsHobbies;
+  final List<String> additionalPhotos;
+  final Map<String, dynamic> socialLinks;
+  final String connectionStatus;
+
   const MatrimonialProfileModel({
     required this.id,
     required this.userId,
@@ -59,6 +70,13 @@ class MatrimonialProfileModel {
     this.mobileNumber = '',
     this.emailAddress = '',
     this.fullAddressText = '',
+    this.workingCountry = '',
+    this.description = '',
+    this.partnerExpectations = '',
+    this.partnerExpectationsHobbies = const [],
+    this.additionalPhotos = const [],
+    this.socialLinks = const {},
+    this.connectionStatus = 'None',
   });
 
   int get age {
@@ -76,6 +94,16 @@ class MatrimonialProfileModel {
       extractedUserId = json['userId']['_id']?.toString() ?? '';
     } else {
       extractedUserId = json['userId']?.toString() ?? '';
+    }
+
+    String photoUrl = json['profilePhoto'] as String? ?? '';
+    String videoUrl = json['introductionVideo'] as String? ?? '';
+
+    if (photoUrl.startsWith('/uploads')) {
+      photoUrl = '${ApiConfig.baseUrl.replaceAll('/api', '')}$photoUrl';
+    }
+    if (videoUrl.startsWith('/uploads')) {
+      videoUrl = '${ApiConfig.baseUrl.replaceAll('/api', '')}$videoUrl';
     }
 
     return MatrimonialProfileModel(
@@ -101,12 +129,22 @@ class MatrimonialProfileModel {
       status: json['profileStatus'] as String? ?? 'Approved',
       createdAt: json['createdDate'] != null ? DateTime.parse(json['createdDate'].toString()) : DateTime.now(),
       updatedAt: json['updatedDate'] != null ? DateTime.parse(json['updatedDate'].toString()) : DateTime.now(),
-      profilePhotoUrl: json['profilePhoto'] as String? ?? '',
-      introductionVideoUrl: json['introductionVideo'] as String? ?? '',
+      profilePhotoUrl: photoUrl,
+      introductionVideoUrl: videoUrl,
       match: (json['match'] as num?)?.toInt() ?? 75,
       mobileNumber: json['mobileNumber'] as String? ?? '',
       emailAddress: json['emailAddress'] as String? ?? '',
       fullAddressText: json['fullAddressText'] as String? ?? '',
+      workingCountry: json['workingCountry'] as String? ?? '',
+      description: json['description'] as String? ?? '',
+      partnerExpectations: json['partnerExpectations'] as String? ?? '',
+      partnerExpectationsHobbies: (json['partnerExpectationsHobbies'] as List?)?.map((e) => e.toString()).toList() ?? const [],
+      additionalPhotos: (() {
+        final photos = (json['additionalPhotos'] as List?)?.map((e) => e.toString()).toList() ?? const [];
+        return photos.map((p) => p.startsWith('/uploads') ? '${ApiConfig.baseUrl.replaceAll('/api', '')}$p' : p).toList();
+      })(),
+      socialLinks: json['socialLinks'] as Map<String, dynamic>? ?? const {},
+      connectionStatus: json['connectionStatus'] as String? ?? 'None',
     );
   }
 
@@ -139,6 +177,13 @@ class MatrimonialProfileModel {
       'mobileNumber': mobileNumber,
       'emailAddress': emailAddress,
       'fullAddressText': fullAddressText,
+      'workingCountry': workingCountry,
+      'description': description,
+      'partnerExpectations': partnerExpectations,
+      'partnerExpectationsHobbies': partnerExpectationsHobbies,
+      'additionalPhotos': additionalPhotos,
+      'socialLinks': socialLinks,
+      'connectionStatus': connectionStatus,
     };
   }
 }

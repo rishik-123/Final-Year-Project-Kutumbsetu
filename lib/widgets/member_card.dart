@@ -211,24 +211,22 @@ Contact: ${member.mobileNumber}
                           Row(
                             children: [
                               Icon(
-                                Icons.location_on_outlined,
+                                member.gender.trim().toLowerCase() == 'female'
+                                    ? Icons.female_rounded
+                                    : Icons.male_rounded,
                                 size: 14,
                                 color: isDark
                                     ? AppColors.textSecondaryDark
                                     : AppColors.textSecondaryLight,
                               ),
                               const SizedBox(width: 2),
-                              Expanded(
-                                child: Text(
-                                  member.fullLocation,
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: isDark
-                                        ? AppColors.textSecondaryDark
-                                        : AppColors.textSecondaryLight,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
+                              Text(
+                                'Age: ${member.age} • Gender: ${member.gender}',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: isDark
+                                      ? AppColors.textSecondaryDark
+                                      : AppColors.textSecondaryLight,
                                 ),
                               ),
                             ],
@@ -264,77 +262,39 @@ Contact: ${member.mobileNumber}
                     ),
                   ],
                 ),
-
-                const SizedBox(height: 12),
-                const Divider(height: 1, thickness: 0.5),
-                const SizedBox(height: 10),
-
-                // Bottom Action Row (Call, WhatsApp, Share)
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    // Blood Group Chip
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: AppColors.favoriteRed.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(
-                            Icons.bloodtype_outlined,
-                            size: 13,
+                if (member.bloodGroup.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  const Divider(height: 1, thickness: 0.5),
+                  const SizedBox(height: 10),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppColors.favoriteRed.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.bloodtype_outlined,
+                          size: 13,
+                          color: AppColors.favoriteRed,
+                        ),
+                        const SizedBox(width: 3),
+                        Text(
+                          member.bloodGroup,
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
                             color: AppColors.favoriteRed,
                           ),
-                          const SizedBox(width: 3),
-                          Text(
-                            member.bloodGroup,
-                            style: const TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.favoriteRed,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    Row(
-                      children: [
-                        // Call Button
-                        _ActionIconBtn(
-                          icon: Icons.phone_in_talk,
-                          color: AppColors.accentBlue,
-                          tooltip: 'Call',
-                          onTap: () => _makeCall(context, member.mobileNumber),
-                        ),
-                        const SizedBox(width: 8),
-
-                        // WhatsApp Button
-                        _ActionIconBtn(
-                          icon: Icons.chat_outlined,
-                          color: AppColors.whatsappGreen,
-                          tooltip: 'WhatsApp',
-                          onTap: () => _sendMessage(context, member),
-                        ),
-                        const SizedBox(width: 8),
-
-                        // Share Button
-                        _ActionIconBtn(
-                          icon: Icons.share_outlined,
-                          color: isDark
-                              ? AppColors.textSecondaryDark
-                              : AppColors.textSecondaryLight,
-                          tooltip: 'Share',
-                          onTap: () => _shareProfile(context, member),
                         ),
                       ],
                     ),
-                  ],
-                ),
+                  ),
+                ],
+
               ],
             ),
           ),

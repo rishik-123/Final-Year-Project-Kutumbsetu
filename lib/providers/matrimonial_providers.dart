@@ -24,6 +24,9 @@ class MatrimonialService {
     int? heightMax,
     double? incomeMin,
     double? incomeMax,
+    int? weightMin,
+    int? weightMax,
+    String? workLocation,
     int page = 1,
     int limit = 20,
   }) async {
@@ -45,6 +48,9 @@ class MatrimonialService {
     if (heightMax != null) queryParams['heightMax'] = heightMax.toString();
     if (incomeMin != null) queryParams['incomeMin'] = incomeMin.toString();
     if (incomeMax != null) queryParams['incomeMax'] = incomeMax.toString();
+    if (weightMin != null) queryParams['weightMin'] = weightMin.toString();
+    if (weightMax != null) queryParams['weightMax'] = weightMax.toString();
+    if (workLocation != null && workLocation.isNotEmpty) queryParams['workLocation'] = workLocation;
 
     final uri = Uri.parse('$baseUrl/matrimonial/profiles').replace(queryParameters: queryParams);
     

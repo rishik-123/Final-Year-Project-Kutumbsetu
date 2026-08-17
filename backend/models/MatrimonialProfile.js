@@ -61,6 +61,34 @@ const matrimonialProfileSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
+  workingCountry: {
+    type: String,
+    trim: true,
+    default: ''
+  },
+  description: {
+    type: String,
+    trim: true,
+    default: ''
+  },
+  partnerExpectations: {
+    type: String,
+    trim: true,
+    default: ''
+  },
+  partnerExpectationsHobbies: {
+    type: [String],
+    default: []
+  },
+  additionalPhotos: {
+    type: [String],
+    default: []
+  },
+  socialLinks: {
+    showSocialLinks: { type: Boolean, default: false },
+    instagramUrl: { type: String, trim: true, default: '' },
+    facebookUrl: { type: String, trim: true, default: '' }
+  },
   familyInformation: {
     fatherName: { type: String, trim: true, default: '' },
     motherName: { type: String, trim: true, default: '' },

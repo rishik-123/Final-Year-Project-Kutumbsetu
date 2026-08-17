@@ -175,11 +175,7 @@ const transporter = nodemailer.createTransport(transportConfig);
 
 // Helper: Send OTP Email
 const sendOtpEmail = (email, name, otp) => {
-  const mailOptions = {
-    from: '"KutumbSetu Portal" <no-reply@kutumbsetu.org>',
-    to: email.toLowerCase().trim(),
-    subject: 'KutumbSetu - Your Email Verification OTP',
-    html: `
+  const emailHtml = `
       <div style="font-family: 'Poppins', 'Inter', sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
         <!-- Saffron Top Banner -->
         <div style="background: linear-gradient(135deg, #e67e22, #1b4f72); padding: 24px; text-align: center; color: #ffffff;">
@@ -211,16 +207,67 @@ const sendOtpEmail = (email, name, otp) => {
           © 2026 KutumbSetu Community Management System. All rights reserved.
         </div>
       </div>
-    `,
-  };
+    `;
 
-  transporter.sendMail(mailOptions, (error, info) => {
-    if (error) {
-      console.error(`[Nodemailer ERROR] Failed to send OTP to ${email}:`, error);
-    } else {
-      console.log(`[Nodemailer SUCCESS] OTP email sent to ${email}: ${info.messageId}`);
-    }
-  });
+  const resendApiKey = process.env.RESEND_API_KEY;
+
+  if (resendApiKey) {
+    // Send email using Resend API over HTTPS (Bypasses Render's port blockage)
+    const https = require('https');
+    
+    const postData = JSON.stringify({
+      from: 'KutumbSetu <onboarding@resend.dev>',
+      to: email.toLowerCase().trim(),
+      subject: 'KutumbSetu - Your Email Verification OTP',
+      html: emailHtml
+    });
+
+    const options = {
+      hostname: 'api.resend.com',
+      path: '/emails',
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${resendApiKey}`,
+        'Content-Length': Buffer.byteLength(postData)
+      }
+    };
+
+    const req = https.request(options, (res) => {
+      let data = '';
+      res.on('data', (chunk) => { data += chunk; });
+      res.on('end', () => {
+        if (res.statusCode === 200 || res.statusCode === 201) {
+          console.log(`[Resend SUCCESS] OTP email sent to ${email} (StatusCode: ${res.statusCode})`);
+        } else {
+          console.error(`[Resend ERROR] Failed to send email (StatusCode: ${res.statusCode}):`, data);
+        }
+      });
+    });
+
+    req.on('error', (e) => {
+      console.error('[Resend Request Error] Failed to send email:', e);
+    });
+
+    req.write(postData);
+    req.end();
+  } else {
+    // Fallback to standard SMTP Nodemailer config (Local testing)
+    const mailOptions = {
+      from: '"KutumbSetu Portal" <no-reply@kutumbsetu.org>',
+      to: email.toLowerCase().trim(),
+      subject: 'KutumbSetu - Your Email Verification OTP',
+      html: emailHtml
+    };
+
+    transporter.sendMail(mailOptions, (error, info) => {
+      if (error) {
+        console.error(`[Nodemailer ERROR] Failed to send OTP to ${email}:`, error);
+      } else {
+        console.log(`[Nodemailer SUCCESS] OTP email sent to ${email}: ${info.messageId}`);
+      }
+    });
+  }
 };
 
 // Configure Multer for File Uploads

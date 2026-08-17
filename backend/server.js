@@ -92,6 +92,51 @@ app.get('/', (req, res) => {
   });
 });
 
+// Test SMTP connection and return direct error message
+app.get('/test-smtp', async (req, res) => {
+  try {
+    const isGmail = (process.env.SMTP_HOST || '').includes('gmail.com');
+    const transportConfig = isGmail
+      ? {
+          host: 'smtp.gmail.com',
+          port: 587,
+          secure: false,
+          auth: {
+            user: process.env.SMTP_USER,
+            pass: process.env.SMTP_PASS,
+          },
+          tls: {
+            rejectUnauthorized: false,
+            minVersion: 'TLSv1.2',
+          },
+        }
+      : {
+          host: process.env.SMTP_HOST || 'smtp.ethereal.email',
+          port: parseInt(process.env.SMTP_PORT || '587'),
+          secure: process.env.SMTP_SECURE === 'true',
+          auth: {
+            user: process.env.SMTP_USER || 'test@ethereal.email',
+            pass: process.env.SMTP_PASS || 'testpassword',
+          },
+        };
+    const testTransporter = nodemailer.createTransport(transportConfig);
+    await testTransporter.verify();
+    return res.json({
+      success: true,
+      message: 'SMTP connection verified successfully!'
+    });
+  } catch (err) {
+    return res.status(500).json({
+      success: false,
+      message: 'SMTP connection failed',
+      error: err.message,
+      code: err.code,
+      command: err.command,
+      stack: err.stack
+    });
+  }
+});
+
 // Nodemailer configuration
 const isGmail = (process.env.SMTP_HOST || '').includes('gmail.com');
 const transportConfig = isGmail

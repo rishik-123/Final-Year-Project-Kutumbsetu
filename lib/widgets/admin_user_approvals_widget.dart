@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -15,24 +16,43 @@ class AdminUserApprovalsWidget extends StatefulWidget {
 class _AdminUserApprovalsWidgetState extends State<AdminUserApprovalsWidget> {
   List<dynamic> _pendingUsers = [];
   bool _isLoading = false;
+  Timer? _refreshTimer;
 
   @override
   void initState() {
     super.initState();
-    _fetchPendingUsers();
+    _fetchPendingUsers(showLoading: true);
+    _startRefreshTimer();
   }
 
-  Future<void> _fetchPendingUsers() async {
-    setState(() {
-      _isLoading = true;
+  void _startRefreshTimer() {
+    _refreshTimer?.cancel();
+    _refreshTimer = Timer.periodic(const Duration(seconds: 4), (timer) {
+      if (mounted) {
+        _fetchPendingUsers(showLoading: false);
+      }
     });
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _fetchPendingUsers({bool showLoading = true}) async {
+    if (showLoading && mounted) {
+      setState(() {
+        _isLoading = true;
+      });
+    }
     try {
       final response = await http.get(
         Uri.parse('${ApiConfig.baseUrl}/admin/pending-users'),
       );
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        if (data['success'] == true) {
+        if (data['success'] == true && mounted) {
           setState(() {
             _pendingUsers = data['users'] ?? [];
           });
@@ -41,9 +61,11 @@ class _AdminUserApprovalsWidgetState extends State<AdminUserApprovalsWidget> {
     } catch (e) {
       print('Error fetching pending users: $e');
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (showLoading && mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 

@@ -550,7 +550,10 @@ app.post('/api/auth/admin-login', async (req, res) => {
  */
 app.get('/api/admin/pending-users', async (req, res) => {
   try {
-    const pendingUsers = await User.find({ isApproved: false, role: 'user' });
+    const pendingUsers = await User.find({
+      isApproved: { $ne: true },
+      role: { $ne: 'admin' }
+    });
     return res.status(200).json({
       success: true,
       users: pendingUsers,
@@ -670,19 +673,6 @@ app.post('/api/users/register', async (req, res) => {
       }
     }
 
-    let sanitizedPhone = '';
-    if (phoneNumber) {
-      sanitizedPhone = phoneNumber.replace(/\s+/g, '').trim();
-      // Check duplicate phone number in active profiles
-      const Profile = require('./models/Profile');
-      const existingProfile = await Profile.findOne({ phoneNumber: sanitizedPhone });
-      if (existingProfile) {
-        return res.status(400).json({
-          success: false,
-          message: 'Phone number already registered. Please login or use a different number.',
-        });
-      }
-    }
 
     // Create and save new user record
     const newUser = new User({
@@ -851,6 +841,8 @@ app.get('/api/users/profile/:identifier', async (req, res) => {
           nana: '',
           nani: '',
           bio: '',
+          role: user.role || 'user',
+          isApproved: user.isApproved || false,
         }
       });
     }
@@ -886,6 +878,8 @@ app.get('/api/users/profile/:identifier', async (req, res) => {
       bio: profile.bio || '',
       isDeceased: profile.isDeceased || false,
       willingToDonateBlood: profile.willingToDonateBlood || false,
+      role: user.role || 'user',
+      isApproved: user.isApproved || false,
     };
 
     return res.status(200).json({ success: true, user: mergedUser });

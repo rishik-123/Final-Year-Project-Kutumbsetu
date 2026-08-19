@@ -54,6 +54,7 @@ class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
   String? _errorMessage;
   FamilyTreeNode? _rootNode;
   FamilyTreeNode? _focalNode;
+  List<FamilyTreeNode> _focusPath = [];
   Map<String, Offset> _positions = {};
   final Map<String, FamilyTreeNode> _nodesMap = {};
   final Map<String, String> _parentMap = {};
@@ -108,14 +109,22 @@ class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
               _parentMap.clear();
               _mapNodes(root, null);
               
+              final user = ref.read(currentUserProvider);
               FamilyTreeNode? selfNode;
-              for (var n in _nodesMap.values) {
-                if (n.relation.toLowerCase() == 'self') {
-                  selfNode = n;
-                  break;
+              if (user != null) {
+                selfNode = _nodesMap[user.id];
+              }
+              if (selfNode == null) {
+                for (var n in _nodesMap.values) {
+                  final rel = n.relation.toLowerCase().trim();
+                  if (rel == 'self' || rel == 'son' || rel == 'daughter') {
+                    selfNode = n;
+                    break;
+                  }
                 }
               }
               _focalNode = selfNode ?? root;
+              _focusPath = [selfNode ?? root];
               _isLoading = false;
             });
             
@@ -586,19 +595,13 @@ class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
     }
 
     return Positioned(
-      left: pos.dx - 75, // Center card on pos.dx (card width is 150)
-      top: pos.dy - 35,  // Center card on pos.dy (card height is 70)
+      left: pos.dx - 110, // Center card on pos.dx (card width is 220)
+      top: pos.dy - 40,  // Center card on pos.dy (card height is 80)
       child: GestureDetector(
-        onTap: () {
-          if (node.id != _focalNode?.id) {
-            setState(() {
-              _focalNode = node;
-            });
-          }
-        },
+        onTap: () {},
         child: Container(
-          width: 150,
-          height: 70,
+          width: 220,
+          height: 80,
           decoration: BoxDecoration(
             color: isDark ? const Color(0xFF1E293B) : Colors.white,
             borderRadius: BorderRadius.circular(16),
@@ -616,9 +619,9 @@ class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
           ),
           child: Row(
             children: [
-              const SizedBox(width: 8),
+              const SizedBox(width: 10),
               avatarWidget,
-              const SizedBox(width: 8),
+              const SizedBox(width: 10),
               Expanded(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -627,24 +630,24 @@ class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
                     Text(
                       node.isDeceased ? '⚫ ${node.name}' : node.name,
                       style: GoogleFonts.poppins(
-                        fontSize: 11,
+                        fontSize: 12,
                         fontWeight: FontWeight.bold,
                         color: isDark ? Colors.white : Colors.black87,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 3),
+                    const SizedBox(height: 4),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
                         color: relColor.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(6),
+                        borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
                         node.relation.toUpperCase(),
                         style: GoogleFonts.inter(
-                          fontSize: 8,
+                          fontSize: 9,
                           fontWeight: FontWeight.bold,
                           color: relColor,
                         ),
@@ -656,12 +659,12 @@ class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
                 ),
               ),
               IconButton(
-                icon: const Icon(Icons.info_outline_rounded, size: 18, color: Colors.grey),
+                icon: const Icon(Icons.info_outline_rounded, size: 20, color: Colors.grey),
                 onPressed: () => _showNodeDetailsDialog(node),
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 10),
             ],
           ),
         ),
@@ -669,149 +672,206 @@ class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
     );
   }
 
+  FamilyTreeNode getFatherOf(FamilyTreeNode node) {
+    final rel = node.relation.toLowerCase().trim();
+    if (rel == 'self' || rel == 'son' || rel == 'daughter') {
+      for (var n in _nodesMap.values) {
+        if (n.relation.toLowerCase().trim() == 'father') return n;
+      }
+      return FamilyTreeNode(
+        id: '${node.id}-father',
+        name: 'Father',
+        photo: '',
+        relation: 'Father',
+        isDeceased: false,
+        children: [],
+      );
+    } else if (rel == 'father') {
+      for (var n in _nodesMap.values) {
+        if (n.relation.toLowerCase().trim() == 'grandfather') return n;
+      }
+      return FamilyTreeNode(
+        id: '${node.id}-father',
+        name: node.name.isNotEmpty ? "${node.name}'s Father" : 'Grandfather',
+        photo: '',
+        relation: 'Grandfather',
+        isDeceased: true,
+        children: [],
+      );
+    } else if (rel == 'mother') {
+      for (var n in _nodesMap.values) {
+        if (n.relation.toLowerCase().trim() == 'nana') return n;
+      }
+      return FamilyTreeNode(
+        id: '${node.id}-father',
+        name: node.name.isNotEmpty ? "${node.name}'s Father" : 'Nana',
+        photo: '',
+        relation: 'Nana',
+        isDeceased: true,
+        children: [],
+      );
+    } else {
+      return FamilyTreeNode(
+        id: '${node.id}-father',
+        name: node.name.isNotEmpty ? "${node.name}'s Father" : 'Ancestors',
+        photo: '',
+        relation: 'Ancestors',
+        isDeceased: true,
+        children: [],
+      );
+    }
+  }
+
+  FamilyTreeNode getMotherOf(FamilyTreeNode node) {
+    final rel = node.relation.toLowerCase().trim();
+    if (rel == 'self' || rel == 'son' || rel == 'daughter') {
+      for (var n in _nodesMap.values) {
+        if (n.relation.toLowerCase().trim() == 'mother') return n;
+      }
+      return FamilyTreeNode(
+        id: '${node.id}-mother',
+        name: 'Mother',
+        photo: '',
+        relation: 'Mother',
+        isDeceased: false,
+        children: [],
+      );
+    } else if (rel == 'father') {
+      for (var n in _nodesMap.values) {
+        if (n.relation.toLowerCase().trim() == 'grandmother') return n;
+      }
+      return FamilyTreeNode(
+        id: '${node.id}-mother',
+        name: node.name.isNotEmpty ? "${node.name}'s Mother" : 'Grandmother',
+        photo: '',
+        relation: 'Grandmother',
+        isDeceased: true,
+        children: [],
+      );
+    } else if (rel == 'mother') {
+      for (var n in _nodesMap.values) {
+        if (n.relation.toLowerCase().trim() == 'nani') return n;
+      }
+      return FamilyTreeNode(
+        id: '${node.id}-mother',
+        name: node.name.isNotEmpty ? "${node.name}'s Mother" : 'Nani',
+        photo: '',
+        relation: 'Nani',
+        isDeceased: true,
+        children: [],
+      );
+    } else {
+      return FamilyTreeNode(
+        id: '${node.id}-mother',
+        name: node.name.isNotEmpty ? "${node.name}'s Mother" : 'Ancestors',
+        photo: '',
+        relation: 'Ancestors',
+        isDeceased: true,
+        children: [],
+      );
+    }
+  }
+
   List<Widget> _buildNodeWidgets() {
-    if (_focalNode == null) return [];
+    if (_focusPath.isEmpty) return [];
 
     final List<Widget> widgets = [];
-    final Map<String, Offset> localPositions = {};
 
-    // 1. Resolve Parents
-    FamilyTreeNode? fatherNode;
-    FamilyTreeNode? motherNode;
-    final pId = _parentMap[_focalNode!.id];
-    if (pId != null) {
-      final pNode = _nodesMap[pId];
-      if (pNode != null) {
-        if (pNode.relation.toLowerCase() == 'father') {
-          fatherNode = pNode;
-        } else if (pNode.relation.toLowerCase() == 'mother') {
-          motherNode = pNode;
-        }
-        for (var child in pNode.children) {
-          if (isSpouseRelation(pNode.relation, child.relation)) {
-            if (child.relation.toLowerCase() == 'father') {
-              fatherNode = child;
-            } else if (child.relation.toLowerCase() == 'mother') {
-              motherNode = child;
-            }
-          }
-        }
-      }
-    }
+    if (_focusPath.length == 1) {
+      // Base view: Self at bottom, Father & Mother at top
+      final selfNode = _focusPath[0];
+      final fatherNode = getFatherOf(selfNode);
+      final motherNode = getMotherOf(selfNode);
 
-    // 2. Resolve Spouse
-    FamilyTreeNode? spouseNode;
-    for (var child in _focalNode!.children) {
-      if (isSpouseRelation(_focalNode!.relation, child.relation)) {
-        spouseNode = child;
-        break;
-      }
-    }
+      widgets.add(_buildFocalNodeCard(selfNode, _positions[selfNode.id]!, isFocal: true));
+      widgets.add(_buildFocalNodeCard(fatherNode, _positions[fatherNode.id]!, isFocal: false));
+      widgets.add(_buildFocalNodeCard(motherNode, _positions[motherNode.id]!, isFocal: false));
 
-    // 3. Resolve Children
-    final List<FamilyTreeNode> childrenNodes = [];
-    for (var child in _focalNode!.children) {
-      if (child.id != spouseNode?.id && !isSpouseRelation(_focalNode!.relation, child.relation)) {
-        childrenNodes.add(child);
-      }
-    }
-
-    // Map positions
-    // Parents (Y = 100)
-    if (fatherNode != null && motherNode != null) {
-      localPositions[fatherNode.id] = const Offset(700, 100);
-      localPositions[motherNode.id] = const Offset(900, 100);
-    } else if (fatherNode != null) {
-      localPositions[fatherNode.id] = const Offset(800, 100);
-    } else if (motherNode != null) {
-      localPositions[motherNode.id] = const Offset(800, 100);
-    }
-
-    // Self & Spouse (Y = 280)
-    if (spouseNode != null) {
-      localPositions[_focalNode!.id] = const Offset(700, 280);
-      localPositions[spouseNode.id] = const Offset(900, 280);
-    } else {
-      localPositions[_focalNode!.id] = const Offset(800, 280);
-    }
-
-    // Children (Y = 460)
-    final int count = childrenNodes.length;
-    if (count > 0) {
-      final double startX = 800 - (count - 1) * 100.0;
-      for (int i = 0; i < count; i++) {
-        localPositions[childrenNodes[i].id] = Offset(startX + i * 200.0, 460);
-      }
-    }
-
-    // Set positions for CustomPaint line drawing
-    _positions = localPositions;
-
-    // Render cards
-    if (fatherNode != null) widgets.add(_buildFocalNodeCard(fatherNode, localPositions[fatherNode.id]!, isFocal: false));
-    if (motherNode != null) widgets.add(_buildFocalNodeCard(motherNode, localPositions[motherNode.id]!, isFocal: false));
-    widgets.add(_buildFocalNodeCard(_focalNode!, localPositions[_focalNode!.id]!, isFocal: true));
-    if (spouseNode != null) widgets.add(_buildFocalNodeCard(spouseNode, localPositions[spouseNode.id]!, isFocal: false));
-    for (var child in childrenNodes) {
-      widgets.add(_buildFocalNodeCard(child, localPositions[child.id]!, isFocal: false));
-    }
-
-    // Add navigation arrows on canvas
-    // Up arrow (from self to parent)
-    if (fatherNode != null || motherNode != null) {
+      // Up arrow above Father
       widgets.add(
         Positioned(
-          left: 800 - 20,
-          top: 195,
-          child: Tooltip(
-            message: 'Shift focus upwards',
-            child: CircleAvatar(
-              radius: 18,
-              backgroundColor: Colors.white,
-              elevation: 4,
-              child: IconButton(
-                padding: EdgeInsets.zero,
-                icon: const Icon(Icons.arrow_upward_rounded, color: Color(0xFFD35400), size: 18),
-                onPressed: () {
-                  setState(() {
-                    _focalNode = fatherNode ?? motherNode;
-                  });
-                },
-              ),
-            ),
+          left: 660 - 20,
+          top: 155,
+          child: _buildNavigationArrow(
+            icon: Icons.arrow_upward_rounded,
+            tooltip: 'Navigate to Father\'s lineage',
+            onPressed: () {
+              setState(() {
+                _focusPath.add(fatherNode);
+              });
+            },
           ),
         ),
       );
-    }
 
-    // Down arrow (from self to children)
-    if (childrenNodes.isNotEmpty) {
+      // Up arrow above Mother
+      widgets.add(
+        Positioned(
+          left: 940 - 20,
+          top: 155,
+          child: _buildNavigationArrow(
+            icon: Icons.arrow_upward_rounded,
+            tooltip: 'Navigate to Mother\'s lineage',
+            onPressed: () {
+              setState(() {
+                _focusPath.add(motherNode);
+              });
+            },
+          ),
+        ),
+      );
+    } else {
+      // Navigated view: focalParent at bottom, grandparents at top
+      final focalParent = _focusPath.last;
+      final grandfatherNode = getFatherOf(focalParent);
+      final grandmotherNode = getMotherOf(focalParent);
+
+      widgets.add(_buildFocalNodeCard(focalParent, _positions[focalParent.id]!, isFocal: true));
+      widgets.add(_buildFocalNodeCard(grandfatherNode, _positions[grandfatherNode.id]!, isFocal: false));
+      widgets.add(_buildFocalNodeCard(grandmotherNode, _positions[grandmotherNode.id]!, isFocal: false));
+
+      // Down arrow above focalParent
       widgets.add(
         Positioned(
           left: 800 - 20,
-          top: 360,
-          child: Tooltip(
-            message: 'Shift focus downwards',
-            child: CircleAvatar(
-              radius: 18,
-              backgroundColor: Colors.white,
-              elevation: 4,
-              child: IconButton(
-                padding: EdgeInsets.zero,
-                icon: const Icon(Icons.arrow_downward_rounded, color: Color(0xFFD35400), size: 18),
-                onPressed: () {
-                  setState(() {
-                    _focalNode = childrenNodes.first;
-                  });
-                },
-              ),
-            ),
+          top: 335,
+          child: _buildNavigationArrow(
+            icon: Icons.arrow_downward_rounded,
+            tooltip: 'Go back to spouse and children',
+            onPressed: () {
+              setState(() {
+                _focusPath.removeLast();
+              });
+            },
           ),
         ),
       );
     }
 
     return widgets;
+  }
+
+  Widget _buildNavigationArrow({
+    required IconData icon,
+    required String tooltip,
+    required VoidCallback onPressed,
+  }) {
+    return Tooltip(
+      message: tooltip,
+      child: Material(
+        elevation: 4,
+        shape: const CircleBorder(),
+        child: CircleAvatar(
+          radius: 18,
+          backgroundColor: Colors.white,
+          child: IconButton(
+            padding: EdgeInsets.zero,
+            icon: Icon(icon, color: const Color(0xFFD35400), size: 18),
+            onPressed: onPressed,
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -887,6 +947,29 @@ class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
       );
     }
 
+    // Pre-calculate positions map here to keep CustomPaint and node widgets completely in sync
+    final Map<String, Offset> localPositions = {};
+    if (_focusPath.isNotEmpty) {
+      if (_focusPath.length == 1) {
+        final selfNode = _focusPath[0];
+        final fatherNode = getFatherOf(selfNode);
+        final motherNode = getMotherOf(selfNode);
+
+        localPositions[selfNode.id] = const Offset(800, 460);
+        localPositions[fatherNode.id] = const Offset(660, 240);
+        localPositions[motherNode.id] = const Offset(940, 240);
+      } else {
+        final focalParent = _focusPath.last;
+        final grandfatherNode = getFatherOf(focalParent);
+        final grandmotherNode = getMotherOf(focalParent);
+
+        localPositions[focalParent.id] = const Offset(800, 460);
+        localPositions[grandfatherNode.id] = const Offset(660, 240);
+        localPositions[grandmotherNode.id] = const Offset(940, 240);
+      }
+    }
+    _positions = localPositions;
+
     // Interactive custom zoom/pinch/pan view canvas
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -928,9 +1011,10 @@ class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
               CustomPaint(
                 size: const Size(1600, 1000),
                 painter: FamilyTreeLinePainter(
-                  rootNode: _rootNode!,
+                  focusPath: _focusPath,
                   positions: _positions,
-                  colorResolver: _getRelationColor,
+                  getFatherOf: getFatherOf,
+                  getMotherOf: getMotherOf,
                 ),
               ),
               ..._buildNodeWidgets(),
@@ -944,117 +1028,99 @@ class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
 
 // Line drawing custom painter
 class FamilyTreeLinePainter extends CustomPainter {
-  final FamilyTreeNode rootNode;
+  final List<FamilyTreeNode> focusPath;
   final Map<String, Offset> positions;
-  final Color Function(String) colorResolver;
+  final FamilyTreeNode Function(FamilyTreeNode) getFatherOf;
+  final FamilyTreeNode Function(FamilyTreeNode) getMotherOf;
 
   FamilyTreeLinePainter({
-    required this.rootNode,
+    required this.focusPath,
     required this.positions,
-    required this.colorResolver,
+    required this.getFatherOf,
+    required this.getMotherOf,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
+    if (focusPath.isEmpty) return;
+
     final paint = Paint()
       ..strokeWidth = 2.0
       ..style = PaintingStyle.stroke;
 
-    void drawConnections(FamilyTreeNode node) {
-      if (!positions.containsKey(node.id)) return;
-      final parentPos = positions[node.id]!;
+    final focalNode = focusPath.last;
 
-      // Find if spouse node exists
-      FamilyTreeNode? spouseNode;
-      for (var child in node.children) {
-        if (_FamilyTreeScreenState.isSpouseRelation(node.relation, child.relation)) {
-          spouseNode = child;
-          break;
-        }
-      }
+    if (focusPath.length == 1) {
+      final selfNode = focalNode;
+      final fatherNode = getFatherOf(selfNode);
+      final motherNode = getMotherOf(selfNode);
 
-      Offset jointStart = parentPos;
+      final selfPos = positions[selfNode.id];
+      final fatherPos = positions[fatherNode.id];
+      final motherPos = positions[motherNode.id];
 
-      if (spouseNode != null && positions.containsKey(spouseNode.id)) {
-        final spousePos = positions[spouseNode.id]!;
-        // 1. Draw spouse connector line (Husband <-> Wife = Blue)
+      if (selfPos != null && fatherPos != null && motherPos != null) {
+        // 1. Draw spouse line between Father and Mother
         paint.color = const Color(0xFF2980B9);
         paint.strokeWidth = 2.5;
-
-        final double parentEdgeX = parentPos.dx < spousePos.dx ? parentPos.dx + 75.0 : parentPos.dx - 75.0;
-        final double spouseEdgeX = parentPos.dx < spousePos.dx ? spousePos.dx - 75.0 : spousePos.dx + 75.0;
-
         canvas.drawLine(
-          Offset(parentEdgeX, parentPos.dy),
-          Offset(spouseEdgeX, spousePos.dy),
+          Offset(fatherPos.dx + 110.0, fatherPos.dy),
+          Offset(motherPos.dx - 110.0, motherPos.dy),
           paint,
         );
 
-        final midX = (parentPos.dx + spousePos.dx) / 2;
-        canvas.drawCircle(Offset(midX, parentPos.dy), 4.0, paint..style = PaintingStyle.fill);
+        // Midpoint circle
+        final midX = (fatherPos.dx + motherPos.dx) / 2;
+        canvas.drawCircle(Offset(midX, fatherPos.dy), 4.0, paint..style = PaintingStyle.fill);
+
+        // 2. Draw vertical line from Self to the midpoint
+        paint.color = const Color(0xFF27AE60);
+        paint.strokeWidth = 2.0;
         paint.style = PaintingStyle.stroke;
-
-        jointStart = Offset(midX, parentPos.dy);
+        canvas.drawLine(
+          Offset(selfPos.dx, selfPos.dy - 40.0),
+          Offset(midX, fatherPos.dy),
+          paint,
+        );
       }
+    } else {
+      final focalParent = focalNode;
+      final grandfatherNode = getFatherOf(focalParent);
+      final grandmotherNode = getMotherOf(focalParent);
 
-      // Collect direct descendants
-      final List<FamilyTreeNode> descendants = [];
-      for (var child in node.children) {
-        if (child.id != spouseNode?.id) {
-          descendants.add(child);
-        }
-      }
+      final focalPos = positions[focalParent.id];
+      final grandfatherPos = positions[grandfatherNode.id];
+      final grandmotherPos = positions[grandmotherNode.id];
 
-      if (descendants.isNotEmpty) {
-        final double parentBottom = jointStart.dy + 35.0; // Bottom of parent card height
+      if (focalPos != null && grandfatherPos != null && grandmotherPos != null) {
+        // 1. Draw spouse line between Grandfather and Grandmother at top level
+        paint.color = const Color(0xFF2980B9);
+        paint.strokeWidth = 2.5;
+        canvas.drawLine(
+          Offset(grandfatherPos.dx + 110.0, grandfatherPos.dy),
+          Offset(grandmotherPos.dx - 110.0, grandmotherPos.dy),
+          paint,
+        );
 
-        for (var desc in descendants) {
-          if (positions.containsKey(desc.id)) {
-            final childPos = positions[desc.id]!;
-            final double childTop = childPos.dy - 35.0;
-            
-            paint.color = colorResolver(desc.relation);
-            paint.strokeWidth = 2.0;
+        // Midpoint circle
+        final midX = (grandfatherPos.dx + grandmotherPos.dx) / 2;
+        canvas.drawCircle(Offset(midX, grandfatherPos.dy), 4.0, paint..style = PaintingStyle.fill);
 
-            // Orthogonal connector line:
-            final double midY = (parentBottom + childTop) / 2;
-            
-            // 1. Draw line down from jointStart to midY
-            canvas.drawLine(
-              Offset(jointStart.dx, parentBottom),
-              Offset(jointStart.dx, midY),
-              paint,
-            );
-            // 2. Draw horizontal line from jointStart.dx to childPos.dx
-            canvas.drawLine(
-              Offset(jointStart.dx, midY),
-              Offset(childPos.dx, midY),
-              paint,
-            );
-            // 3. Draw vertical line from midY to childTop
-            canvas.drawLine(
-              Offset(childPos.dx, midY),
-              Offset(childPos.dx, childTop),
-              paint,
-            );
-
-            canvas.drawCircle(Offset(childPos.dx, childTop), 2.0, paint..style = PaintingStyle.fill);
-            paint.style = PaintingStyle.stroke;
-          }
-        }
-      }
-
-      // Recursively paint for children
-      for (var child in node.children) {
-        drawConnections(child);
+        // 2. Draw vertical line from focalParent to the midpoint of Grandfather/Grandmother
+        paint.color = const Color(0xFF27AE60);
+        paint.strokeWidth = 2.0;
+        paint.style = PaintingStyle.stroke;
+        canvas.drawLine(
+          Offset(focalPos.dx, focalPos.dy - 40.0),
+          Offset(midX, grandfatherPos.dy),
+          paint,
+        );
       }
     }
-
-    drawConnections(rootNode);
   }
 
   @override
   bool shouldRepaint(covariant FamilyTreeLinePainter oldDelegate) {
-    return oldDelegate.rootNode != rootNode || oldDelegate.positions != positions;
+    return oldDelegate.focusPath != focusPath || oldDelegate.positions != positions;
   }
 }

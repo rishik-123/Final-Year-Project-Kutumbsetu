@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
@@ -29,6 +30,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   final PageController _newsPageController = PageController();
   final ScrollController _birthdayScrollController = ScrollController();
   int _activeNewsIndex = 0;
+  Timer? _approvalPollTimer;
 
   @override
   void initState() {
@@ -49,8 +51,47 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     });
   }
 
+  void _startApprovalPollingIfNeeded(UserModel? user) {
+    if (user == null || user.role == 'admin' || user.isApproved) {
+      _approvalPollTimer?.cancel();
+      _approvalPollTimer = null;
+      return;
+    }
+    if (_approvalPollTimer != null) return; // Already polling
+
+    _approvalPollTimer = Timer.periodic(const Duration(seconds: 4), (timer) async {
+      if (!mounted) return;
+      final identifier = (user.email != null && user.email!.isNotEmpty)
+          ? user.email
+          : user.phoneNumber;
+      if (identifier == null || identifier.isEmpty) return;
+
+      try {
+        final response = await http.get(
+          Uri.parse('${ApiConfig.baseUrl}/users/profile/$identifier'),
+        );
+        if (response.statusCode == 200) {
+          final data = jsonDecode(response.body);
+          if (data['success'] == true && data['user'] != null) {
+            final updatedUser = UserModel.fromJson(data['user']);
+            if (updatedUser.isApproved) {
+              _approvalPollTimer?.cancel();
+              _approvalPollTimer = null;
+              if (mounted) {
+                ref.read(currentUserProvider.notifier).state = updatedUser;
+              }
+            }
+          }
+        }
+      } catch (e) {
+        print('Error polling user approval status: $e');
+      }
+    });
+  }
+
   @override
   void dispose() {
+    _approvalPollTimer?.cancel();
     _newsPageController.dispose();
     _birthdayScrollController.dispose();
     super.dispose();
@@ -581,6 +622,7 @@ Contact: ${user.phoneNumber}
       nani: 'Naniben',
     );
     final isDark = ref.watch(themeModeProvider) == ThemeMode.dark;
+    _startApprovalPollingIfNeeded(user);
 
     final bgGradient = LinearGradient(
       colors: isDark

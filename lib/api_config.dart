@@ -5,7 +5,7 @@ class ApiConfig {
   /// Toggle this to [true] if testing on a physical Android device connected via USB/C2C cable.
   /// You MUST run the following command in your terminal first to forward port 5000:
   /// `adb reverse tcp:5000 tcp:5000`
-  static const bool useAdbReverseForPhysicalAndroid = false;
+  static const bool useAdbReverseForPhysicalAndroid = true;
 
   /// If you are using a tunneling service like ngrok to expose your local backend publicly
   /// (which allows connecting even when your device is on mobile data or a different network),

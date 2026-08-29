@@ -95,6 +95,80 @@ Contact: ${member.mobileNumber}
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final favorites = ref.watch(favoriteMemberIdsProvider);
     final isFavorite = favorites.contains(member.id);
+    final connectionState = ref.watch(directoryConnectionProvider);
+    final isConnected = connectionState.connectedMemberIds.contains(member.id);
+    final isPending = connectionState.pendingRequestMemberIds.contains(member.id);
+
+    void showFollowRequestDialog() {
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Row(
+            children: [
+              const Icon(Icons.person_add_alt_1_rounded, color: const Color(0xFFE67E22), size: 26),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Follow ${member.fullName}',
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'To protect member privacy, please send a follow request to ${member.fullName} to unlock their full phone number, address, village, profession, and start a chat.',
+                style: const TextStyle(fontSize: 13.5),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE67E22).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.shield_outlined, color: const Color(0xFFE67E22), size: 18),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Once accepted, full member details and direct contact will be unlocked.',
+                        style: TextStyle(fontSize: 11.5, color: const Color(0xFFE67E22), fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+            ),
+            ElevatedButton.icon(
+              onPressed: () {
+                Navigator.pop(ctx);
+                ref.read(directoryConnectionProvider.notifier).sendFollowRequest(member.id);
+                _showActionSnackBar(context, 'Follow request sent to ${member.fullName}!');
+              },
+              icon: const Icon(Icons.send_rounded, size: 16),
+              label: const Text('Send Follow Request'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFE67E22),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -111,18 +185,17 @@ Contact: ${member.mobileNumber}
         color: Colors.transparent,
         borderRadius: BorderRadius.circular(16),
         child: InkWell(
-          onTap: onTap,
+          onTap: isConnected ? onTap : showFollowRequestDialog,
           borderRadius: BorderRadius.circular(16),
           child: Padding(
             padding: const EdgeInsets.all(14.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Top Row: Avatar, Name, Profession, Verified Badge, Favorite Button
+                // Top Row: Avatar, Name, Age & Gender
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Avatar with Hero
                     Hero(
                       tag: 'avatar_${member.id}',
                       child: Container(
@@ -163,7 +236,7 @@ Contact: ${member.mobileNumber}
                     ),
                     const SizedBox(width: 12),
 
-                    // Member Details
+                    // Member Basic Info: Name, Age, Gender
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -194,19 +267,6 @@ Contact: ${member.mobileNumber}
                               ],
                             ],
                           ),
-                          const SizedBox(height: 2),
-                          Text(
-                            member.profession,
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                              color: isDark
-                                  ? AppColors.lightBlue
-                                  : AppColors.accentBlue,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
                           const SizedBox(height: 4),
                           Row(
                             children: [
@@ -219,11 +279,12 @@ Contact: ${member.mobileNumber}
                                     ? AppColors.textSecondaryDark
                                     : AppColors.textSecondaryLight,
                               ),
-                              const SizedBox(width: 2),
+                              const SizedBox(width: 4),
                               Text(
                                 'Age: ${member.age} • Gender: ${member.gender}',
                                 style: TextStyle(
-                                  fontSize: 12,
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w500,
                                   color: isDark
                                       ? AppColors.textSecondaryDark
                                       : AppColors.textSecondaryLight,
@@ -231,6 +292,19 @@ Contact: ${member.mobileNumber}
                               ),
                             ],
                           ),
+                          if (isConnected) ...[
+                            const SizedBox(height: 2),
+                            Text(
+                              member.profession,
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: isDark ? AppColors.lightBlue : AppColors.accentBlue,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
                         ],
                       ),
                     ),
@@ -262,39 +336,85 @@ Contact: ${member.mobileNumber}
                     ),
                   ],
                 ),
-                if (member.bloodGroup.isNotEmpty) ...[
-                  const SizedBox(height: 12),
-                  const Divider(height: 1, thickness: 0.5),
-                  const SizedBox(height: 10),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: AppColors.favoriteRed.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(
-                          Icons.bloodtype_outlined,
-                          size: 13,
-                          color: AppColors.favoriteRed,
-                        ),
-                        const SizedBox(width: 3),
-                        Text(
-                          member.bloodGroup,
-                          style: const TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.favoriteRed,
+
+                const SizedBox(height: 10),
+                const Divider(height: 1, thickness: 0.5),
+                const SizedBox(height: 8),
+
+                // Bottom Action: Request to Follow (if locked) OR Unlocked details & Contact buttons
+                if (!isConnected)
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.lock_outline_rounded, size: 14, color: Colors.grey.shade600),
+                          const SizedBox(width: 4),
+                          Text(
+                            isPending ? 'Follow Requested (Pending)' : 'Details & Contact Protected',
+                            style: TextStyle(fontSize: 11, color: isPending ? Colors.orange : Colors.grey.shade600),
+                          ),
+                        ],
+                      ),
+                      if (isPending)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.orange.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Text('Requested', style: TextStyle(color: Colors.orange, fontSize: 11, fontWeight: FontWeight.bold)),
+                        )
+                      else
+                        ElevatedButton.icon(
+                          onPressed: showFollowRequestDialog,
+                          icon: const Icon(Icons.person_add_rounded, size: 14),
+                          label: const Text('Request to Follow', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFE67E22),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            minimumSize: const Size(0, 30),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                           ),
                         ),
-                      ],
-                    ),
+                    ],
+                  )
+                else ...[
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.location_on_outlined, size: 14, color: AppColors.accentBlue),
+                          const SizedBox(width: 4),
+                          Text(member.village, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+                          if (member.bloodGroup.isNotEmpty) ...[
+                            const SizedBox(width: 8),
+                            Text('• ${member.bloodGroup}', style: const TextStyle(fontSize: 12, color: AppColors.favoriteRed, fontWeight: FontWeight.bold)),
+                          ],
+                        ],
+                      ),
+                      Row(
+                        children: [
+                          _ActionIconBtn(
+                            icon: Icons.phone_rounded,
+                            color: Colors.green,
+                            tooltip: 'Call',
+                            onTap: () => _makeCall(context, member.mobileNumber),
+                          ),
+                          const SizedBox(width: 8),
+                          _ActionIconBtn(
+                            icon: Icons.chat_rounded,
+                            color: AppColors.accentBlue,
+                            tooltip: 'Message',
+                            onTap: () => _sendMessage(context, member),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ],
-
               ],
             ),
           ),

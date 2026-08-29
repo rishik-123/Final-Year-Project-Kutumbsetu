@@ -26,10 +26,15 @@ import '../screens/my_registrations_screen.dart';
 import '../screens/registration_success_screen.dart';
 import '../screens/post_detail_screen.dart';
 import '../screens/reel_detail_screen.dart';
+import '../screens/admin_dashboard_screen.dart';
 
 final appRouter = GoRouter(
   initialLocation: '/',
   routes: [
+    GoRoute(
+      path: '/admin',
+      builder: (context, state) => const AdminDashboardScreen(),
+    ),
     GoRoute(
       path: '/post/:id',
       builder: (context, state) {

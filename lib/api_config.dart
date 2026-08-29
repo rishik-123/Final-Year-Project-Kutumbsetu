@@ -15,8 +15,8 @@ class ApiConfig {
 
   /// Alternatively, enter your computer's local Wi-Fi IP address here (e.g., '192.168.1.15')
   /// if your physical device is connected to the same Wi-Fi network.
-  /// Your current local Wi-Fi IP address on the network is: '10.251.184.66'
-  static const String localWifiIp = '10.251.184.66';
+  /// Your current local Wi-Fi IP address on the network is: '192.168.0.101'
+  static const String localWifiIp = '192.168.0.101';
 
   /// Base API URL pointing to the local Node.js Express server.
   static String get baseUrl {

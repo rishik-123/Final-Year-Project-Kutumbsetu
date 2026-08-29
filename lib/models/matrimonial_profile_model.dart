@@ -21,8 +21,8 @@ class MatrimonialProfileModel {
   final Map<String, dynamic> partnerPreferences;
   final Map<String, dynamic> visibility;
   final String status;
-  final DateTime createdAt;
-  final DateTime updatedAt;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
   final String profilePhotoUrl;
   final String introductionVideoUrl;
   final int match; // Dynamic AI Match score calculated by server or fallback
@@ -41,8 +41,8 @@ class MatrimonialProfileModel {
   final Map<String, dynamic> socialLinks;
   final String connectionStatus;
 
-  const MatrimonialProfileModel({
-    required this.id,
+  MatrimonialProfileModel({
+    this.id = '',
     required this.userId,
     required this.name,
     required this.dateOfBirth,
@@ -57,15 +57,15 @@ class MatrimonialProfileModel {
     required this.annualIncome,
     required this.village,
     required this.city,
-    required this.family,
-    required this.lifestyle,
-    required this.partnerPreferences,
-    required this.visibility,
-    required this.status,
-    required this.createdAt,
-    required this.updatedAt,
-    required this.profilePhotoUrl,
-    required this.introductionVideoUrl,
+    this.family = const {},
+    this.lifestyle = const {},
+    this.partnerPreferences = const {},
+    this.visibility = const {},
+    this.status = 'Approved',
+    this.createdAt,
+    this.updatedAt,
+    this.profilePhotoUrl = '',
+    this.introductionVideoUrl = '',
     this.match = 75,
     this.mobileNumber = '',
     this.emailAddress = '',
@@ -78,6 +78,82 @@ class MatrimonialProfileModel {
     this.socialLinks = const {},
     this.connectionStatus = 'None',
   });
+
+  MatrimonialProfileModel copyWith({
+    String? id,
+    String? userId,
+    String? name,
+    DateTime? dateOfBirth,
+    String? gender,
+    int? heightCm,
+    int? weightKg,
+    String? bloodGroup,
+    String? maritalStatus,
+    String? education,
+    String? occupation,
+    String? company,
+    double? annualIncome,
+    String? village,
+    String? city,
+    Map<String, dynamic>? family,
+    Map<String, dynamic>? lifestyle,
+    Map<String, dynamic>? partnerPreferences,
+    Map<String, dynamic>? visibility,
+    String? status,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    String? profilePhotoUrl,
+    String? introductionVideoUrl,
+    int? match,
+    String? mobileNumber,
+    String? emailAddress,
+    String? fullAddressText,
+    String? workingCountry,
+    String? description,
+    String? partnerExpectations,
+    List<String>? partnerExpectationsHobbies,
+    List<String>? additionalPhotos,
+    Map<String, dynamic>? socialLinks,
+    String? connectionStatus,
+  }) {
+    return MatrimonialProfileModel(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      name: name ?? this.name,
+      dateOfBirth: dateOfBirth ?? this.dateOfBirth,
+      gender: gender ?? this.gender,
+      heightCm: heightCm ?? this.heightCm,
+      weightKg: weightKg ?? this.weightKg,
+      bloodGroup: bloodGroup ?? this.bloodGroup,
+      maritalStatus: maritalStatus ?? this.maritalStatus,
+      education: education ?? this.education,
+      occupation: occupation ?? this.occupation,
+      company: company ?? this.company,
+      annualIncome: annualIncome ?? this.annualIncome,
+      village: village ?? this.village,
+      city: city ?? this.city,
+      family: family ?? this.family,
+      lifestyle: lifestyle ?? this.lifestyle,
+      partnerPreferences: partnerPreferences ?? this.partnerPreferences,
+      visibility: visibility ?? this.visibility,
+      status: status ?? this.status,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      profilePhotoUrl: profilePhotoUrl ?? this.profilePhotoUrl,
+      introductionVideoUrl: introductionVideoUrl ?? this.introductionVideoUrl,
+      match: match ?? this.match,
+      mobileNumber: mobileNumber ?? this.mobileNumber,
+      emailAddress: emailAddress ?? this.emailAddress,
+      fullAddressText: fullAddressText ?? this.fullAddressText,
+      workingCountry: workingCountry ?? this.workingCountry,
+      description: description ?? this.description,
+      partnerExpectations: partnerExpectations ?? this.partnerExpectations,
+      partnerExpectationsHobbies: partnerExpectationsHobbies ?? this.partnerExpectationsHobbies,
+      additionalPhotos: additionalPhotos ?? this.additionalPhotos,
+      socialLinks: socialLinks ?? this.socialLinks,
+      connectionStatus: connectionStatus ?? this.connectionStatus,
+    );
+  }
 
   int get age {
     final now = DateTime.now();
@@ -170,8 +246,8 @@ class MatrimonialProfileModel {
       'partnerPreferences': partnerPreferences,
       'visibilitySettings': visibility,
       'profileStatus': status,
-      'createdDate': createdAt.toIso8601String(),
-      'updatedDate': updatedAt.toIso8601String(),
+      'createdDate': createdAt?.toIso8601String(),
+      'updatedDate': updatedAt?.toIso8601String(),
       'profilePhoto': profilePhotoUrl,
       'introductionVideo': introductionVideoUrl,
       'mobileNumber': mobileNumber,

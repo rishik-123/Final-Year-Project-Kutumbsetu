@@ -242,7 +242,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         });
         ref.read(currentUserProvider.notifier).state = userModel;
         _showSuccessSnackBar('Welcome, Admin!');
-        context.go('/home');
+        context.go('/admin');
       } else {
         setState(() {
           _isVerifyingOtp = false;

@@ -383,3 +383,47 @@ final groupedMembersProvider =
     return grouped;
   });
 });
+
+// Directory Connected / Followed Members State Management
+class DirectoryConnectionState {
+  final Set<String> connectedMemberIds;
+  final Set<String> pendingRequestMemberIds;
+
+  const DirectoryConnectionState({
+    this.connectedMemberIds = const {},
+    this.pendingRequestMemberIds = const {},
+  });
+
+  DirectoryConnectionState copyWith({
+    Set<String>? connectedMemberIds,
+    Set<String>? pendingRequestMemberIds,
+  }) {
+    return DirectoryConnectionState(
+      connectedMemberIds: connectedMemberIds ?? this.connectedMemberIds,
+      pendingRequestMemberIds: pendingRequestMemberIds ?? this.pendingRequestMemberIds,
+    );
+  }
+}
+
+class DirectoryConnectionNotifier extends StateNotifier<DirectoryConnectionState> {
+  DirectoryConnectionNotifier() : super(const DirectoryConnectionState());
+
+  void sendFollowRequest(String memberId) {
+    final pending = Set<String>.from(state.pendingRequestMemberIds)..add(memberId);
+    state = state.copyWith(pendingRequestMemberIds: pending);
+  }
+
+  void acceptFollowRequest(String memberId) {
+    final pending = Set<String>.from(state.pendingRequestMemberIds)..remove(memberId);
+    final connected = Set<String>.from(state.connectedMemberIds)..add(memberId);
+    state = state.copyWith(connectedMemberIds: connected, pendingRequestMemberIds: pending);
+  }
+
+  bool isConnected(String memberId) => state.connectedMemberIds.contains(memberId);
+  bool isPending(String memberId) => state.pendingRequestMemberIds.contains(memberId);
+}
+
+final directoryConnectionProvider = StateNotifierProvider<DirectoryConnectionNotifier, DirectoryConnectionState>((ref) {
+  return DirectoryConnectionNotifier();
+});
+

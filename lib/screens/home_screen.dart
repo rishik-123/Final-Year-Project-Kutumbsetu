@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
 import '../constants/app_colors.dart';
 import '../models/user_model.dart';
 import '../providers/auth_provider.dart';
@@ -32,9 +33,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   int _activeNewsIndex = 0;
   Timer? _approvalPollTimer;
 
+  // Dynamic Home Feed Data
+  List<dynamic> _dynamicBirthdays = [];
+  List<dynamic> _dynamicEvents = [];
+  List<dynamic> _dynamicFeaturedFamilies = [];
+  int _communityTotalMembers = 1240;
+  bool _checkedMatrimonialAlerts = false;
+
   @override
   void initState() {
     super.initState();
+    _fetchHomeDynamicData();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Future.delayed(const Duration(milliseconds: 600), () {
         if (mounted && _birthdayScrollController.hasClients) {
@@ -48,7 +57,166 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           }
         }
       });
+
+      // Check for incoming matrimonial interest alerts on login
+      final user = ref.read(currentUserProvider);
+      if (user != null && !_checkedMatrimonialAlerts) {
+        _checkedMatrimonialAlerts = true;
+        _checkIncomingMatrimonialAlerts(user);
+      }
     });
+  }
+
+  Future<void> _fetchHomeDynamicData() async {
+    try {
+      // 1. Fetch Dynamic Birthdays
+      final bdayRes = await http.get(Uri.parse('${ApiConfig.baseUrl}/community/birthdays'));
+      if (bdayRes.statusCode == 200) {
+        final bdayData = jsonDecode(bdayRes.body);
+        if (bdayData['success'] == true && mounted) {
+          setState(() {
+            _dynamicBirthdays = bdayData['birthdays'] ?? [];
+          });
+        }
+      }
+
+      // 2. Fetch Dynamic Events
+      final evRes = await http.get(Uri.parse('${ApiConfig.baseUrl}/community/events'));
+      if (evRes.statusCode == 200) {
+        final evData = jsonDecode(evRes.body);
+        if (evData['success'] == true && mounted) {
+          setState(() {
+            _dynamicEvents = evData['events'] ?? [];
+          });
+        }
+      }
+
+      // 3. Fetch Surname Analytics & Featured Families
+      final snRes = await http.get(Uri.parse('${ApiConfig.baseUrl}/community/surname-analytics'));
+      if (snRes.statusCode == 200) {
+        final snData = jsonDecode(snRes.body);
+        if (snData['success'] == true && mounted) {
+          setState(() {
+            _dynamicFeaturedFamilies = snData['featuredFamilies'] ?? [];
+            _communityTotalMembers = snData['totalMembers'] ?? 1240;
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Error loading dynamic home feeds: $e');
+    }
+  }
+
+  Future<void> _checkIncomingMatrimonialAlerts(UserModel user) async {
+    try {
+      final res = await http.get(Uri.parse('${ApiConfig.baseUrl}/matrimonial/incoming-alerts/${user.id}'));
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        if (data['success'] == true && data['alerts'] != null) {
+          final List alerts = data['alerts'];
+          if (alerts.isNotEmpty && mounted) {
+            final first = alerts.first;
+            _showIncomingInterestDialog(first);
+          }
+        }
+      }
+    } catch (_) {}
+  }
+
+  void _showIncomingInterestDialog(Map<String, dynamic> alert) {
+    final reqId = alert['requestId'] ?? '';
+    final senderName = alert['senderName'] ?? 'A member';
+    final senderOccupation = alert['senderOccupation'] ?? '';
+    final senderCity = alert['senderCity'] ?? '';
+
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            const Icon(Icons.favorite_rounded, color: Color(0xFFE67E22), size: 28),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'New Match Request!',
+                style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 17),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '$senderName has requested to connect with you for Matrimonial purposes.',
+              style: GoogleFonts.inter(fontSize: 14),
+            ),
+            const SizedBox(height: 8),
+            if (senderOccupation.isNotEmpty || senderCity.isNotEmpty)
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  '$senderOccupation ${senderCity.isNotEmpty ? "• $senderCity" : ""}',
+                  style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFFE67E22)),
+                ),
+              ),
+            const SizedBox(height: 8),
+            Text(
+              'Accepting will unlock full contact details, WhatsApp, and call features for both of you.',
+              style: GoogleFonts.inter(fontSize: 12, color: Colors.grey.shade600),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              try {
+                await http.post(
+                  Uri.parse('${ApiConfig.baseUrl}/matrimonial/request/respond'),
+                  headers: {'Content-Type': 'application/json'},
+                  body: jsonEncode({'requestId': reqId, 'status': 'Rejected'}),
+                );
+              } catch (_) {}
+            },
+            child: const Text('Decline', style: TextStyle(color: Colors.redAccent)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              try {
+                await http.post(
+                  Uri.parse('${ApiConfig.baseUrl}/matrimonial/request/respond'),
+                  headers: {'Content-Type': 'application/json'},
+                  body: jsonEncode({'requestId': reqId, 'status': 'Accepted'}),
+                );
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('You are now connected with $senderName! Details unlocked.'),
+                      backgroundColor: const Color(0xFF2E7D32),
+                    ),
+                  );
+                }
+              } catch (_) {}
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF2E7D32),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: const Text('Accept Connect'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _startApprovalPollingIfNeeded(UserModel? user) {
@@ -57,7 +225,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       _approvalPollTimer = null;
       return;
     }
-    if (_approvalPollTimer != null) return; // Already polling
+    if (_approvalPollTimer != null) return;
 
     _approvalPollTimer = Timer.periodic(const Duration(seconds: 4), (timer) async {
       if (!mounted) return;
@@ -84,7 +252,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           }
         }
       } catch (e) {
-        print('Error polling user approval status: $e');
+        debugPrint('Error polling user approval status: $e');
       }
     });
   }
@@ -726,6 +894,8 @@ Contact: ${user.phoneNumber}
 
   // --- TAB 1: HOME FEED TAB ---
   Widget _buildHomeFeedTab(UserModel user, bool isDark) {
+    final isAdminUser = user.isAdmin || user.role == 'admin';
+
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
       child: Column(
@@ -734,6 +904,48 @@ Contact: ${user.phoneNumber}
           // 1. Saffron Header
           _buildHeader(user, isDark),
           const SizedBox(height: 16),
+
+          // Admin Dashboard Access Banner (if admin)
+          if (isAdminUser) ...[
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1B4F72),
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(color: Colors.black.withValues(alpha: 0.15), blurRadius: 8),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.admin_panel_settings_rounded, color: Color(0xFFE67E22), size: 28),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Admin Control Panel', style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                          const Text('Manage approvals, requests, and posts', style: TextStyle(color: Colors.white70, fontSize: 11)),
+                        ],
+                      ),
+                    ),
+                    ElevatedButton(
+                      onPressed: () => context.push('/admin'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFE67E22),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                      child: const Text('Open Panel', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
 
           // 2. Quick Actions
           Padding(
@@ -749,29 +961,33 @@ Contact: ${user.phoneNumber}
           ),
           const SizedBox(height: 12),
           _buildQuickActionsGrid(isDark),
+          const SizedBox(height: 16),
+
+          // 3. User "Send Request to Admin" Card
+          _buildSendRequestToAdminCard(isDark),
           const SizedBox(height: 20),
 
-          // 3. Birthdays Today
+          // 4. Birthdays Today
           _buildBirthdaysToday(isDark),
           const SizedBox(height: 20),
 
-          // 4. Recent Samaj News
+          // 5. Recent Samaj News
           _buildRecentSamajNews(isDark),
           const SizedBox(height: 20),
 
-          // 5. Upcoming Events
+          // 6. Upcoming Events
           _buildUpcomingEvents(isDark),
           const SizedBox(height: 20),
 
-          // 6. Featured Families
+          // 7. Featured Families
           _buildFeaturedFamilies(isDark),
           const SizedBox(height: 20),
 
-          // 7. Community at a Glance
+          // 8. Community at a Glance
           _buildCommunityAtGlance(isDark),
           const SizedBox(height: 20),
 
-          // 8. Community Posts & Feed
+          // 9. Community Posts & Feed
           _buildCommunityPostsFeed(isDark),
           const SizedBox(height: 32),
         ],
@@ -884,7 +1100,7 @@ Contact: ${user.phoneNumber}
                               duration: const Duration(milliseconds: 200),
                               curve: Curves.easeInOut,
                               left: _isGujarati ? 36.0 : 2.0,
-                              right: _isGujarati ? 2.0 : 36.0,
+                              width: 28.0,
                               top: 2.0,
                               bottom: 2.0,
                               child: Container(
@@ -1126,13 +1342,394 @@ Contact: ${user.phoneNumber}
     );
   }
 
-  // Birthdays Today (Image 1)
+  // --- SEND REQUEST TO ADMIN MODAL ---
+  void _showSendRequestToAdminModal(BuildContext context) {
+    final user = ref.read(currentUserProvider);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    final nameController = TextEditingController(text: user?.fullName ?? '');
+    final phoneController = TextEditingController(text: user?.phoneNumber ?? '');
+    final descController = TextEditingController();
+    final brideController = TextEditingController();
+    final groomController = TextEditingController();
+    final dateController = TextEditingController();
+    final venueController = TextEditingController();
+    final bdayPersonController = TextEditingController();
+    final ageController = TextEditingController();
+
+    String selectedPurpose = 'General Post';
+    String contentType = 'post';
+    XFile? attachedMedia;
+    bool isSubmitting = false;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setModalState) {
+          return Padding(
+            padding: EdgeInsets.only(
+              left: 20,
+              right: 20,
+              top: 20,
+              bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
+            ),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.send_and_archive_rounded, color: Color(0xFFE67E22), size: 24),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Send Request to Admin',
+                            style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 18),
+                          ),
+                        ],
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Navigator.pop(ctx),
+                      ),
+                    ],
+                  ),
+                  Text(
+                    'Submit your post, video reel, wedding announcement, or birthday wish for Admin approval before public broadcast.',
+                    style: GoogleFonts.inter(fontSize: 12, color: Colors.grey),
+                  ),
+                  const Divider(height: 20),
+                  
+                  // Purpose dropdown
+                  DropdownButtonFormField<String>(
+                    value: selectedPurpose,
+                    decoration: const InputDecoration(
+                      labelText: 'Purpose of Request',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: [
+                      'General Post',
+                      'Marriage Announcement',
+                      'Birthday Wish',
+                      'Samaj News / Event',
+                      'Achievement',
+                    ].map((p) => DropdownMenuItem(value: p, child: Text(p))).toList(),
+                    onChanged: (val) {
+                      setModalState(() {
+                        selectedPurpose = val ?? 'General Post';
+                        if (selectedPurpose == 'Marriage Announcement') {
+                          contentType = 'post';
+                        }
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Format selection: Post or Reel
+                  Row(
+                    children: [
+                      const Text('Format: ', style: TextStyle(fontWeight: FontWeight.bold)),
+                      const SizedBox(width: 8),
+                      ChoiceChip(
+                        label: const Text('Post (Image/Text)'),
+                        selected: contentType == 'post',
+                        onSelected: (val) => setModalState(() => contentType = 'post'),
+                      ),
+                      const SizedBox(width: 8),
+                      ChoiceChip(
+                        label: const Text('Reel (Video)'),
+                        selected: contentType == 'reel',
+                        onSelected: (val) => setModalState(() => contentType = 'reel'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+
+                  TextField(
+                    controller: nameController,
+                    decoration: const InputDecoration(labelText: 'Your Name', border: OutlineInputBorder()),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Conditional Marriage Fields
+                  if (selectedPurpose == 'Marriage Announcement') ...[
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE67E22).withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFFE67E22).withValues(alpha: 0.3)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Row(
+                            children: [
+                              Icon(Icons.favorite, color: Color(0xFFE67E22), size: 18),
+                              SizedBox(width: 6),
+                              Text('Wedding Details', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFFE67E22))),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          TextField(controller: groomController, decoration: const InputDecoration(labelText: 'Groom\'s Name', border: OutlineInputBorder())),
+                          const SizedBox(height: 10),
+                          TextField(controller: brideController, decoration: const InputDecoration(labelText: 'Bride\'s Name', border: OutlineInputBorder())),
+                          const SizedBox(height: 10),
+                          TextField(controller: dateController, decoration: const InputDecoration(labelText: 'Wedding Date (e.g. 15 Dec 2026)', border: OutlineInputBorder())),
+                          const SizedBox(height: 10),
+                          TextField(controller: venueController, decoration: const InputDecoration(labelText: 'Venue / City', border: OutlineInputBorder())),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+
+                  // Conditional Birthday Fields
+                  if (selectedPurpose == 'Birthday Wish') ...[
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.purple.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.purple.withValues(alpha: 0.3)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Row(
+                            children: [
+                              Icon(Icons.cake_rounded, color: Colors.purple, size: 18),
+                              SizedBox(width: 6),
+                              Text('Birthday Celebration Details', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.purple)),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          TextField(controller: bdayPersonController, decoration: const InputDecoration(labelText: 'Birthday Person Name', border: OutlineInputBorder())),
+                          const SizedBox(height: 10),
+                          TextField(controller: ageController, decoration: const InputDecoration(labelText: 'Age / Milestone (Optional, e.g. 25)', border: OutlineInputBorder())),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+
+                  TextField(
+                    controller: descController,
+                    maxLines: 3,
+                    decoration: const InputDecoration(labelText: 'Description / Message to Admin & Samaj', border: OutlineInputBorder()),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Media attachment
+                  InkWell(
+                    onTap: () async {
+                      final picker = ImagePicker();
+                      final file = contentType == 'post'
+                          ? await picker.pickImage(source: ImageSource.gallery)
+                          : await picker.pickVideo(source: ImageSource.gallery);
+                      if (file != null) {
+                        setModalState(() => attachedMedia = file);
+                      }
+                    },
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: isDark ? const Color(0xFF0F172A) : Colors.grey.shade100,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.grey.shade300),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            attachedMedia != null ? Icons.check_circle : (contentType == 'post' ? Icons.add_photo_alternate : Icons.video_call),
+                            color: attachedMedia != null ? Colors.green : const Color(0xFFE67E22),
+                          ),
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: Text(
+                              attachedMedia != null ? 'Attached: ${attachedMedia!.name}' : 'Attach ${contentType == "post" ? "Photo" : "Video"} (Optional)',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: attachedMedia != null ? Colors.green : Colors.grey.shade700,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: ElevatedButton(
+                      onPressed: isSubmitting
+                          ? null
+                          : () async {
+                              if (descController.text.trim().isEmpty) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Please enter a description for your request.')),
+                                );
+                                return;
+                              }
+
+                              setModalState(() => isSubmitting = true);
+
+                              try {
+                                String mediaBase64 = '';
+                                if (attachedMedia != null) {
+                                  final bytes = await attachedMedia!.readAsBytes();
+                                  mediaBase64 = base64Encode(bytes);
+                                }
+
+                                final body = {
+                                  'userId': user?.id ?? '6a7962b212a58c4a0e118cab',
+                                  'userName': nameController.text.trim(),
+                                  'userPhone': phoneController.text.trim(),
+                                  'purpose': selectedPurpose,
+                                  'contentType': contentType,
+                                  'description': descController.text.trim(),
+                                  if (mediaBase64.isNotEmpty) 'mediaBase64': mediaBase64,
+                                  'brideName': brideController.text.trim(),
+                                  'groomName': groomController.text.trim(),
+                                  'weddingDate': dateController.text.trim(),
+                                  'venue': venueController.text.trim(),
+                                  'birthdayPersonName': bdayPersonController.text.trim(),
+                                  'ageTurning': ageController.text.trim(),
+                                };
+
+                                final res = await http.post(
+                                  Uri.parse('${ApiConfig.baseUrl}/admin/post-requests'),
+                                  headers: {'Content-Type': 'application/json'},
+                                  body: jsonEncode(body),
+                                );
+
+                                if (ctx.mounted) Navigator.pop(ctx);
+
+                                if (res.statusCode == 201 || res.statusCode == 200) {
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('Your request has been submitted to Admin! It will appear once approved.'),
+                                        backgroundColor: Color(0xFF2E7D32),
+                                      ),
+                                    );
+                                  }
+                                } else {
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text('Failed to submit request. Please try again.')),
+                                    );
+                                  }
+                                }
+                              } catch (e) {
+                                setModalState(() => isSubmitting = false);
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text('Error: $e')),
+                                  );
+                                }
+                              }
+                            },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFE67E22),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: isSubmitting
+                          ? const CircularProgressIndicator(color: Colors.white)
+                          : const Text('Submit Request to Admin', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  // --- PROMINENT "SEND REQUEST TO ADMIN" CARD ---
+  Widget _buildSendRequestToAdminCard(bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFFE67E22), Color(0xFFD35400)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFFE67E22).withValues(alpha: 0.3),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.2),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.campaign_rounded, color: Colors.white, size: 28),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Want to Post or Announce?',
+                    style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                  ),
+                  Text(
+                    'Submit wedding, birthday wish, post or reel to Admin.',
+                    style: GoogleFonts.inter(color: Colors.white.withValues(alpha: 0.9), fontSize: 11),
+                  ),
+                ],
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () => _showSendRequestToAdminModal(context),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white,
+                foregroundColor: const Color(0xFFD35400),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              ),
+              child: const Text('Send Request', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Birthdays Today (Dynamic)
   Widget _buildBirthdaysToday(bool isDark) {
-    final List<Map<String, dynamic>> birthdays = [
-      {'name': 'Hansaben K.', 'initials': 'HK', 'turns': 'Turns 58', 'color': Colors.orange},
-      {'name': 'Dev Parekh', 'initials': 'DP', 'turns': 'Turns 12', 'color': Colors.blue},
-      {'name': 'Mira Joshi', 'initials': 'MJ', 'turns': 'Turns 34', 'color': Colors.green},
-    ];
+    if (_dynamicBirthdays.isEmpty) {
+      return const SizedBox.shrink();
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1150,12 +1747,15 @@ Contact: ${user.phoneNumber}
                   color: isDark ? Colors.white : Colors.black87,
                 ),
               ),
-              Text(
-                _translate('See all'),
-                style: GoogleFonts.poppins(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: const Color(0xFFD35400),
+              GestureDetector(
+                onTap: () => _showSendRequestToAdminModal(context),
+                child: Text(
+                  '+ Wish Someone',
+                  style: GoogleFonts.poppins(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFFD35400),
+                  ),
                 ),
               ),
             ],
@@ -1169,13 +1769,19 @@ Contact: ${user.phoneNumber}
             scrollDirection: Axis.horizontal,
             physics: const BouncingScrollPhysics(),
             padding: const EdgeInsets.symmetric(horizontal: 12.0),
-            itemCount: birthdays.length,
+            itemCount: _dynamicBirthdays.length,
             itemBuilder: (context, index) {
-              final b = birthdays[index];
+              final b = _dynamicBirthdays[index];
+              final name = b['name'] ?? 'Member';
+              final turns = b['ageText'] ?? 'Celebration 🎂';
+              final photoUrl = b['photoUrl'] ?? '';
+              final colors = [Colors.orange, Colors.blue, Colors.green, Colors.purple, Colors.teal];
+              final color = colors[index % colors.length];
+
               return Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 4.0),
                 child: Container(
-                  width: 105,
+                  width: 110,
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
                     color: isDark ? const Color(0xFF1E293B) : Colors.white,
@@ -1183,18 +1789,22 @@ Contact: ${user.phoneNumber}
                     border: Border.all(color: isDark ? Colors.grey.shade800 : Colors.grey.shade200),
                   ),
                   child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       CircleAvatar(
                         radius: 20,
-                        backgroundColor: b['color'],
-                        child: Text(
-                          b['initials'],
-                          style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
-                        ),
+                        backgroundColor: color,
+                        backgroundImage: photoUrl.isNotEmpty ? NetworkImage(photoUrl) : null,
+                        child: photoUrl.isEmpty
+                            ? Text(
+                                name.isNotEmpty ? name[0].toUpperCase() : 'M',
+                                style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                              )
+                            : null,
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 6),
                       Text(
-                        _translate(b['name']),
+                        _translate(name),
                         style: GoogleFonts.poppins(
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
@@ -1205,11 +1815,13 @@ Contact: ${user.phoneNumber}
                         overflow: TextOverflow.ellipsis,
                       ),
                       Text(
-                        _translate(b['turns']),
+                        _translate(turns),
                         style: GoogleFonts.inter(
                           fontSize: 9,
                           color: Colors.grey,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ),
@@ -1222,7 +1834,7 @@ Contact: ${user.phoneNumber}
     );
   }
 
-  // Recent Samaj News (Image 2)
+  // Recent Samaj News (Dynamic)
   Widget _buildRecentSamajNews(bool isDark) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1240,12 +1852,15 @@ Contact: ${user.phoneNumber}
                   color: isDark ? Colors.white : Colors.black87,
                 ),
               ),
-              Text(
-                _translate('See all'),
-                style: GoogleFonts.poppins(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: const Color(0xFFD35400),
+              GestureDetector(
+                onTap: () => _showSendRequestToAdminModal(context),
+                child: Text(
+                  _translate('See all'),
+                  style: GoogleFonts.poppins(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFFD35400),
+                  ),
                 ),
               ),
             ],
@@ -1263,7 +1878,6 @@ Contact: ${user.phoneNumber}
             ),
             child: Row(
               children: [
-                // Left thick border decoration
                 Container(
                   width: 4,
                   decoration: const BoxDecoration(
@@ -1315,33 +1929,16 @@ Contact: ${user.phoneNumber}
             ),
           ),
         ),
-        const SizedBox(height: 10),
-
-        // Indicator dots
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: List.generate(5, (index) {
-            return Container(
-              margin: const EdgeInsets.symmetric(horizontal: 3.0),
-              width: index == 0 ? 12 : 6,
-              height: 6,
-              decoration: BoxDecoration(
-                color: index == 0 ? const Color(0xFFD35400) : Colors.grey.shade400,
-                borderRadius: BorderRadius.circular(3),
-              ),
-            );
-          }),
-        ),
       ],
     );
   }
 
-  // Upcoming Events (Image 2)
+  // Upcoming Events (Dynamic from Admin)
   Widget _buildUpcomingEvents(bool isDark) {
-    final List<Map<String, String>> events = [
-      {'day': '18', 'month': 'JUL', 'title': 'Samuh Lagna Sammelan', 'loc': 'Community Hall, Ahmedabad'},
-      {'day': '02', 'month': 'AUG', 'title': 'Blood Donation Camp', 'loc': 'Darji Samaj Bhavan, Surat'},
-      {'day': '15', 'month': 'AUG', 'title': 'Youth Sports Meet', 'loc': 'Rajkot Ground No. 3'},
+    final eventsToDisplay = _dynamicEvents.isNotEmpty ? _dynamicEvents : [
+      {'date': '15 Nov 2026', 'title': 'Samuh Lagna Sammelan', 'location': 'Community Hall, Ahmedabad'},
+      {'date': '02 Aug 2026', 'title': 'Blood Donation Camp', 'location': 'Darji Samaj Bhavan, Surat'},
+      {'date': '28 Sep 2026', 'title': 'Youth Sports Meet', 'location': 'Rajkot Ground No. 3'},
     ];
 
     return Column(
@@ -1360,12 +1957,15 @@ Contact: ${user.phoneNumber}
                   color: isDark ? Colors.white : Colors.black87,
                 ),
               ),
-              Text(
-                _translate('See all'),
-                style: GoogleFonts.poppins(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: const Color(0xFFD35400),
+              GestureDetector(
+                onTap: () => context.push('/matrimonial/events'),
+                child: Text(
+                  _translate('See all'),
+                  style: GoogleFonts.poppins(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFFD35400),
+                  ),
                 ),
               ),
             ],
@@ -1384,10 +1984,15 @@ Contact: ${user.phoneNumber}
             child: ListView.separated(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              itemCount: events.length,
+              itemCount: eventsToDisplay.length.clamp(0, 4),
               separatorBuilder: (context, index) => const Divider(height: 20),
               itemBuilder: (context, index) {
-                final ev = events[index];
+                final ev = eventsToDisplay[index];
+                final dateStr = (ev['date'] ?? 'Upcoming').toString();
+                final parts = dateStr.split(' ');
+                final day = parts.isNotEmpty ? parts[0] : '15';
+                final month = parts.length > 1 ? parts[1].toUpperCase() : 'EVENT';
+
                 return Row(
                   children: [
                     Container(
@@ -1401,19 +2006,19 @@ Contact: ${user.phoneNumber}
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text(
-                            ev['day']!,
+                            day,
                             style: GoogleFonts.poppins(
                               color: const Color(0xFF16A34A),
-                              fontSize: 16,
+                              fontSize: 15,
                               fontWeight: FontWeight.bold,
                               height: 1.0,
                             ),
                           ),
                           Text(
-                            _translate(ev['month']!),
+                            month,
                             style: GoogleFonts.inter(
                               color: const Color(0xFF16A34A),
-                              fontSize: 9,
+                              fontSize: 8.5,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -1426,7 +2031,7 @@ Contact: ${user.phoneNumber}
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            _translate(ev['title']!),
+                            _translate(ev['title'] ?? ''),
                             style: GoogleFonts.poppins(
                               fontSize: 13,
                               fontWeight: FontWeight.bold,
@@ -1435,7 +2040,7 @@ Contact: ${user.phoneNumber}
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            _translate(ev['loc']!),
+                            _translate(ev['location'] ?? ''),
                             style: GoogleFonts.inter(
                               fontSize: 10.5,
                               color: Colors.grey.shade600,
@@ -1454,13 +2059,16 @@ Contact: ${user.phoneNumber}
     );
   }
 
-  // Featured Families (Image 2)
+  // Featured Families (Dynamic from Live Surname Analytics)
   Widget _buildFeaturedFamilies(bool isDark) {
-    final List<Map<String, dynamic>> families = [
-      {'name': 'Chauhan Parivar', 'desc': 'Vadodara - 6 gen.', 'members': '240 members', 'color': const Color(0xFF2980B9)},
-      {'name': 'Parekh Parivar', 'desc': 'Surat - 5 gen.', 'members': '185 members', 'color': const Color(0xFF1E8449)},
-      {'name': 'Joshi Parivar', 'desc': 'Rajkot - 4 gen.', 'members': '312 members', 'color': const Color(0xFFB7950B)},
-    ];
+    final familiesToDisplay = _dynamicFeaturedFamilies.isNotEmpty
+        ? _dynamicFeaturedFamilies
+        : [
+            {'parivarName': 'Shah Parivar', 'locationInfo': 'Vadodara - 6 gen.', 'memberCount': '420 members', 'colorHex': '#E67E22'},
+            {'parivarName': 'Patel Parivar', 'locationInfo': 'Surat - 5 gen.', 'memberCount': '360 members', 'colorHex': '#1B4F72'},
+            {'parivarName': 'Chauhan Parivar', 'locationInfo': 'Rajkot - 4 gen.', 'memberCount': '285 members', 'colorHex': '#2E7D32'},
+            {'parivarName': 'Parekh Parivar', 'locationInfo': 'Ahmedabad - 5 gen.', 'memberCount': '210 members', 'colorHex': '#8E44AD'},
+          ];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1478,12 +2086,15 @@ Contact: ${user.phoneNumber}
                   color: isDark ? Colors.white : Colors.black87,
                 ),
               ),
-              Text(
-                _translate('Explore'),
-                style: GoogleFonts.poppins(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: const Color(0xFFD35400),
+              GestureDetector(
+                onTap: () => context.push('/directory'),
+                child: Text(
+                  _translate('Explore'),
+                  style: GoogleFonts.poppins(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFFD35400),
+                  ),
                 ),
               ),
             ],
@@ -1496,9 +2107,12 @@ Contact: ${user.phoneNumber}
             scrollDirection: Axis.horizontal,
             physics: const BouncingScrollPhysics(),
             padding: const EdgeInsets.symmetric(horizontal: 12.0),
-            itemCount: families.length,
+            itemCount: familiesToDisplay.length,
             itemBuilder: (context, index) {
-              final f = families[index];
+              final f = familiesToDisplay[index];
+              final String hexStr = f['colorHex'] ?? '#E67E22';
+              final color = Color(int.parse(hexStr.replaceFirst('#', '0xFF')));
+
               return Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 4.0),
                 child: Container(
@@ -1511,12 +2125,11 @@ Contact: ${user.phoneNumber}
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Colored banner
                       Container(
                         height: 70,
                         width: double.infinity,
                         decoration: BoxDecoration(
-                          color: f['color'],
+                          color: color,
                           borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
                         ),
                         child: Align(
@@ -1530,7 +2143,7 @@ Contact: ${user.phoneNumber}
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               child: Text(
-                                _translate(f['members']),
+                                _translate(f['memberCount'] ?? '100+ members'),
                                 style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold),
                               ),
                             ),
@@ -1543,21 +2156,23 @@ Contact: ${user.phoneNumber}
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              _translate(f['name']),
+                              _translate(f['parivarName'] ?? 'Parivar'),
                               style: GoogleFonts.poppins(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
-                                  color: isDark ? Colors.white : Colors.black87,
-                                ),
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: isDark ? Colors.white : Colors.black87,
+                              ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
                             Text(
-                              _translate(f['desc']),
+                              _translate(f['locationInfo'] ?? 'Gujarat'),
                               style: GoogleFonts.inter(
                                 fontSize: 9,
                                 color: Colors.grey,
                               ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ],
                         ),
@@ -1573,11 +2188,11 @@ Contact: ${user.phoneNumber}
     );
   }
 
-  // Community at a Glance (Image 3)
+  // Community at a Glance (Dynamic)
   Widget _buildCommunityAtGlance(bool isDark) {
     final List<Map<String, String>> stats = [
-      {'val': '1,240', 'lbl': 'Families'},
-      {'val': '18.6K', 'lbl': 'Members'},
+      {'val': '$_communityTotalMembers', 'lbl': 'Families'},
+      {'val': '${(_communityTotalMembers * 3.5).toInt()}', 'lbl': 'Members'},
       {'val': '86', 'lbl': 'Villages'},
       {'val': '9', 'lbl': 'Generations'},
     ];

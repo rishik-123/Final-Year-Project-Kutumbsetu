@@ -90,23 +90,37 @@ class _CommunityFeedScreenState extends ConsumerState<CommunityFeedScreen> with 
   }
 
   void _showCreatePostBottomSheet(BuildContext context) {
-    final picker = ImagePicker();
-    XFile? pickedImage;
-    final contentController = TextEditingController();
+    final user = ref.read(currentUserProvider);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    final nameController = TextEditingController(text: user?.fullName ?? '');
+    final phoneController = TextEditingController(text: user?.phoneNumber ?? '');
+    final descController = TextEditingController();
+    final brideController = TextEditingController();
+    final groomController = TextEditingController();
+    final dateController = TextEditingController();
+    final venueController = TextEditingController();
+    final bdayPersonController = TextEditingController();
+    final ageController = TextEditingController();
+
+    String selectedPurpose = 'General Post';
+    String contentType = 'post';
+    XFile? attachedMedia;
     bool uploading = false;
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setSheetState) {
             return Padding(
               padding: EdgeInsets.only(
-                bottom: MediaQuery.of(context).viewInsets.bottom,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 20,
                 left: 20,
                 right: 20,
                 top: 20,
@@ -116,122 +130,229 @@ class _CommunityFeedScreenState extends ConsumerState<CommunityFeedScreen> with 
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Text(
-                      'Create Community Post',
-                      style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold, color: const Color(0xFFD35400)),
-                      textAlign: TextAlign.center,
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.send_and_archive_rounded, color: Color(0xFFD35400), size: 24),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Send Request to Admin',
+                              style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold, color: const Color(0xFFD35400)),
+                            ),
+                          ],
+                        ),
+                        IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
+                      ],
                     ),
-                    const SizedBox(height: 16),
+                    Text(
+                      'All user posts & reels are reviewed by Admin before public broadcast to ensure quality & community standards.',
+                      style: GoogleFonts.inter(fontSize: 11.5, color: Colors.grey.shade600),
+                    ),
+                    const Divider(height: 20),
+
+                    // Purpose
+                    DropdownButtonFormField<String>(
+                      value: selectedPurpose,
+                      decoration: const InputDecoration(labelText: 'Purpose of Request', border: OutlineInputBorder()),
+                      items: [
+                        'General Post',
+                        'Marriage Announcement',
+                        'Birthday Wish',
+                        'Samaj News / Event',
+                        'Achievement',
+                      ].map((p) => DropdownMenuItem(value: p, child: Text(p))).toList(),
+                      onChanged: (val) => setSheetState(() => selectedPurpose = val ?? 'General Post'),
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Format: Post or Reel
+                    Row(
+                      children: [
+                        const Text('Format: ', style: TextStyle(fontWeight: FontWeight.bold)),
+                        const SizedBox(width: 8),
+                        ChoiceChip(
+                          label: const Text('Post (Image/Text)'),
+                          selected: contentType == 'post',
+                          onSelected: (val) => setSheetState(() => contentType = 'post'),
+                        ),
+                        const SizedBox(width: 8),
+                        ChoiceChip(
+                          label: const Text('Reel (Video)'),
+                          selected: contentType == 'reel',
+                          onSelected: (val) => setSheetState(() => contentType = 'reel'),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+
                     TextField(
-                      controller: contentController,
-                      maxLines: 4,
+                      controller: nameController,
+                      decoration: const InputDecoration(labelText: 'Your Name', border: OutlineInputBorder()),
+                    ),
+                    const SizedBox(height: 12),
+
+                    if (selectedPurpose == 'Marriage Announcement') ...[
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFD35400).withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFFD35400).withValues(alpha: 0.3)),
+                        ),
+                        child: Column(
+                          children: [
+                            TextField(controller: groomController, decoration: const InputDecoration(labelText: 'Groom\'s Name', border: OutlineInputBorder())),
+                            const SizedBox(height: 8),
+                            TextField(controller: brideController, decoration: const InputDecoration(labelText: 'Bride\'s Name', border: OutlineInputBorder())),
+                            const SizedBox(height: 8),
+                            TextField(controller: dateController, decoration: const InputDecoration(labelText: 'Wedding Date', border: OutlineInputBorder())),
+                            const SizedBox(height: 8),
+                            TextField(controller: venueController, decoration: const InputDecoration(labelText: 'Venue / City', border: OutlineInputBorder())),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+
+                    if (selectedPurpose == 'Birthday Wish') ...[
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.purple.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.purple.withValues(alpha: 0.3)),
+                        ),
+                        child: Column(
+                          children: [
+                            TextField(controller: bdayPersonController, decoration: const InputDecoration(labelText: 'Birthday Person Name', border: OutlineInputBorder())),
+                            const SizedBox(height: 8),
+                            TextField(controller: ageController, decoration: const InputDecoration(labelText: 'Age / Milestone (e.g. 25)', border: OutlineInputBorder())),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+
+                    TextField(
+                      controller: descController,
+                      maxLines: 3,
                       decoration: InputDecoration(
-                        hintText: "What's on your mind? Share announcements, achievements...",
+                        labelText: 'Description / Message to Admin & Samaj',
+                        hintText: "What would you like to share with the community?",
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                       ),
                     ),
-                    const SizedBox(height: 16),
-                    if (pickedImage != null)
-                      Container(
-                        height: 180,
+                    const SizedBox(height: 12),
+
+                    InkWell(
+                      onTap: () async {
+                        final picker = ImagePicker();
+                        final file = contentType == 'post'
+                            ? await picker.pickImage(source: ImageSource.gallery, imageQuality: 75)
+                            : await picker.pickVideo(source: ImageSource.gallery);
+                        if (file != null) {
+                          setSheetState(() => attachedMedia = file);
+                        }
+                      },
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
+                          color: isDark ? const Color(0xFF0F172A) : Colors.grey.shade100,
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(color: Colors.grey.shade300),
                         ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
-                          child: FutureBuilder<List<int>>(
-                            future: pickedImage!.readAsBytes(),
-                            builder: (context, snapshot) {
-                              if (snapshot.hasData) {
-                                return Image.memory(
-                                  snapshot.data as dynamic,
-                                  fit: BoxFit.cover,
-                                  width: double.infinity,
-                                );
-                              }
-                              return const Center(child: CircularProgressIndicator());
-                            },
-                          ),
-                        ),
-                      )
-                    else
-                      OutlinedButton.icon(
-                        onPressed: () async {
-                          final img = await picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
-                          if (img != null) {
-                            setSheetState(() {
-                              pickedImage = img;
-                            });
-                          }
-                        },
-                        icon: const Icon(Icons.add_photo_alternate_rounded),
-                        label: const Text('Pick Image from Gallery'),
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              attachedMedia != null ? Icons.check_circle : (contentType == 'post' ? Icons.add_photo_alternate : Icons.video_call),
+                              color: attachedMedia != null ? Colors.green : const Color(0xFFD35400),
+                            ),
+                            const SizedBox(width: 8),
+                            Flexible(
+                              child: Text(
+                                attachedMedia != null ? 'Attached: ${attachedMedia!.name}' : 'Attach ${contentType == "post" ? "Photo" : "Video"} (Optional)',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: attachedMedia != null ? Colors.green : Colors.grey.shade700,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
+                    ),
                     const SizedBox(height: 20),
+
                     ElevatedButton(
                       onPressed: uploading
                           ? null
                           : () async {
-                              final text = contentController.text.trim();
+                              final text = descController.text.trim();
                               if (text.isEmpty) {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Please enter some text content.')),
+                                  const SnackBar(content: Text('Please enter a description or message.')),
                                 );
                                 return;
                               }
                               setSheetState(() => uploading = true);
                               try {
-                                final user = ref.read(currentUserProvider);
-                                if (user == null) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('User profile not loaded. Please log in again.')),
-                                  );
-                                  return;
+                                String mediaBase64 = '';
+                                if (attachedMedia != null) {
+                                  final bytes = await attachedMedia!.readAsBytes();
+                                  mediaBase64 = base64Encode(bytes);
                                 }
 
-                                String? base64Image;
-                                if (pickedImage != null) {
-                                  final bytes = await pickedImage!.readAsBytes();
-                                  base64Image = base64Encode(bytes);
-                                }
+                                final body = {
+                                  'userId': user?.id ?? '6a7962b212a58c4a0e118cab',
+                                  'userName': nameController.text.trim(),
+                                  'userPhone': phoneController.text.trim(),
+                                  'purpose': selectedPurpose,
+                                  'contentType': contentType,
+                                  'description': text,
+                                  if (mediaBase64.isNotEmpty) 'mediaBase64': mediaBase64,
+                                  'brideName': brideController.text.trim(),
+                                  'groomName': groomController.text.trim(),
+                                  'weddingDate': dateController.text.trim(),
+                                  'venue': venueController.text.trim(),
+                                  'birthdayPersonName': bdayPersonController.text.trim(),
+                                  'ageTurning': ageController.text.trim(),
+                                };
 
                                 final response = await http.post(
-                                  Uri.parse('${ApiConfig.baseUrl}/community/posts'),
+                                  Uri.parse('${ApiConfig.baseUrl}/admin/post-requests'),
                                   headers: {'Content-Type': 'application/json'},
-                                  body: jsonEncode({
-                                    'userId': user.id,
-                                    'content': text,
-                                    'mediaBase64': base64Image,
-                                  }),
+                                  body: jsonEncode(body),
                                 );
 
-                                if (response.statusCode == 201) {
-                                  Navigator.pop(context);
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('Post published successfully!')),
-                                  );
-                                  _fetchPosts();
+                                if (context.mounted) Navigator.pop(context);
+
+                                if (response.statusCode == 201 || response.statusCode == 200) {
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('Request submitted to Admin! You will see it on feed once approved.'),
+                                        backgroundColor: Color(0xFF2E7D32),
+                                      ),
+                                    );
+                                  }
                                 } else {
-                                  String errMsg = 'Failed to publish post.';
-                                  try {
-                                    final body = jsonDecode(response.body);
-                                    if (body != null && body['message'] != null) {
-                                      errMsg = body['message'].toString();
-                                    }
-                                  } catch (_) {}
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text(errMsg)),
-                                  );
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text('Failed to submit request to admin.')),
+                                    );
+                                  }
                                 }
                               } catch (e) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('Error uploading post: $e')),
-                                );
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text('Error submitting request: $e')),
+                                  );
+                                }
                               } finally {
                                 setSheetState(() => uploading = false);
                               }
@@ -243,14 +364,9 @@ class _CommunityFeedScreenState extends ConsumerState<CommunityFeedScreen> with 
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
                       child: uploading
-                          ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                            )
-                          : Text('Publish Post', style: GoogleFonts.poppins(fontWeight: FontWeight.bold)),
+                          ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                          : const Text('Submit Request to Admin', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
                     ),
-                    const SizedBox(height: 20),
                   ],
                 ),
               ),

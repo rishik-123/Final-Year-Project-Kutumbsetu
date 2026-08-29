@@ -1,0 +1,3 @@
+cd C:\Users\YourUsername\AppData\Local\Android\Sdk\platform-tools
+adb devcies
+adb reverse tcp:5000 tcp:5000

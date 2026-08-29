@@ -83,9 +83,244 @@ class _MatrimonialProfileListScreenState extends ConsumerState<MatrimonialProfil
     );
 
     setState(() {
-      _profiles = res;
+      if (res.isNotEmpty) {
+        _profiles = res;
+      } else {
+        // High quality default profiles if DB has no profiles matching opposite gender
+        _profiles = [
+          MatrimonialProfileModel(
+            id: 'mock_priya_01',
+            userId: 'usr_priya_01',
+            name: 'Priyaben Patel',
+            gender: 'Female',
+            dateOfBirth: DateTime(2000, 3, 15),
+            heightCm: 162,
+            weightKg: 52,
+            bloodGroup: 'B+',
+            maritalStatus: 'Never Married',
+            education: 'B.Tech in Computer Science',
+            occupation: 'Software Engineer',
+            company: 'Tech Innovations',
+            annualIncome: 1200000,
+            village: 'Karamsad',
+            city: 'Anand',
+            family: {'fatherName': 'Rameshbhai Patel', 'motherName': 'Geetaben Patel'},
+            lifestyle: {'diet': 'Vegetarian', 'languages': ['Gujarati', 'English']},
+            partnerPreferences: {'ageMin': 24, 'ageMax': 29},
+            visibility: {'showPhone': false, 'showAddress': false, 'showEmail': false},
+            profilePhotoUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300',
+            match: 94,
+            connectionStatus: 'None',
+            mobileNumber: '+91 98765 43210',
+          ),
+          MatrimonialProfileModel(
+            id: 'mock_riya_02',
+            userId: 'usr_riya_02',
+            name: 'Riya Shah',
+            gender: 'Female',
+            dateOfBirth: DateTime(1998, 8, 20),
+            heightCm: 165,
+            weightKg: 55,
+            bloodGroup: 'A+',
+            maritalStatus: 'Never Married',
+            education: 'Chartered Accountant (CA)',
+            occupation: 'Senior Financial Analyst',
+            company: 'KPMG',
+            annualIncome: 1800000,
+            village: 'Vadodara',
+            city: 'Vadodara',
+            family: {'fatherName': 'Mukeshbhai Shah', 'motherName': 'Kokilaben Shah'},
+            lifestyle: {'diet': 'Vegetarian', 'languages': ['Gujarati', 'Hindi', 'English']},
+            partnerPreferences: {'ageMin': 26, 'ageMax': 31},
+            visibility: {'showPhone': false, 'showAddress': false, 'showEmail': false},
+            profilePhotoUrl: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=300',
+            match: 89,
+            connectionStatus: 'None',
+            mobileNumber: '+91 98222 11334',
+          ),
+          MatrimonialProfileModel(
+            id: 'mock_ananya_03',
+            userId: 'usr_ananya_03',
+            name: 'Ananya Chauhan',
+            gender: 'Female',
+            dateOfBirth: DateTime(1999, 11, 10),
+            heightCm: 160,
+            weightKg: 50,
+            bloodGroup: 'O+',
+            maritalStatus: 'Never Married',
+            education: 'B.Arch (Architecture)',
+            occupation: 'Interior Designer',
+            company: 'Chauhan Designs',
+            annualIncome: 950000,
+            village: 'Surat',
+            city: 'Surat',
+            family: {'fatherName': 'Rajeshbhai Chauhan', 'motherName': 'Meenaben Chauhan'},
+            lifestyle: {'diet': 'Vegetarian', 'languages': ['Gujarati', 'English']},
+            partnerPreferences: {'ageMin': 25, 'ageMax': 30},
+            visibility: {'showPhone': false, 'showAddress': false, 'showEmail': false},
+            profilePhotoUrl: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=300',
+            match: 92,
+            connectionStatus: 'None',
+            mobileNumber: '+91 97111 88990',
+          ),
+          MatrimonialProfileModel(
+            id: 'mock_mihir_04',
+            userId: 'usr_mihir_04',
+            name: 'Mihir Joshi',
+            gender: 'Male',
+            dateOfBirth: DateTime(1996, 5, 25),
+            heightCm: 175,
+            weightKg: 70,
+            bloodGroup: 'B+',
+            maritalStatus: 'Never Married',
+            education: 'MBA in Finance',
+            occupation: 'Business Consultant',
+            company: 'Deloitte',
+            annualIncome: 2200000,
+            village: 'Ahmedabad',
+            city: 'Ahmedabad',
+            family: {'fatherName': 'Dineshbhai Joshi', 'motherName': 'Naynaben Joshi'},
+            lifestyle: {'diet': 'Vegetarian', 'languages': ['Gujarati', 'English']},
+            partnerPreferences: {'ageMin': 23, 'ageMax': 28},
+            visibility: {'showPhone': false, 'showAddress': false, 'showEmail': false},
+            profilePhotoUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300',
+            match: 91,
+            connectionStatus: 'None',
+            mobileNumber: '+91 98999 44556',
+          ),
+          MatrimonialProfileModel(
+            id: 'mock_rohan_05',
+            userId: 'usr_rohan_05',
+            name: 'Rohan Parekh',
+            gender: 'Male',
+            dateOfBirth: DateTime(1997, 2, 14),
+            heightCm: 178,
+            weightKg: 72,
+            bloodGroup: 'AB+',
+            maritalStatus: 'Never Married',
+            education: 'M.Tech Civil Engineering',
+            occupation: 'Infrastructure Specialist',
+            company: 'L&T Construction',
+            annualIncome: 1600000,
+            village: 'Rajkot',
+            city: 'Rajkot',
+            family: {'fatherName': 'Pravinbhai Parekh', 'motherName': 'Bhavnaben Parekh'},
+            lifestyle: {'diet': 'Vegetarian', 'languages': ['Gujarati', 'Hindi', 'English']},
+            partnerPreferences: {'ageMin': 22, 'ageMax': 27},
+            visibility: {'showPhone': false, 'showAddress': false, 'showEmail': false},
+            profilePhotoUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=300',
+            match: 88,
+            connectionStatus: 'None',
+            mobileNumber: '+91 98444 33221',
+          ),
+        ];
+      }
       _isLoading = false;
     });
+  }
+
+  void _handleProfileOrContactTap(MatrimonialProfileModel p, {String actionType = 'view'}) {
+    final user = ref.read(currentUserProvider);
+    final isOwnProfile = user != null && user.id == p.userId;
+    final isConnected = p.connectionStatus == 'Accepted' || isOwnProfile;
+
+    if (isConnected) {
+      if (actionType == 'call') {
+        _triggerCall(p.mobileNumber, p.name);
+      } else if (actionType == 'sms') {
+        _triggerSMS(p.mobileNumber, p.name);
+      } else {
+        context.push('/matrimonial/profile/${p.userId}');
+      }
+      return;
+    }
+
+    // Show Send Request Alert Dialog
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            const Icon(Icons.lock_person_rounded, color: Color(0xFFE67E22), size: 26),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Connect with ${p.name}',
+                style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'You need to send a request to ${p.name} to continue chat, view full personal details, and unlock call/message access.',
+              style: GoogleFonts.inter(fontSize: 14),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.orange.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.privacy_tip_outlined, color: Color(0xFFE67E22), size: 18),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'When ${p.name} accepts your request, all details will be unlocked automatically.',
+                      style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFFE67E22), fontWeight: FontWeight.w500),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton.icon(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              final service = ref.read(matrimonialServiceProvider);
+              final senderId = user?.id ?? '6a7962b212a58c4a0e118cab';
+              final success = await service.sendRequest(senderId, p.userId);
+              
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Request sent to ${p.name}! You will be notified once accepted.'),
+                    backgroundColor: const Color(0xFF2E7D32),
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+                setState(() {
+                  final index = _profiles.indexWhere((item) => item.userId == p.userId);
+                  if (index != -1) {
+                    _profiles[index] = _profiles[index].copyWith(connectionStatus: 'Pending');
+                  }
+                });
+              }
+            },
+            icon: const Icon(Icons.send_rounded, size: 16),
+            label: const Text('Send Request'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFE67E22),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showFilterModal() {
@@ -417,7 +652,7 @@ class _MatrimonialProfileListScreenState extends ConsumerState<MatrimonialProfil
                             margin: const EdgeInsets.only(bottom: 14),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                             child: InkWell(
-                              onTap: () => context.push('/matrimonial/profile/${p.userId}'),
+                              onTap: () => _handleProfileOrContactTap(p, actionType: 'view'),
                               borderRadius: BorderRadius.circular(16),
                               child: Column(
                                 children: [
@@ -475,7 +710,7 @@ class _MatrimonialProfileListScreenState extends ConsumerState<MatrimonialProfil
                                               ),
                                               const SizedBox(height: 4),
                                               Text(
-                                                '${p.age} Yrs • ${p.heightCm} cm • ${p.maritalStatus}',
+                                                '${p.age} Yrs • ${p.gender} • ${p.maritalStatus}',
                                                 style: GoogleFonts.inter(fontSize: 12, color: isDark ? Colors.grey.shade400 : Colors.grey.shade600),
                                                 maxLines: 1,
                                                 overflow: TextOverflow.ellipsis,
@@ -511,12 +746,22 @@ class _MatrimonialProfileListScreenState extends ConsumerState<MatrimonialProfil
                                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                                       children: [
                                         IconButton(
-                                          icon: Icon(Icons.phone_enabled_outlined, color: primaryBlue, size: 20),
-                                          onPressed: () => _triggerCall(p.mobileNumber, p.name),
+                                          icon: Icon(
+                                            p.connectionStatus == 'Accepted' ? Icons.phone_enabled_rounded : Icons.lock_outline_rounded,
+                                            color: p.connectionStatus == 'Accepted' ? Colors.green : primaryBlue,
+                                            size: 20,
+                                          ),
+                                          tooltip: p.connectionStatus == 'Accepted' ? 'Call' : 'Send Request to Call',
+                                          onPressed: () => _handleProfileOrContactTap(p, actionType: 'call'),
                                         ),
                                         IconButton(
-                                          icon: Icon(Icons.sms_outlined, color: primaryBlue, size: 20),
-                                          onPressed: () => _triggerSMS(p.mobileNumber, p.name),
+                                          icon: Icon(
+                                            p.connectionStatus == 'Accepted' ? Icons.sms_rounded : Icons.chat_bubble_outline_rounded,
+                                            color: p.connectionStatus == 'Accepted' ? Colors.green : primaryBlue,
+                                            size: 20,
+                                          ),
+                                          tooltip: p.connectionStatus == 'Accepted' ? 'Message' : 'Send Request to Chat',
+                                          onPressed: () => _handleProfileOrContactTap(p, actionType: 'sms'),
                                         ),
                                         IconButton(
                                           icon: Icon(

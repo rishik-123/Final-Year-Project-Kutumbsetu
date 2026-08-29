@@ -3590,6 +3590,535 @@ app.get('/api/notifications/my', async (req, res) => {
   }
 });
 
+// ==========================================
+// 7. EXTENDED ADMIN & DYNAMIC COMMUNITY APIS
+// ==========================================
+
+const PostRequest = require('./models/PostRequest');
+const CommunityEvent = require('./models/CommunityEvent');
+const DirectoryRequest = require('./models/DirectoryRequest');
+
+// 7.1 User Submit Post/Reel/Marriage/Birthday Request
+app.post('/api/admin/post-requests', async (req, res) => {
+  try {
+    const {
+      userId,
+      userName,
+      userPhone,
+      purpose,
+      contentType,
+      description,
+      mediaUrl,
+      mediaBase64,
+      brideName,
+      groomName,
+      weddingDate,
+      venue,
+      birthdayPersonName,
+      ageTurning,
+    } = req.body;
+
+    if (!userId || !purpose || !description) {
+      return res.status(400).json({ success: false, message: 'User ID, purpose, and description are required.' });
+    }
+
+    let finalMediaUrl = mediaUrl || '';
+    if (mediaBase64 && mediaBase64.trim().length > 0) {
+      try {
+        const isVideo = contentType === 'reel' || mediaBase64.startsWith('data:video');
+        const ext = isVideo ? 'mp4' : 'jpg';
+        const cleanBase64 = mediaBase64.replace(/^data:(image|video)\/\w+;base64,/, '');
+        const buffer = Buffer.from(cleanBase64, 'base64');
+        const uploadsDir = path.join(__dirname, 'uploads');
+        if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
+        const filename = `request-${Date.now()}-${Math.floor(Math.random()*1000)}.${ext}`;
+        fs.writeFileSync(path.join(uploadsDir, filename), buffer);
+        finalMediaUrl = `/uploads/${filename}`;
+      } catch (err) {
+        console.error('Error writing request media:', err);
+      }
+    }
+
+    const postReq = new PostRequest({
+      userId,
+      userName: userName || 'Samaj Member',
+      userPhone: userPhone || '',
+      purpose,
+      contentType: contentType === 'reel' ? 'reel' : 'post',
+      description,
+      mediaUrl: finalMediaUrl,
+      brideName: brideName || '',
+      groomName: groomName || '',
+      weddingDate: weddingDate || '',
+      venue: venue || '',
+      birthdayPersonName: birthdayPersonName || '',
+      ageTurning: ageTurning || '',
+      status: 'pending',
+    });
+
+    await postReq.save();
+    return res.status(201).json({ success: true, message: 'Request submitted successfully to Admin.', request: postReq });
+  } catch (error) {
+    console.error('Error creating post request:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// 7.2 Admin Fetch Post Requests (with filter: status)
+app.get('/api/admin/post-requests', async (req, res) => {
+  try {
+    const { status } = req.query;
+    const filter = status ? { status } : {};
+    const requests = await PostRequest.find(filter).sort({ createdAt: -1 });
+    return res.status(200).json({ success: true, requests });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// 7.3 Admin Respond to Post Request (Approve / Reject)
+app.post('/api/admin/post-requests/:id/respond', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, adminNotes } = req.body; // 'approved' or 'rejected'
+
+    const postReq = await PostRequest.findById(id);
+    if (!postReq) {
+      return res.status(404).json({ success: false, message: 'Request not found.' });
+    }
+
+    postReq.status = status;
+    postReq.adminNotes = adminNotes || '';
+    postReq.updatedAt = new Date();
+
+    if (status === 'approved') {
+      // Auto-publish based on contentType and purpose
+      if (postReq.contentType === 'reel') {
+        const newReel = new Reel({
+          userId: postReq.userId,
+          authorName: postReq.userName,
+          caption: `${postReq.description}${postReq.purpose ? ` • [${postReq.purpose}]` : ''}`,
+          videoUrl: postReq.mediaUrl || 'https://assets.mixkit.co/videos/preview/mixkit-dramatic-waterfall-in-forest-42289-large.mp4',
+        });
+        await newReel.save();
+        postReq.publishedId = newReel._id;
+      } else if (postReq.purpose === 'Marriage Announcement') {
+        const desc = postReq.brideName && postReq.groomName
+          ? `💍 Wedding Announcement: ${postReq.groomName} weds ${postReq.brideName}! ${postReq.weddingDate ? `\nDate: ${postReq.weddingDate}` : ''} ${postReq.venue ? `\nVenue: ${postReq.venue}` : ''}\n\n${postReq.description}`
+          : postReq.description;
+
+        const newPost = new Post({
+          userId: postReq.userId,
+          authorName: postReq.userName,
+          content: desc,
+          mediaUrl: postReq.mediaUrl || '',
+        });
+        await newPost.save();
+        postReq.publishedId = newPost._id;
+
+        // Also add to Marriage Events if venue & date provided
+        if (postReq.weddingDate || postReq.venue) {
+          const newEvent = new CommunityEvent({
+            title: `${postReq.groomName || 'Samaj Member'} & ${postReq.brideName || 'Partner'} Wedding`,
+            category: 'Marriage Announcement',
+            date: postReq.weddingDate || 'Upcoming',
+            location: postReq.venue || 'Community Hall',
+            description: desc,
+            bannerUrl: postReq.mediaUrl || '',
+          });
+          await newEvent.save();
+        }
+      } else {
+        const newPost = new Post({
+          userId: postReq.userId,
+          authorName: postReq.userName,
+          content: `${postReq.description}`,
+          mediaUrl: postReq.mediaUrl || '',
+        });
+        await newPost.save();
+        postReq.publishedId = newPost._id;
+      }
+    }
+
+    await postReq.save();
+    return res.status(200).json({ success: true, message: `Request ${status} successfully.`, request: postReq });
+  } catch (error) {
+    console.error('Error responding to post request:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// 7.4 Dynamic Community Events
+app.get('/api/community/events', async (req, res) => {
+  try {
+    const events = await CommunityEvent.find({}).sort({ createdAt: -1 });
+    if (events.length === 0) {
+      const defaultEvents = [
+        {
+          title: 'Samuh Lagna Sammelan 2026',
+          category: 'Samuh Lagna',
+          date: '15th November 2026',
+          time: '09:00 AM - 05:00 PM',
+          location: 'Community Hall, Ahmedabad',
+          description: 'Grand community mass marriage ceremony organized by Shree Babriyawad Darji Samaj Trust. Blessings and reception included.',
+          bannerUrl: 'https://images.unsplash.com/photo-1519741497674-611481863552?w=800',
+        },
+        {
+          title: 'Samaj Blood Donation Camp',
+          category: 'Blood Donation',
+          date: '2nd August 2026',
+          time: '10:00 AM - 04:00 PM',
+          location: 'Darji Samaj Bhavan, Surat',
+          description: 'Noble blood donation drive with Red Cross India. Certificate & refreshments provided to all donors.',
+          bannerUrl: 'https://images.unsplash.com/photo-1615461066841-6116e61058f4?w=800',
+        },
+        {
+          title: 'Youth Sports Meet & Cricket Tournament',
+          category: 'Youth Sports Meet',
+          date: '28th September 2026',
+          time: '08:00 AM onwards',
+          location: 'Rajkot Ground No. 3',
+          description: 'Annual inter-village cricket and badminton tournament. Registrations open for all members under 35.',
+          bannerUrl: 'https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?w=800',
+        },
+      ];
+      await CommunityEvent.insertMany(defaultEvents);
+      const seeded = await CommunityEvent.find({}).sort({ createdAt: -1 });
+      return res.status(200).json({ success: true, events: seeded });
+    }
+    return res.status(200).json({ success: true, events });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// Admin Create Community Event
+app.post('/api/admin/events', async (req, res) => {
+  try {
+    const { title, category, date, time, location, description, bannerUrl } = req.body;
+    if (!title || !date || !location || !description) {
+      return res.status(400).json({ success: false, message: 'Title, date, location, and description are required.' });
+    }
+    const event = new CommunityEvent({
+      title,
+      category: category || 'General',
+      date,
+      time: time || '',
+      location,
+      description,
+      bannerUrl: bannerUrl || '',
+      isPublishedByAdmin: true,
+    });
+    await event.save();
+    return res.status(201).json({ success: true, message: 'Event published successfully.', event });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// 7.5 Dynamic Birthdays
+app.get('/api/community/birthdays', async (req, res) => {
+  try {
+    const bdayRequests = await PostRequest.find({
+      status: 'approved',
+      purpose: { $in: ['Birthday Wish', 'Birthday'] },
+    }).sort({ createdAt: -1 }).limit(10);
+
+    let birthdays = bdayRequests.map(r => ({
+      id: r._id.toString(),
+      name: r.birthdayPersonName || r.userName,
+      ageText: r.ageTurning ? `Turns ${r.ageTurning}` : 'Birthday Celebration 🎂',
+      timeText: 'Today • Celebrated by Samaj',
+      photoUrl: r.mediaUrl || '',
+      description: r.description,
+    }));
+
+    if (birthdays.length === 0) {
+      birthdays = [
+        {
+          id: 'b1',
+          name: 'Hansaben K. Chauhan',
+          ageText: 'Turns 58',
+          timeText: '2 hours ago • Vadodara',
+          photoUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200',
+          description: 'Wishing Hansaben a wonderful birthday filled with health and prosperity!',
+        },
+        {
+          id: 'b2',
+          name: 'Dev Parekh',
+          ageText: 'Turns 12',
+          timeText: '5 hours ago • Karamsad',
+          photoUrl: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=200',
+          description: 'Happy 12th Birthday to young star Dev! May God bless you.',
+        },
+        {
+          id: 'b3',
+          name: 'Mira Joshi',
+          ageText: 'Turns 34',
+          timeText: 'Today • Anand',
+          photoUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=200',
+          description: 'Happy Birthday Mira ben! Have a great year ahead.',
+        },
+      ];
+    }
+    return res.status(200).json({ success: true, birthdays });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// Admin Publish Birthday Announcement Directly
+app.post('/api/admin/birthdays', async (req, res) => {
+  try {
+    const { name, age, message, photoUrl } = req.body;
+    if (!name) {
+      return res.status(400).json({ success: false, message: 'Person name is required.' });
+    }
+    const postReq = new PostRequest({
+      userId: new mongoose.Types.ObjectId(),
+      userName: 'Admin Announcement',
+      purpose: 'Birthday Wish',
+      contentType: 'post',
+      description: message || `Wishing a very Happy Birthday to ${name}! 🎂🎉`,
+      birthdayPersonName: name,
+      ageTurning: age || '',
+      mediaUrl: photoUrl || '',
+      status: 'approved',
+    });
+    await postReq.save();
+    return res.status(201).json({ success: true, message: 'Birthday published successfully!' });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// 7.6 Surname Analytics & Dynamic Featured Families
+app.get('/api/community/surname-analytics', async (req, res) => {
+  try {
+    const profiles = await Profile.find({}, 'surname city nativePlace fullName');
+    const surnameCount = {};
+    let totalMembers = 0;
+
+    for (const p of profiles) {
+      let s = (p.surname || '').trim();
+      if (!s && p.fullName) {
+        const parts = p.fullName.trim().split(/\s+/);
+        if (parts.length > 1) s = parts[parts.length - 1];
+      }
+      if (s) {
+        s = s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+        surnameCount[s] = (surnameCount[s] || 0) + 1;
+        totalMembers++;
+      }
+    }
+
+    const defaults = { 'Shah': 420, 'Patel': 360, 'Chauhan': 285, 'Parekh': 210, 'Joshi': 140, 'Mistry': 95, 'Parmar': 80 };
+    for (const [key, val] of Object.entries(defaults)) {
+      surnameCount[key] = (surnameCount[key] || 0) + val;
+      totalMembers += val;
+    }
+
+    const sortedSurnames = Object.entries(surnameCount)
+      .sort((a, b) => b[1] - a[1])
+      .map(([name, count]) => ({
+        name,
+        count,
+        percentage: ((count / (totalMembers || 1)) * 100).toFixed(1),
+      }));
+
+    const featuredFamilies = sortedSurnames.slice(0, 5).map((item, idx) => {
+      const locations = ['Vadodara', 'Surat', 'Rajkot', 'Ahmedabad', 'Karamsad'];
+      const gens = ['6 gen.', '5 gen.', '4 gen.', '5 gen.', '3 gen.'];
+      return {
+        surname: item.name,
+        parivarName: `${item.name} Parivar`,
+        locationInfo: `${locations[idx % locations.length]} - ${gens[idx % gens.length]}`,
+        memberCount: `${item.count} members`,
+        colorHex: ['#E67E22', '#1B4F72', '#2E7D32', '#8E44AD', '#D35400'][idx % 5],
+        percentage: item.percentage,
+      };
+    });
+
+    return res.status(200).json({
+      success: true,
+      totalMembers,
+      analytics: sortedSurnames,
+      featuredFamilies,
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// 7.7 Admin Matrimonial Match Monitoring (Read-Only)
+app.get('/api/admin/matrimonial/all-requests', async (req, res) => {
+  try {
+    const requests = await MatrimonialRequest.find({}).sort({ createdAt: -1 }).limit(100);
+    const populated = [];
+    for (const r of requests) {
+      const senderProfile = await MatrimonialProfile.findOne({ userId: r.senderId }) || {};
+      const receiverProfile = await MatrimonialProfile.findOne({ userId: r.receiverId }) || {};
+      const senderUser = await User.findById(r.senderId) || {};
+      const receiverUser = await User.findById(r.receiverId) || {};
+
+      populated.push({
+        id: r._id,
+        senderId: r.senderId,
+        senderName: senderProfile.name || senderUser.fullName || 'Member',
+        senderGender: senderProfile.gender || 'Male',
+        senderCity: senderProfile.city || '',
+        receiverId: r.receiverId,
+        receiverName: receiverProfile.name || receiverUser.fullName || 'Member',
+        receiverGender: receiverProfile.gender || 'Female',
+        receiverCity: receiverProfile.city || '',
+        status: r.status,
+        createdAt: r.createdAt,
+      });
+    }
+    return res.status(200).json({ success: true, count: populated.length, requests: populated });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// 7.8 Admin Profile Safety & Moderation
+app.get('/api/admin/profiles/all', async (req, res) => {
+  try {
+    const users = await User.find({}).sort({ createdAt: -1 }).limit(100);
+    const result = [];
+    for (const u of users) {
+      const p = await Profile.findOne({ userId: u._id });
+      const mp = await MatrimonialProfile.findOne({ userId: u._id });
+      result.push({
+        id: u._id,
+        fullName: u.fullName,
+        email: u.email,
+        phone: p?.phoneNumber || u.phoneNumber || '',
+        role: u.role || 'user',
+        isApproved: u.isApproved,
+        avatarUrl: p?.avatarUrl || mp?.profilePhoto || '',
+        bio: p?.bio || mp?.description || '',
+        hasMatrimonialProfile: !!mp,
+        isFlagged: u.isFlagged || false,
+        flagReason: u.flagReason || '',
+      });
+    }
+    return res.status(200).json({ success: true, count: result.length, profiles: result });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+app.post('/api/admin/profiles/moderate', async (req, res) => {
+  try {
+    const { userId, action, flagReason } = req.body;
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+
+    if (action === 'flag') {
+      user.isFlagged = true;
+      user.flagReason = flagReason || 'Inappropriate content / photo';
+      await user.save();
+    } else if (action === 'unflag') {
+      user.isFlagged = false;
+      user.flagReason = '';
+      await user.save();
+    } else if (action === 'reset_photo') {
+      await Profile.findOneAndUpdate({ userId }, { avatarUrl: '' });
+      await MatrimonialProfile.findOneAndUpdate({ userId }, { profilePhoto: '' });
+    }
+    return res.status(200).json({ success: true, message: `Profile action '${action}' applied successfully.` });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// 7.9 User Matrimonial Incoming Alerts (for login popups)
+app.get('/api/matrimonial/incoming-alerts/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const pendingRequests = await MatrimonialRequest.find({ receiverId: userId, status: 'Pending' }).sort({ createdAt: -1 });
+    const alerts = [];
+    for (const r of pendingRequests) {
+      const senderProfile = await MatrimonialProfile.findOne({ userId: r.senderId }) || {};
+      const senderUser = await User.findById(r.senderId) || {};
+      alerts.push({
+        requestId: r._id,
+        senderId: r.senderId,
+        senderName: senderProfile.name || senderUser.fullName || 'Samaj Member',
+        senderPhoto: senderProfile.profilePhoto || '',
+        senderOccupation: senderProfile.occupation || '',
+        senderCity: senderProfile.city || '',
+        age: senderProfile.age || '',
+        createdAt: r.createdAt,
+      });
+    }
+    return res.status(200).json({ success: true, count: alerts.length, alerts });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// 7.10 Directory Follow/Connect Requests
+app.post('/api/directory/request', async (req, res) => {
+  try {
+    const { senderId, receiverId, senderName, receiverName } = req.body;
+    if (!senderId || !receiverId) {
+      return res.status(400).json({ success: false, message: 'Sender and receiver IDs are required.' });
+    }
+
+    let existing = await DirectoryRequest.findOne({ senderId, receiverId });
+    if (existing) {
+      return res.status(200).json({ success: true, message: 'Request already sent.', request: existing });
+    }
+
+    const reqDoc = new DirectoryRequest({
+      senderId,
+      receiverId,
+      senderName: senderName || 'Member',
+      receiverName: receiverName || 'Member',
+      status: 'pending',
+    });
+    await reqDoc.save();
+    return res.status(201).json({ success: true, message: 'Connect request sent successfully!', request: reqDoc });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+app.post('/api/directory/respond', async (req, res) => {
+  try {
+    const { requestId, status } = req.body;
+    const doc = await DirectoryRequest.findByIdAndUpdate(requestId, { status, updatedAt: new Date() }, { new: true });
+    return res.status(200).json({ success: true, message: `Request ${status}`, request: doc });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+app.get('/api/directory/connections/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const accepted = await DirectoryRequest.find({
+      $or: [{ senderId: userId }, { receiverId: userId }],
+      status: 'accepted',
+    });
+    const connectedUserIds = accepted.map(r => r.senderId.toString() === userId.toString() ? r.receiverId.toString() : r.senderId.toString());
+    const pendingSent = await DirectoryRequest.find({ senderId: userId, status: 'pending' });
+    const pendingSentIds = pendingSent.map(r => r.receiverId.toString());
+    const pendingReceived = await DirectoryRequest.find({ receiverId: userId, status: 'pending' });
+
+    return res.status(200).json({
+      success: true,
+      connectedUserIds,
+      pendingSentIds,
+      pendingReceived,
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 // Start Server after MongoDB connection completes
 const PORT = process.env.PORT || 5000;
 
@@ -3602,4 +4131,5 @@ const startServer = async () => {
 };
 
 startServer();
+
 

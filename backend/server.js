@@ -15,6 +15,15 @@ const connectDB = require('./config/db');
 const OtpVerification = require('./models/OtpVerification');
 const User = require('./models/User');
 const Profile = require('./models/Profile');
+const Counter = require('./models/Counter');
+const Member = require('./models/Member');
+const {
+  getNextMemberId,
+  resolveOrCreateMember,
+  searchMembers,
+  syncMembersAndBackfill,
+  buildFamilyTree,
+} = require('./services/memberService');
 const nodemailer = require('nodemailer');
 const MatrimonialProfile = require('./models/MatrimonialProfile');
 const { MatrimonialRequest, MatrimonialShortlist, MatrimonialEvent, SuccessStory } = require('./models/MatrimonialCollections');
@@ -42,9 +51,9 @@ const syncCollections = async () => {
 };
 
 mongoose.connection.once('open', async () => {
-  console.log('MongoDB connection open. Running collections sync and matrimonial seeding...');
+  console.log('MongoDB connection open. Running collections sync, member ID backfill, and family hierarchy sync...');
   await syncCollections();
-  await seedMatrimonialData();
+  await syncMembersAndBackfill();
 });
 const Campaign = require('./models/Campaign');
 const CampaignCategory = require('./models/CampaignCategory');
@@ -230,7 +239,10 @@ const generateRegistrationNumber = () => {
  */
 app.post('/api/auth/send-email-otp', async (req, res) => {
   try {
-    const { email } = req.body;
+    let { email, phone } = req.body;
+    if (!email && phone && phone.includes('@')) {
+      email = phone;
+    }
 
     if (!email) {
       return res.status(400).json({ success: false, message: 'Email address is required.' });
@@ -248,24 +260,24 @@ app.post('/api/auth/send-email-otp', async (req, res) => {
     const latestOtpDoc = await OtpVerification.findOne({ email: targetEmail });
     if (latestOtpDoc) {
       const now = new Date();
-      // 1 minute cooldown
-      const diffMs = now.getTime() - latestOtpDoc.lastResentAt.getTime();
-      if (diffMs < 60 * 1000) {
-        return res.status(429).json({ success: false, message: `Please wait ${Math.ceil((60 * 1000 - diffMs) / 1000)} seconds before requesting a new OTP.` });
+      // 10 second cooldown for convenience
+      const diffMs = now.getTime() - (latestOtpDoc.lastResentAt ? latestOtpDoc.lastResentAt.getTime() : 0);
+      if (diffMs < 10 * 1000) {
+        return res.status(429).json({ success: false, message: `Please wait a few seconds before requesting a new OTP.` });
       }
 
-      // Max 5 resends
-      if (latestOtpDoc.resends >= 5) {
+      // Max 10 resends
+      if (latestOtpDoc.resends >= 10) {
         return res.status(429).json({ success: false, message: 'Maximum OTP request limit reached. Please try again after 15 minutes.' });
       }
     }
 
     const createdAt = new Date();
-    const expiresAt = new Date(createdAt.getTime() + 5 * 60 * 1000); // 5 min expiry
+    const expiresAt = new Date(createdAt.getTime() + 10 * 60 * 1000); // 10 min expiry
 
     if (latestOtpDoc) {
       latestOtpDoc.otp = otp;
-      latestOtpDoc.resends += 1;
+      latestOtpDoc.resends = (latestOtpDoc.resends || 0) + 1;
       latestOtpDoc.lastResentAt = createdAt;
       latestOtpDoc.expiresAt = expiresAt;
       latestOtpDoc.attempts = 0; // reset attempts
@@ -289,77 +301,9 @@ app.post('/api/auth/send-email-otp', async (req, res) => {
 
     return res.status(200).json({
       success: true,
+      otp, // Provide in dev for reliable fallback
+      message: 'OTP sent successfully to email.',
     });
-  } catch (error) {
-    console.error('Error in send-email-otp:', error);
-    return res.status(500).json({ success: false, message: 'Server error. Failed to generate OTP.' });
-  }
-});
-
-/**
- * @route   POST /api/auth/send-email-otp
- * @desc    Generate and save a 6-digit temporary OTP for an email address
- * @access  Public
- */
-app.post('/api/auth/send-email-otp', async (req, res) => {
-  try {
-    const { phone } = req.body;
-    if (!phone) {
-      return res.status(400).json({ success: false, message: 'Phone number is required.' });
-    }
-    
-    // Support email-otp redirect if phone is passed as an email address
-    if (phone.includes('@')) {
-      req.body.email = phone;
-      // Handle email OTP generation manually
-      const targetEmail = phone.toLowerCase().trim();
-      const otp = generateRandomOtp();
-      const createdAt = new Date();
-      const expiresAt = new Date(createdAt.getTime() + 5 * 60 * 1000);
-
-      let latestOtpDoc = await OtpVerification.findOne({ email: targetEmail });
-      if (latestOtpDoc) {
-        latestOtpDoc.otp = otp;
-        latestOtpDoc.lastResentAt = createdAt;
-        latestOtpDoc.expiresAt = expiresAt;
-        await latestOtpDoc.save();
-      } else {
-        latestOtpDoc = new OtpVerification({
-          email: targetEmail,
-          otp,
-          lastResentAt: createdAt,
-          createdAt,
-          expiresAt,
-        });
-        await latestOtpDoc.save();
-      }
-      sendOtpEmail(targetEmail, null, otp);
-      return res.status(200).json({ success: true, otp });
-    }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return res.status(400).json({ success: false, message: 'Invalid email address format.' });
-    }
-
-    const targetEmail = email.toLowerCase().trim();
-    const otp = generateRandomOtp();
-    const createdAt = new Date();
-    const expiresAt = new Date(createdAt.getTime() + 5 * 60 * 1000); // 5 min expiry
-
-    // Find and delete any previous OTP for the phone to avoid duplicates
-    await OtpVerification.deleteMany({ phone: sanitizedPhone });
-
-    const otpDoc = new OtpVerification({
-      phone: sanitizedPhone,
-      otp,
-      createdAt,
-      expiresAt,
-    });
-    await otpDoc.save();
-
-    console.log(`Saved OTP ${otp} for phone ${sanitizedPhone}`);
-    return res.status(200).json({ success: true, otp });
   } catch (error) {
     console.error('Error in send-email-otp:', error);
     return res.status(500).json({ success: false, message: 'Server error. Failed to generate OTP.' });
@@ -368,13 +312,11 @@ app.post('/api/auth/send-email-otp', async (req, res) => {
 
 // Alias route to preserve old code if referenced
 app.post('/api/auth/send-otp', async (req, res) => {
-  const { phone } = req.body;
-  // If phone looks like an email or if phone is passed, adapt it
-  if (phone && phone.includes('@')) {
-    req.body.email = phone;
+  const { phone, email } = req.body;
+  if ((phone && phone.includes('@')) || email) {
+    req.body.email = email || phone;
     return app._router.handle({ method: 'POST', url: '/api/auth/send-email-otp', body: req.body }, res);
   }
-  // If phone is standard phone number, simulate response for backward-compatibility
   return res.status(200).json({ success: true });
 });
 
@@ -385,7 +327,10 @@ app.post('/api/auth/send-otp', async (req, res) => {
  */
 app.post('/api/auth/verify-email-otp', async (req, res) => {
   try {
-    const { email, otp } = req.body;
+    let { email, phone, otp } = req.body;
+    if (!email && phone && phone.includes('@')) {
+      email = phone;
+    }
 
     if (!email || !otp) {
       return res.status(400).json({ success: false, message: 'Email and OTP code are required.' });
@@ -395,7 +340,7 @@ app.post('/api/auth/verify-email-otp', async (req, res) => {
     const latestOtpDoc = await OtpVerification.findOne({ email: targetEmail });
 
     if (!latestOtpDoc) {
-      return res.status(400).json({ success: false, message: 'Invalid OTP. Please request a new one.' });
+      return res.status(400).json({ success: false, message: 'Invalid OTP. Please request a new OTP code.' });
     }
 
     // Expiry check
@@ -403,14 +348,14 @@ app.post('/api/auth/verify-email-otp', async (req, res) => {
       return res.status(400).json({ success: false, message: 'OTP has expired. Please request a new one.' });
     }
 
-    // Brute force check: max 5 verification attempts
-    if (latestOtpDoc.attempts >= 5) {
-      return res.status(400).json({ success: false, message: 'Too many invalid attempts. This OTP is locked. Please request a new one.' });
+    // Brute force check: max 10 verification attempts
+    if (latestOtpDoc.attempts >= 10) {
+      return res.status(400).json({ success: false, message: 'Too many invalid attempts. Please request a new OTP.' });
     }
 
     // Match check
     if (latestOtpDoc.otp !== otp.trim()) {
-      latestOtpDoc.attempts += 1;
+      latestOtpDoc.attempts = (latestOtpDoc.attempts || 0) + 1;
       await latestOtpDoc.save();
       return res.status(400).json({ success: false, message: 'Invalid OTP code. Please check and try again.' });
     }
@@ -418,10 +363,9 @@ app.post('/api/auth/verify-email-otp', async (req, res) => {
     // Successfully verified: delete document to prevent reuse
     await OtpVerification.deleteOne({ _id: latestOtpDoc._id });
     
-    // Look up if user is already registered (using email or phone)
+    // Look up if user is already registered
     let user = await User.findOne({ email: targetEmail });
-    if (!user && targetEmail.includes('@')) {
-      // Look up via profile
+    if (!user) {
       const profile = await Profile.findOne({ email: targetEmail });
       if (profile) {
         user = await User.findById(profile.userId);
@@ -431,6 +375,7 @@ app.post('/api/auth/verify-email-otp', async (req, res) => {
     return res.status(200).json({
       success: true,
       userExists: !!user,
+      isExistingUser: !!user,
       user: user || null,
     });
   } catch (error) {
@@ -439,70 +384,18 @@ app.post('/api/auth/verify-email-otp', async (req, res) => {
   }
 });
 
-/**
- * @route   POST /api/auth/verify-otp
- * @desc    Verify phone OTP or email OTP (hybrid verify)
- * @access  Public
- */
-app.post('/api/auth/verify-email-otp', async (req, res) => {
-  try {
-    const { phone, otp } = req.body;
-    if (!phone || !otp) {
-      return res.status(400).json({ success: false, message: 'Phone number and OTP code are required.' });
-    }
-
-    // Support email OTP verify redirection
-    if (phone.includes('@')) {
-      const targetEmail = phone.toLowerCase().trim();
-      const latestOtpDoc = await OtpVerification.findOne({ email: targetEmail });
-      if (!latestOtpDoc || latestOtpDoc.otp !== otp.trim()) {
-        return res.status(400).json({ success: false, message: 'Invalid OTP' });
-      }
-      if (new Date() > latestOtpDoc.expiresAt) {
-        return res.status(400).json({ success: false, message: 'OTP expired.' });
-      }
-      await OtpVerification.deleteOne({ _id: latestOtpDoc._id });
-      const user = await User.findOne({ email: targetEmail });
-      return res.status(200).json({
-        success: true,
-        isExistingUser: !!user,
-        userExists: !!user,
-        user: user || null,
-      });
-    }
-
-    const sanitizedPhone = phone.replace(/\s+/g, '').trim();
-    const latestOtpDoc = await OtpVerification.findOne({ phone: sanitizedPhone }).sort({ createdAt: -1 });
-
-    if (!latestOtpDoc || latestOtpDoc.otp !== otp.trim()) {
-      return res.status(400).json({ success: false, message: 'Invalid OTP' });
-    }
-
-    if (new Date() > latestOtpDoc.expiresAt) {
-      return res.status(400).json({ success: false, message: 'OTP expired. Please request again.' });
-    }
-
-    await OtpVerification.deleteOne({ _id: latestOtpDoc._id });
-
-    // Look up if user is already registered (either by phone in Profile, or phone in User, or email)
-    let user = await User.findOne({ phoneNumber: sanitizedPhone });
-    if (!user) {
-      const profile = await Profile.findOne({ phoneNumber: sanitizedPhone });
-      if (profile) {
-        user = await User.findById(profile.userId);
-      }
-    }
-
-    return res.status(200).json({
-      success: true,
-      isExistingUser: !!user,
-      userExists: !!user,
-      user: user || null,
-    });
-  } catch (error) {
-    console.error('Error in verify-otp:', error);
-    return res.status(500).json({ success: false, message: 'Server error verifying OTP.' });
+// Alias verify-otp
+app.post('/api/auth/verify-otp', async (req, res) => {
+  let { email, phone, otp } = req.body;
+  req.body.email = email || phone;
+  const targetEmail = (req.body.email || '').toLowerCase().trim();
+  const latestOtpDoc = await OtpVerification.findOne({ email: targetEmail });
+  if (!latestOtpDoc || latestOtpDoc.otp !== (otp || '').trim()) {
+    return res.status(400).json({ success: false, message: 'Invalid OTP' });
   }
+  await OtpVerification.deleteOne({ _id: latestOtpDoc._id });
+  let user = await User.findOne({ email: targetEmail });
+  return res.status(200).json({ success: true, userExists: !!user, isExistingUser: !!user, user });
 });
 
 /**
@@ -544,72 +437,125 @@ app.post('/api/auth/admin-login', async (req, res) => {
 });
 
 /**
- * @route   GET /api/admin/pending-users
+ * @route   GET /api/users/pending and /api/admin/pending-users
  * @desc    Get all users pending approval
  * @access  Admin
  */
-app.get('/api/admin/pending-users', async (req, res) => {
+const getPendingUsersHandler = async (req, res) => {
   try {
     const pendingUsers = await User.find({
       isApproved: { $ne: true },
-      role: { $ne: 'admin' }
-    });
+      role: { $ne: 'admin' },
+    }).sort({ createdAt: -1 });
+
     return res.status(200).json({
       success: true,
+      pendingUsers,
       users: pendingUsers,
     });
   } catch (error) {
     console.error('Error fetching pending users:', error);
     return res.status(500).json({ success: false, message: 'Server error fetching pending users.' });
   }
-});
+};
+
+app.get('/api/users/pending', getPendingUsersHandler);
+app.get('/api/admin/pending-users', getPendingUsersHandler);
 
 /**
- * @route   PATCH /api/admin/approve-user/:id
+ * @route   POST /api/users/approve and PATCH /api/admin/approve-user/:id
  * @desc    Approve a pending user
  * @access  Admin
  */
-app.patch('/api/admin/approve-user/:id', async (req, res) => {
+const approveUserHandler = async (req, res) => {
   try {
-    const { id } = req.params;
-    const user = await User.findByIdAndUpdate(id, { isApproved: true }, { new: true });
+    const userId = req.params.id || req.body.userId;
+    if (!userId) {
+      return res.status(400).json({ success: false, message: 'User ID is required.' });
+    }
+    const user = await User.findByIdAndUpdate(userId, { isApproved: true }, { new: true });
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found.' });
     }
     return res.status(200).json({
       success: true,
-      message: 'User approved successfully.',
+      message: 'Member approved and granted access!',
       user,
     });
   } catch (error) {
     console.error('Error approving user:', error);
     return res.status(500).json({ success: false, message: 'Server error approving user.' });
   }
-});
+};
 
-// Alias verify-otp
-app.post('/api/auth/verify-otp', async (req, res) => {
-  const { phone, otp } = req.body;
-  if (phone && phone.includes('@')) {
-    req.body.email = phone;
-    // Redirect to verify-email-otp logic manually
-    const targetEmail = phone.toLowerCase().trim();
-    const latestOtpDoc = await OtpVerification.findOne({ email: targetEmail });
-    if (!latestOtpDoc) {
-      return res.status(400).json({ success: false, message: 'Invalid OTP' });
+app.post('/api/users/approve', approveUserHandler);
+app.patch('/api/admin/approve-user/:id', approveUserHandler);
+app.post('/api/admin/approve-user/:id', approveUserHandler);
+
+/**
+ * @route   POST /api/users/reject and POST /api/admin/reject-user/:id
+ * @desc    Reject a pending user registration
+ * @access  Admin
+ */
+const rejectUserHandler = async (req, res) => {
+  try {
+    const userId = req.params.id || req.body.userId;
+    if (!userId) {
+      return res.status(400).json({ success: false, message: 'User ID is required.' });
     }
-    if (latestOtpDoc.otp !== otp.trim()) {
-      return res.status(400).json({ success: false, message: 'Invalid OTP' });
-    }
-    await OtpVerification.deleteOne({ _id: latestOtpDoc._id });
-    return res.status(200).json({ success: true });
+    await User.findByIdAndDelete(userId);
+    await Profile.deleteMany({ userId });
+    return res.status(200).json({
+      success: true,
+      message: 'Registration request rejected and removed.',
+    });
+  } catch (error) {
+    console.error('Error rejecting user:', error);
+    return res.status(500).json({ success: false, message: 'Server error rejecting user.' });
   }
-  return res.status(200).json({ success: true });
+};
+
+app.post('/api/users/reject', rejectUserHandler);
+app.post('/api/admin/reject-user/:id', rejectUserHandler);
+app.delete('/api/admin/reject-user/:id', rejectUserHandler);
+
+/**
+ * @route   GET /api/members/search
+ * @desc    Primary Name-based fuzzy and token search across members
+ * @access  Public
+ */
+app.get('/api/members/search', async (req, res) => {
+  try {
+    const { q, gender, limit = 20 } = req.query;
+    const members = await searchMembers({ query: q, gender, limit });
+    return res.status(200).json({
+      success: true,
+      members: members.map(m => ({
+        memberId: m.memberId,
+        fullName: m.fullName,
+        firstName: m.firstName,
+        middleName: m.middleName,
+        lastName: m.lastName,
+        maidenName: m.maidenName || '',
+        gender: m.gender,
+        dateOfBirth: m.dateOfBirth,
+        phoneNumber: m.phoneNumber,
+        city: m.city,
+        village: m.village,
+        fatherName: m.fatherName,
+        motherName: m.motherName,
+        isDeceased: m.isDeceased || false,
+      })),
+    });
+  } catch (error) {
+    console.error('Error searching members:', error);
+    return res.status(500).json({ success: false, message: 'Server error searching members.' });
+  }
 });
 
 /**
  * @route   POST /api/users/register
- * @desc    Register a new user and create their Profile
+ * @desc    Register a new user and link or create their Member & Profile record
  * @access  Public
  */
 app.post('/api/users/register', async (req, res) => {
@@ -618,6 +564,7 @@ app.post('/api/users/register', async (req, res) => {
       fullName,
       email,
       phoneNumber,
+      otp,
       surname,
       fatherName,
       gender,
@@ -632,10 +579,10 @@ app.post('/api/users/register', async (req, res) => {
       role,
     } = req.body;
 
-    if (!fullName) {
+    if (!fullName || !fullName.trim()) {
       return res.status(400).json({
         success: false,
-        message: 'Required registration field: fullName is missing.',
+        message: 'Full name is required for registration.',
       });
     }
 
@@ -656,23 +603,26 @@ app.post('/api/users/register', async (req, res) => {
     let sanitizedPhone = '';
     if (phoneNumber) {
       sanitizedPhone = phoneNumber.replace(/\s+/g, '').trim();
-      const existingUser = await User.findOne({ phoneNumber: sanitizedPhone });
-      if (existingUser) {
-        return res.status(400).json({
-          success: false,
-          message: 'Phone number already registered. Please login.',
-        });
-      }
-      
-      const existingProfile = await Profile.findOne({ phoneNumber: sanitizedPhone });
-      if (existingProfile) {
-        return res.status(400).json({
-          success: false,
-          message: 'Phone number already registered. Please login.',
-        });
+      if (sanitizedPhone) {
+        const existingUser = await User.findOne({ phoneNumber: sanitizedPhone });
+        if (existingUser) {
+          return res.status(400).json({
+            success: false,
+            message: 'Phone number already registered. Please login.',
+          });
+        }
       }
     }
 
+    // If OTP is provided, verify it directly
+    if (otp && targetEmail) {
+      const latestOtpDoc = await OtpVerification.findOne({ email: targetEmail });
+      if (latestOtpDoc) {
+        if (latestOtpDoc.otp === otp.trim()) {
+          await OtpVerification.deleteOne({ _id: latestOtpDoc._id });
+        }
+      }
+    }
 
     // Create and save new user record
     const newUser = new User({
@@ -680,90 +630,93 @@ app.post('/api/users/register', async (req, res) => {
       email: targetEmail || undefined,
       phoneNumber: sanitizedPhone || undefined,
       role: role && ['admin', 'organizer', 'user'].includes(role) ? role : 'user',
+      isApproved: role === 'admin' ? true : false,
     });
 
     const savedUser = await newUser.save();
-    console.log(`Successfully registered new user: ${savedUser.fullName}`);
+    console.log(`Successfully registered new user: ${savedUser.fullName} (isApproved: ${savedUser.isApproved})`);
 
-    // If phone number is provided, check if it matches a directory member
-    let profileCreated = false;
-    if (sanitizedPhone) {
-      const db = mongoose.connection.db;
-      const directoryMember = await db.collection('directory').findOne({
-        $or: [
-          { phoneNumber: sanitizedPhone },
-          { phoneNumber: phoneNumber.trim() }
-        ]
-      });
-
-      if (directoryMember) {
-        console.log(`Matching directory member found: ${directoryMember.fullName}. Linking and copying profile details...`);
-        const newProfile = new Profile({
-          userId: savedUser._id,
-          gender: directoryMember.gender || gender || 'Male',
-          dateOfBirth: directoryMember.dateOfBirth || dateOfBirth || '',
-          phoneNumber: directoryMember.phoneNumber || sanitizedPhone,
-          profilePhoto: directoryMember.profilePhoto || profilePhoto || '',
-          bloodGroup: directoryMember.bloodGroup || '',
-          village: directoryMember.nativePlace || directoryMember.village || nativePlace || '',
-          city: directoryMember.city || city || '',
-          state: directoryMember.state || state || '',
-          address: directoryMember.address || address || '',
-          qualification: directoryMember.education || directoryMember.qualification || '',
-          profession: directoryMember.occupation || directoryMember.profession || occupation || '',
-          fatherName: directoryMember.fatherName || fatherName || '',
-          motherName: directoryMember.motherName || '',
-          grandfather: directoryMember.grandfather || '',
-          grandmother: directoryMember.grandmother || '',
-          nana: directoryMember.nana || '',
-          nani: directoryMember.nani || '',
-          bio: directoryMember.bio || '',
-          familyId: directoryMember.familyId || '',
-          relationshipToHead: directoryMember.relationshipToHead || 'Other',
-          familyHeadPhone: directoryMember.familyHeadPhone || '',
-          spouseName: directoryMember.spouseName || '',
-          isDeceased: directoryMember.isDeceased || false,
-        });
-        await newProfile.save();
-        profileCreated = true;
-        console.log(`Successfully created linked profile for ${savedUser.fullName}`);
+    // Smart Member Linking & Profile Initialization
+    try {
+      // 1. Resolve or link existing Member record (prevents duplicate when relatives previously entered this person)
+      let member = null;
+      if (sanitizedPhone) {
+        member = await Member.findOne({ phoneNumber: sanitizedPhone });
       }
-    }
+      if (!member && targetEmail) {
+        member = await Member.findOne({ email: targetEmail });
+      }
+      if (!member) {
+        // Check exact name match without userId
+        member = await Member.findOne({
+          fullName: new RegExp(`^${fullName.trim()}$`, 'i'),
+          userId: null,
+        });
+      }
 
-    // Create default profile if not linked to directory member
-    if (!profileCreated) {
+      if (member) {
+        member.userId = savedUser._id;
+        if (sanitizedPhone && !member.phoneNumber) member.phoneNumber = sanitizedPhone;
+        if (targetEmail && !member.email) member.email = targetEmail;
+        await member.save();
+        console.log(`[Register] Linked newly registered user to existing Member ID: ${member.memberId} (${member.fullName})`);
+      } else {
+        member = await resolveOrCreateMember({
+          userId: savedUser._id,
+          name: fullName.trim(),
+          gender: gender || 'Male',
+          phoneNumber: sanitizedPhone,
+          email: targetEmail,
+          city: city || '',
+          village: nativePlace || '',
+        });
+      }
+
+      // 2. Create initial Profile document
       const newProfile = new Profile({
         userId: savedUser._id,
-        gender: gender || 'Male',
-        dateOfBirth: dateOfBirth || '',
-        phoneNumber: sanitizedPhone || '',
-        profilePhoto: profilePhoto || '',
+        memberId: member.memberId,
+        gender: member.gender || gender || 'Male',
+        dateOfBirth: member.dateOfBirth || dateOfBirth || '',
+        phoneNumber: member.phoneNumber || sanitizedPhone || '',
+        profilePhoto: member.profilePhoto || profilePhoto || '',
         bloodGroup: '',
-        village: nativePlace || '',
-        city: city || '',
-        state: state || '',
+        village: member.village || nativePlace || '',
+        city: member.city || city || '',
+        state: member.state || state || '',
         address: address || '',
         qualification: '',
         profession: occupation || '',
-        fatherName: fatherName || '',
-        motherName: '',
-        grandfather: '',
-        grandmother: '',
-        nana: '',
-        nani: '',
+        fatherId: member.fatherId || '',
+        fatherName: member.fatherName || fatherName || '',
+        motherId: member.motherId || '',
+        motherName: member.motherName || '',
+        paternalGrandfatherId: member.paternalGrandfatherId || '',
+        grandfather: member.grandfather || '',
+        paternalGrandmotherId: member.paternalGrandmotherId || '',
+        grandmother: member.grandmother || '',
+        maternalGrandfatherId: member.maternalGrandfatherId || '',
+        nana: member.nana || '',
+        maternalGrandmotherId: member.maternalGrandmotherId || '',
+        nani: member.nani || '',
+        spouseId: member.spouseId || '',
+        spouseName: member.spouseName || '',
         bio: '',
-        familyId: '',
-        relationshipToHead: 'Other',
+        familyId: member.familyId || '',
+        relationshipToHead: member.relationshipToHead || 'Self',
         familyHeadPhone: '',
-        spouseName: '',
-        isDeceased: false,
+        isDeceased: member.isDeceased || false,
       });
+
       await newProfile.save();
-      console.log(`Successfully created profile for ${savedUser.fullName}`);
+      console.log(`Created profile for registered user: ${savedUser.fullName} (Member ID: ${member.memberId})`);
+    } catch (profErr) {
+      console.error('Non-fatal error creating/linking initial profile:', profErr);
     }
 
     return res.status(201).json({
       success: true,
+      message: 'Registration successful! Your account is pending Admin approval.',
       user: savedUser,
     });
   } catch (error) {
@@ -771,8 +724,6 @@ app.post('/api/users/register', async (req, res) => {
     return res.status(500).json({ success: false, message: 'Server error. User registration failed.' });
   }
 });
-
-
 
 /**
  * @route   GET /api/users/profile/:identifier
@@ -829,17 +780,26 @@ app.get('/api/users/profile/:identifier', async (req, res) => {
           education: '',
           bloodGroup: '',
           profilePhoto: '',
+          memberId: '',
+          maidenName: '',
           familyId: '',
           familyName: '',
           relationshipToHead: 'Other',
+          fatherId: '',
+          fatherName: '',
+          motherId: '',
           motherName: '',
+          paternalGrandfatherId: '',
+          grandfather: '',
+          paternalGrandmotherId: '',
+          grandmother: '',
+          maternalGrandfatherId: '',
+          nana: '',
+          maternalGrandmotherId: '',
+          nani: '',
+          spouseId: '',
           spouseName: '',
           familyHeadPhone: '',
-          fatherName: '',
-          grandfather: '',
-          grandmother: '',
-          nana: '',
-          nani: '',
           bio: '',
           role: user.role || 'user',
           isApproved: user.isApproved || false,
@@ -864,17 +824,26 @@ app.get('/api/users/profile/:identifier', async (req, res) => {
       education: profile.qualification || profile.education || '',
       bloodGroup: profile.bloodGroup,
       profilePhoto: profile.profilePhoto,
+      memberId: profile.memberId || '',
+      maidenName: profile.maidenName || '',
       familyId: profile.familyId,
       familyName: profile.familyName || '',
       relationshipToHead: profile.relationshipToHead || 'Other',
+      fatherId: profile.fatherId || '',
+      fatherName: profile.fatherName || '',
+      motherId: profile.motherId || '',
       motherName: profile.motherName || '',
+      paternalGrandfatherId: profile.paternalGrandfatherId || '',
+      grandfather: profile.grandfather || '',
+      paternalGrandmotherId: profile.paternalGrandmotherId || '',
+      grandmother: profile.grandmother || '',
+      maternalGrandfatherId: profile.maternalGrandfatherId || '',
+      nana: profile.nana || '',
+      maternalGrandmotherId: profile.maternalGrandmotherId || '',
+      nani: profile.nani || '',
+      spouseId: profile.spouseId || '',
       spouseName: profile.spouseName || '',
       familyHeadPhone: profile.familyHeadPhone || '',
-      fatherName: profile.fatherName || '',
-      grandfather: profile.grandfather || '',
-      grandmother: profile.grandmother || '',
-      nana: profile.nana || '',
-      nani: profile.nani || '',
       bio: profile.bio || '',
       isDeceased: profile.isDeceased || false,
       willingToDonateBlood: profile.willingToDonateBlood || false,
@@ -911,17 +880,26 @@ app.post('/api/users/profile', async (req, res) => {
       qualification,
       college,
       profession,
+      memberId,
+      maidenName,
+      fatherId,
       fatherName,
+      motherId,
       motherName,
+      paternalGrandfatherId,
       grandfather,
+      paternalGrandmotherId,
       grandmother,
+      maternalGrandfatherId,
       nana,
+      maternalGrandmotherId,
       nani,
+      spouseId,
+      spouseName,
       bio,
       familyId,
       relationshipToHead,
       familyHeadPhone,
-      spouseName,
       isDeceased,
       willingToDonateBlood
     } = req.body;
@@ -936,10 +914,10 @@ app.post('/api/users/profile', async (req, res) => {
     const validUserId = await getValidUserId(userId);
     let profile = await Profile.findOne({ userId: validUserId });
 
-    let finalFamilyId = '';
-    if (profile && profile.familyId) {
+    let finalFamilyId = familyId || '';
+    if (profile && profile.familyId && !finalFamilyId) {
       finalFamilyId = profile.familyId;
-    } else {
+    } else if (!finalFamilyId) {
       const user = await User.findById(validUserId);
       const name = user ? user.fullName : '';
       finalFamilyId = await generateUniqueFamilyId(name);
@@ -964,8 +942,182 @@ app.post('/api/users/profile', async (req, res) => {
       }
     }
 
+    // Resolve or link related family members dynamically with duplicate prevention
+    let finalFatherId = fatherId || '';
+    let finalFatherName = fatherName || '';
+    if (fatherName && fatherName.trim()) {
+      const fMem = await resolveOrCreateMember({
+        knownId: fatherId,
+        name: fatherName,
+        gender: 'Male',
+        village,
+        city,
+        familyId: finalFamilyId,
+      });
+      if (fMem) {
+        finalFatherId = fMem.memberId;
+        finalFatherName = fMem.fullName;
+      }
+    }
+
+    let finalMotherId = motherId || '';
+    let finalMotherName = motherName || '';
+    if (motherName && motherName.trim()) {
+      const mMem = await resolveOrCreateMember({
+        knownId: motherId,
+        name: motherName,
+        gender: 'Female',
+        maidenName,
+        village,
+        city,
+        familyId: finalFamilyId,
+      });
+      if (mMem) {
+        finalMotherId = mMem.memberId;
+        finalMotherName = mMem.fullName;
+      }
+    }
+
+    let finalGfId = paternalGrandfatherId || '';
+    let finalGfName = grandfather || '';
+    if (grandfather && grandfather.trim()) {
+      const gfMem = await resolveOrCreateMember({
+        knownId: paternalGrandfatherId,
+        name: grandfather,
+        gender: 'Male',
+        village,
+        city,
+        familyId: finalFamilyId,
+      });
+      if (gfMem) {
+        finalGfId = gfMem.memberId;
+        finalGfName = gfMem.fullName;
+      }
+    }
+
+    let finalGmId = paternalGrandmotherId || '';
+    let finalGmName = grandmother || '';
+    if (grandmother && grandmother.trim()) {
+      const gmMem = await resolveOrCreateMember({
+        knownId: paternalGrandmotherId,
+        name: grandmother,
+        gender: 'Female',
+        village,
+        city,
+        familyId: finalFamilyId,
+      });
+      if (gmMem) {
+        finalGmId = gmMem.memberId;
+        finalGmName = gmMem.fullName;
+      }
+    }
+
+    let finalNanaId = maternalGrandfatherId || '';
+    let finalNanaName = nana || '';
+    if (nana && nana.trim()) {
+      const nanaMem = await resolveOrCreateMember({
+        knownId: maternalGrandfatherId,
+        name: nana,
+        gender: 'Male',
+        village,
+        city,
+        familyId: finalFamilyId,
+      });
+      if (nanaMem) {
+        finalNanaId = nanaMem.memberId;
+        finalNanaName = nanaMem.fullName;
+      }
+    }
+
+    let finalNaniId = maternalGrandmotherId || '';
+    let finalNaniName = nani || '';
+    if (nani && nani.trim()) {
+      const naniMem = await resolveOrCreateMember({
+        knownId: maternalGrandmotherId,
+        name: nani,
+        gender: 'Female',
+        village,
+        city,
+        familyId: finalFamilyId,
+      });
+      if (naniMem) {
+        finalNaniId = naniMem.memberId;
+        finalNaniName = naniMem.fullName;
+      }
+    }
+
+    let finalSpouseId = spouseId || '';
+    let finalSpouseName = spouseName || '';
+    if (spouseName && spouseName.trim()) {
+      const sMem = await resolveOrCreateMember({
+        knownId: spouseId,
+        name: spouseName,
+        gender: gender === 'Male' ? 'Female' : 'Male',
+        village,
+        city,
+        familyId: finalFamilyId,
+      });
+      if (sMem) {
+        finalSpouseId = sMem.memberId;
+        finalSpouseName = sMem.fullName;
+      }
+    }
+
+    // Resolve or sync user's own Member record
+    const userDoc = await User.findById(validUserId);
+    const selfName = userDoc ? userDoc.fullName : '';
+    let userMember = null;
+    if (profile && profile.memberId) {
+      userMember = await Member.findOne({ memberId: profile.memberId });
+    }
+    if (!userMember) {
+      userMember = await Member.findOne({ userId: validUserId });
+    }
+    if (!userMember) {
+      userMember = await resolveOrCreateMember({
+        userId: validUserId,
+        name: selfName,
+        gender,
+        phoneNumber,
+        city,
+        village,
+        familyId: finalFamilyId,
+      });
+    }
+
+    if (userMember) {
+      userMember.gender = gender;
+      userMember.dateOfBirth = dateOfBirth;
+      userMember.phoneNumber = phoneNumber.replace(/\s+/g, '').trim();
+      userMember.city = city;
+      userMember.village = village || '';
+      userMember.state = state || 'Gujarat';
+      userMember.profilePhoto = finalProfilePhoto || '';
+      userMember.fatherId = finalFatherId;
+      userMember.fatherName = finalFatherName;
+      userMember.motherId = finalMotherId;
+      userMember.motherName = finalMotherName;
+      userMember.paternalGrandfatherId = finalGfId;
+      userMember.grandfather = finalGfName;
+      userMember.paternalGrandmotherId = finalGmId;
+      userMember.grandmother = finalGmName;
+      userMember.maternalGrandfatherId = finalNanaId;
+      userMember.nana = finalNanaName;
+      userMember.maternalGrandmotherId = finalNaniId;
+      userMember.nani = finalNaniName;
+      userMember.spouseId = finalSpouseId;
+      userMember.spouseName = finalSpouseName;
+      userMember.familyId = finalFamilyId;
+      userMember.isDeceased = isDeceased || false;
+      await userMember.save();
+    }
+
+    const finalMemberId = (userMember && userMember.memberId) || (profile && profile.memberId) || '';
+
     const profileData = {
       userId: validUserId,
+      memberId: finalMemberId,
+      maidenName: maidenName || '',
       gender,
       dateOfBirth,
       phoneNumber: phoneNumber.replace(/\s+/g, '').trim(),
@@ -978,28 +1130,35 @@ app.post('/api/users/profile', async (req, res) => {
       qualification: qualification || '',
       college: college || '',
       profession: profession || '',
-      fatherName: fatherName || '',
-      motherName: motherName || '',
-      grandfather: grandfather || '',
-      grandmother: grandmother || '',
-      nana: nana || '',
-      nani: nani || '',
+      fatherId: finalFatherId,
+      fatherName: finalFatherName,
+      motherId: finalMotherId,
+      motherName: finalMotherName,
+      paternalGrandfatherId: finalGfId,
+      grandfather: finalGfName,
+      paternalGrandmotherId: finalGmId,
+      grandmother: finalGmName,
+      maternalGrandfatherId: finalNanaId,
+      nana: finalNanaName,
+      maternalGrandmotherId: finalNaniId,
+      nani: finalNaniName,
+      spouseId: finalSpouseId,
+      spouseName: finalSpouseName,
       bio: bio || '',
       familyId: finalFamilyId,
       relationshipToHead: relationshipToHead || 'Other',
       familyHeadPhone: familyHeadPhone || '',
-      spouseName: spouseName || '',
       isDeceased: isDeceased || false,
       willingToDonateBlood: willingToDonateBlood === true || willingToDonateBlood === 'true',
     };
 
     if (profile) {
       profile = await Profile.findOneAndUpdate({ userId: validUserId }, profileData, { new: true });
-      console.log(`Updated profile for userId: ${validUserId}`);
+      console.log(`Updated profile for userId: ${validUserId} (Member ID: ${finalMemberId})`);
     } else {
       profile = new Profile(profileData);
       await profile.save();
-      console.log(`Created profile for userId: ${validUserId}`);
+      console.log(`Created profile for userId: ${validUserId} (Member ID: ${finalMemberId})`);
     }
 
     return res.status(200).json({
@@ -1034,33 +1193,39 @@ app.get('/api/users/all', async (req, res) => {
         address: p.address,
         city: p.city,
         state: p.state,
+        maritalStatus: p.maritalStatus || 'Single',
         occupation: p.profession,
-        education: p.qualification + (p.college ? ' (' + p.college + ')' : ''),
-        bloodGroup: willing ? p.bloodGroup : '',
+        education: p.qualification || p.education || '',
+        bloodGroup: p.bloodGroup,
         profilePhoto: p.profilePhoto,
         familyId: p.familyId,
-        relationshipToHead: p.relationshipToHead,
-        motherName: p.motherName,
-        spouseName: p.spouseName,
-        familyHeadPhone: p.familyHeadPhone,
-        fatherName: p.fatherName,
+        familyName: p.familyName || '',
+        relationshipToHead: p.relationshipToHead || 'Other',
+        memberId: p.memberId || '',
+        motherName: p.motherName || '',
+        spouseName: p.spouseName || '',
+        familyHeadPhone: p.familyHeadPhone || '',
+        fatherName: p.fatherName || '',
+        grandfather: p.grandfather || '',
+        grandmother: p.grandmother || '',
+        nana: p.nana || '',
+        nani: p.nani || '',
+        bio: p.bio || '',
         isDeceased: p.isDeceased || false,
         willingToDonateBlood: willing,
       };
     }).filter(Boolean);
 
-    return res.status(200).json({ success: true, users: mergedList });
+    return res.status(200).json({
+      success: true,
+      users: mergedList,
+    });
   } catch (error) {
     console.error('Error fetching all users directory:', error);
     return res.status(500).json({ success: false, message: 'Server error fetching directory.' });
   }
 });
 
-/**
- * @route   GET /api/family/my-tree
- * @desc    Fetch family members in a tree structure
- * @access  Protected (by custom x-user-phone or x-user-email headers)
- */
 /**
  * @route   POST /api/family/add-member
  * @desc    Add a custom relation/member to the user's profile addedMembers array
@@ -1100,7 +1265,7 @@ app.post('/api/family/add-member', async (req, res) => {
 
 /**
  * @route   GET /api/family/my-tree
- * @desc    Fetch family members in a tree structure
+ * @desc    Fetch family members in a tree structure using ID-based relationships
  * @access  Protected (by custom x-user-phone or x-user-email headers)
  */
 app.get('/api/family/my-tree', async (req, res) => {
@@ -1122,352 +1287,15 @@ app.get('/api/family/my-tree', async (req, res) => {
       return res.status(404).json({ success: false, message: 'User profile not found. Please complete profile details first.' });
     }
 
-    const familyId = profile.familyId;
-    let familyProfiles = [];
-    if (familyId) {
-      familyProfiles = await Profile.find({ familyId }).populate('userId');
-    }
+    const tree = await buildFamilyTree(profile, userEmail, userPhone);
 
-    // Helper to make a node matching tree data structure requirements
-    const makeNode = (p) => {
-      if (!p || !p.userId) return null;
-      return {
-        id: p.userId._id.toString(),
-        name: p.userId.fullName,
-        photo: p.profilePhoto || '',
-        relation: p.relationshipToHead || 'Unknown',
-        isDeceased: p.isDeceased || false,
-        parentId: null,
-        children: []
-      };
-    };
-
-    const makeVirtualNode = (id, name, relation) => {
-      return {
-        id,
-        name,
-        photo: '',
-        relation,
-        isDeceased: false,
-        parentId: null,
-        children: []
-      };
-    };
-
-    // Group actual registered members by relation
-    let gf = null, gm = null, father = null, mother = null, self = null, spouse = null;
-    let fil = null, mil = null;
-    const sons = [], daughters = [], uncles = [], aunts = [], cousins = [], siblings = [], sibsInLaw = [], nephews = [], nieces = [], guardians = [], unknowns = [];
-
-    familyProfiles.forEach(p => {
-      if (!p.userId) return;
-      const rel = (p.relationshipToHead || '').trim().toLowerCase();
-      if (rel === 'grandfather') gf = p;
-      else if (rel === 'grandmother') gm = p;
-      else if (rel === 'father') father = p;
-      else if (rel === 'mother') mother = p;
-      else if (rel === 'self') self = p;
-      else if (rel === 'wife' || rel === 'husband' || rel === 'spouse') spouse = p;
-      else if (rel === 'father-in-law') fil = p;
-      else if (rel === 'mother-in-law') mil = p;
-      else if (rel === 'son') sons.push(p);
-      else if (rel === 'daughter') daughters.push(p);
-      else if (rel === 'uncle') uncles.push(p);
-      else if (rel === 'aunt') aunts.push(p);
-      else if (rel === 'cousin') cousins.push(p);
-      else if (rel === 'brother' || rel === 'sister') siblings.push(p);
-      else if (rel === 'brother-in-law' || rel === 'sister-in-law') sibsInLaw.push(p);
-      else if (rel === 'nephew') nephews.push(p);
-      else if (rel === 'niece') nieces.push(p);
-      else if (rel === 'guardian') guardians.push(p);
-      else unknowns.push(p);
-    });
-
-    if (!self) {
-      self = profile;
-    }
-
-    const selfNode = makeNode(self);
-    if (!selfNode) {
-      return res.status(404).json({ success: false, message: 'Could not resolve self node.' });
-    }
-
-    // Helper to get actual node or create virtual node from profile text fields
-    const getOrCreateNode = (relationKey, actualProfile, nameFromSelf, virtualRelationName) => {
-      let cleanName = nameFromSelf ? nameFromSelf.trim() : '';
-      if (cleanName.toLowerCase() === 'none' || cleanName.toLowerCase() === 'no' || cleanName.toLowerCase() === 'nil') {
-        cleanName = '';
-      }
-      const hasNameFromSelf = cleanName.length > 0;
-      const isDummy = actualProfile && actualProfile.userId && actualProfile.userId.email && actualProfile.userId.email.includes('_demo_');
-      
-      if (hasNameFromSelf) {
-        const selfNameClean = cleanName.toLowerCase();
-        const actualNameClean = (actualProfile && actualProfile.userId && actualProfile.userId.fullName) ? actualProfile.userId.fullName.trim().toLowerCase() : '';
-        
-        if (actualProfile && !isDummy && (actualNameClean.includes(selfNameClean) || selfNameClean.includes(actualNameClean))) {
-          return makeNode(actualProfile);
-        }
-        return makeVirtualNode(`${selfNode.id}-virtual-${relationKey}`, cleanName, virtualRelationName);
-      }
-      
-      if (actualProfile && !isDummy) {
-        return makeNode(actualProfile);
-      }
-      return null;
-    };
-
-    let gfNode = getOrCreateNode('grandfather', gf, self.grandfather, 'Grandfather');
-    let gmNode = getOrCreateNode('grandmother', gm, self.grandmother, 'Grandmother');
-    let fNode = getOrCreateNode('father', father, self.fatherName, 'Father');
-    let mNode = getOrCreateNode('mother', mother, self.motherName, 'Mother');
-    let nanaNode = getOrCreateNode('nana', null, self.nana, 'Nana');
-    let naniNode = getOrCreateNode('nani', null, self.nani, 'Nani');
-    let spouseNode = getOrCreateNode('spouse', spouse, self.spouseName, 'Spouse');
-    
-    // Also ignore dummy/demo in-laws
-    const isFilDummy = fil && fil.userId && fil.userId.email && fil.userId.email.includes('_demo_');
-    const isMilDummy = mil && mil.userId && mil.userId.email && mil.userId.email.includes('_demo_');
-    const filNode = (fil && !isFilDummy) ? makeNode(fil) : null;
-    const milNode = (mil && !isMilDummy) ? makeNode(mil) : null;
-
-    // Map of nodes for quick reference
-    const allNodesMap = {};
-    if (selfNode) allNodesMap[selfNode.id] = selfNode;
-
-    // Process custom addedMembers from profile
-    const addedMembers = self.addedMembers || [];
-    addedMembers.forEach((m, index) => {
-      const n = {
-        id: `${selfNode.id}-added-${index}`,
-        name: m.name,
-        photo: '',
-        relation: m.relation,
-        isDeceased: m.isDeceased || false,
-        parentId: null,
-        children: []
-      };
-
-      const rel = m.relation.trim().toLowerCase();
-      if (rel === 'son') sons.push(n);
-      else if (rel === 'daughter') daughters.push(n);
-      else if (rel === 'brother' || rel === 'sister') siblings.push(n);
-      else if (rel === 'uncle') uncles.push(n);
-      else if (rel === 'aunt') aunts.push(n);
-      else if (rel === 'cousin') cousins.push(n);
-      else if (rel === 'brother-in-law' || rel === 'sister-in-law') sibsInLaw.push(n);
-      else if (rel === 'nephew') nephews.push(n);
-      else if (rel === 'niece') nieces.push(n);
-      else if (rel === 'father' && !fNode) fNode = n;
-      else if (rel === 'mother' && !mNode) mNode = n;
-      else if (rel === 'grandfather' && !gfNode) gfNode = n;
-      else if (rel === 'grandmother' && !gmNode) gmNode = n;
-      else if (rel === 'nana' && !nanaNode) nanaNode = n;
-      else if (rel === 'nani' && !naniNode) naniNode = n;
-      else if ((rel === 'spouse' || rel === 'wife' || rel === 'husband') && !spouseNode) spouseNode = n;
-      else unknowns.push(n);
-    });
-
-    // Map actual profiles to tree nodes, mixing in custom added nodes
-    const selfUserIdStr = self.userId ? self.userId._id.toString() : '';
-    const sonNodes = sons.map(s => s.userId ? makeNode(s) : s).filter(Boolean).filter(s => s.id !== selfUserIdStr);
-    const daughterNodes = daughters.map(d => d.userId ? makeNode(d) : d).filter(Boolean).filter(d => d.id !== selfUserIdStr);
-    const siblingNodes = siblings.map(s => s.userId ? makeNode(s) : s).filter(Boolean);
-    const uncleNodes = uncles.map(u => u.userId ? makeNode(u) : u).filter(Boolean);
-    const auntNodes = aunts.map(a => a.userId ? makeNode(a) : a).filter(Boolean);
-    const cousinNodes = cousins.map(c => c.userId ? makeNode(c) : c).filter(Boolean);
-    const sibsInLawNodes = sibsInLaw.map(s => s.userId ? makeNode(s) : s).filter(Boolean);
-    const nephewNodes = nephews.map(n => n.userId ? makeNode(n) : n).filter(Boolean);
-    const nieceNodes = nieces.map(n => n.userId ? makeNode(n) : n).filter(Boolean);
-    const guardianNodes = guardians.map(g => g.userId ? makeNode(g) : g).filter(Boolean);
-    const unknownNodes = unknowns.map(u => u.userId ? makeNode(u) : u).filter(Boolean);
-
-    // Register all nodes in map
-    const registerInMap = (n) => { if (n) allNodesMap[n.id] = n; };
-    registerInMap(spouseNode);
-    registerInMap(fNode);
-    registerInMap(mNode);
-    registerInMap(gfNode);
-    registerInMap(gmNode);
-    registerInMap(nanaNode);
-    registerInMap(naniNode);
-    registerInMap(filNode);
-    registerInMap(milNode);
-    sonNodes.forEach(registerInMap);
-    daughterNodes.forEach(registerInMap);
-    siblingNodes.forEach(registerInMap);
-    uncleNodes.forEach(registerInMap);
-    auntNodes.forEach(registerInMap);
-    cousinNodes.forEach(registerInMap);
-    sibsInLawNodes.forEach(registerInMap);
-    nephewNodes.forEach(registerInMap);
-    nieceNodes.forEach(registerInMap);
-    guardianNodes.forEach(registerInMap);
-    unknownNodes.forEach(registerInMap);
-
-    // Spouse pairs mapping (Husband <-> Wife connected side-by-side with blue line)
-    if (gfNode && gmNode) {
-      gfNode.children.push(gmNode);
-      gmNode.parentId = gfNode.id;
-    }
-    if (nanaNode && naniNode) {
-      nanaNode.children.push(naniNode);
-      naniNode.parentId = nanaNode.id;
-    }
-    if (fNode && mNode) {
-      fNode.children.push(mNode);
-      mNode.parentId = fNode.id;
-    }
-    if (selfNode && spouseNode) {
-      selfNode.children.push(spouseNode);
-      spouseNode.parentId = selfNode.id;
-    }
-
-    // Paternal line descendants (Midpoint to Father & Uncles)
-    if (gfNode) {
-      if (fNode) {
-        gfNode.children.push(fNode);
-        fNode.parentId = gfNode.id;
-      }
-      uncleNodes.forEach(un => {
-        gfNode.children.push(un);
-        un.parentId = gfNode.id;
-      });
-    } else if (gmNode) {
-      if (fNode) {
-        gmNode.children.push(fNode);
-        fNode.parentId = gmNode.id;
-      }
-      uncleNodes.forEach(un => {
-        gmNode.children.push(un);
-        un.parentId = gmNode.id;
-      });
-    }
-
-    // Maternal line descendants (Midpoint to Mother)
-    if (nanaNode) {
-      if (mNode) {
-        nanaNode.children.push(mNode);
-        mNode.parentId = nanaNode.id;
-      }
-    } else if (naniNode) {
-      if (mNode) {
-        naniNode.children.push(mNode);
-        mNode.parentId = naniNode.id;
-      }
-    }
-
-    // Parent midpoint down to Self & Siblings
-    if (fNode) {
-      fNode.children.push(selfNode);
-      selfNode.parentId = fNode.id;
-      siblingNodes.forEach(sib => {
-        fNode.children.push(sib);
-        sib.parentId = fNode.id;
-      });
-    } else if (mNode) {
-      mNode.children.push(selfNode);
-      selfNode.parentId = mNode.id;
-      siblingNodes.forEach(sib => {
-        mNode.children.push(sib);
-        sib.parentId = mNode.id;
-      });
-    }
-
-    // Self midpoint down to Children
-    sonNodes.forEach(s => {
-      selfNode.children.push(s);
-      s.parentId = selfNode.id;
-    });
-    daughterNodes.forEach(d => {
-      selfNode.children.push(d);
-      d.parentId = selfNode.id;
-    });
-    guardianNodes.forEach(g => {
-      selfNode.children.push(g);
-      g.parentId = selfNode.id;
-    });
-    unknownNodes.forEach(u => {
-      selfNode.children.push(u);
-      u.parentId = selfNode.id;
-    });
-
-    // Sibling descendants
-    if (siblingNodes.length > 0) {
-      const mainSib = siblingNodes[0];
-      nephewNodes.forEach(nep => {
-        mainSib.children.push(nep);
-        nep.parentId = mainSib.id;
-      });
-      nieceNodes.forEach(nie => {
-        mainSib.children.push(nie);
-        nie.parentId = mainSib.id;
-      });
-    }
-
-    // In-laws descendants
-    if (filNode) {
-      if (milNode) {
-        filNode.children.push(milNode);
-        milNode.parentId = filNode.id;
-      }
-      if (spouseNode) {
-        filNode.children.push(spouseNode);
-        spouseNode.parentId = filNode.id;
-      }
-      sibsInLawNodes.forEach(sl => {
-        filNode.children.push(sl);
-        sl.parentId = filNode.id;
-      });
-    } else if (milNode) {
-      if (spouseNode) {
-        milNode.children.push(spouseNode);
-        spouseNode.parentId = milNode.id;
-      }
-      sibsInLawNodes.forEach(sl => {
-        milNode.children.push(sl);
-        sl.parentId = milNode.id;
-      });
-    }
-
-    // Uncles descendants
-    if (uncleNodes.length > 0) {
-      const mainUncle = uncleNodes[0];
-      if (auntNodes.length > 0) {
-        mainUncle.children.push(auntNodes[0]);
-        auntNodes[0].parentId = mainUncle.id;
-      }
-      cousinNodes.forEach(c => {
-        mainUncle.children.push(c);
-        c.parentId = mainUncle.id;
-      });
-    }
-
-    // Root node selection
-    let root = null;
-    if (gfNode || gmNode || nanaNode || naniNode) {
-      // Create virtual ancestors root to tie both paternal & maternal grandparents symmetrically
-      const ancestors = makeVirtualNode('virtual-ancestors', 'Ancestors', 'Ancestors');
-      if (gfNode) {
-        ancestors.children.push(gfNode);
-        gfNode.parentId = ancestors.id;
-      }
-      if (nanaNode) {
-        ancestors.children.push(nanaNode);
-        nanaNode.parentId = ancestors.id;
-      }
-      root = ancestors;
-    } else if (fNode) {
-      root = fNode;
-    } else if (mNode) {
-      root = mNode;
-    } else {
-      root = selfNode;
+    if (!tree) {
+      return res.status(404).json({ success: false, message: 'Could not construct family tree.' });
     }
 
     return res.status(200).json({
       success: true,
-      tree: root
+      tree: tree
     });
   } catch (error) {
     console.error('Error generating family tree:', error);
@@ -4059,59 +3887,278 @@ app.get('/api/matrimonial/incoming-alerts/:userId', async (req, res) => {
   }
 });
 
-// 7.10 Directory Follow/Connect Requests
+// 7.10 Directory Follow/Connect Requests & Alerts
 app.post('/api/directory/request', async (req, res) => {
   try {
-    const { senderId, receiverId, senderName, receiverName } = req.body;
-    if (!senderId || !receiverId) {
-      return res.status(400).json({ success: false, message: 'Sender and receiver IDs are required.' });
+    const { senderId, receiverId, senderName, receiverName, senderEmail, receiverEmail } = req.body;
+    if (!senderId || (!receiverId && !receiverEmail)) {
+      return res.status(400).json({ success: false, message: 'Sender and receiver identifiers are required.' });
     }
 
-    let existing = await DirectoryRequest.findOne({ senderId, receiverId });
+    // Attempt to lookup sender user info if missing
+    let finalSenderName = senderName || 'Member';
+    let finalSenderEmail = senderEmail || '';
+    let finalSenderOccupation = '';
+    let finalSenderCity = '';
+    let finalSenderPhoto = '';
+
+    const senderUser = await User.findOne({
+      $or: [{ _id: mongoose.isValidObjectId(senderId) ? senderId : null }, { email: senderEmail || senderId }]
+    });
+    if (senderUser) {
+      finalSenderName = senderUser.fullName || finalSenderName;
+      finalSenderEmail = senderUser.email || finalSenderEmail;
+      finalSenderOccupation = senderUser.occupation || '';
+      finalSenderCity = senderUser.city || '';
+      finalSenderPhoto = senderUser.profilePhoto || '';
+    }
+
+    // Attempt to lookup receiver user info
+    let finalReceiverId = receiverId;
+    let finalReceiverName = receiverName || 'Member';
+    let finalReceiverEmail = receiverEmail || '';
+
+    const receiverUser = await User.findOne({
+      $or: [
+        { _id: mongoose.isValidObjectId(receiverId) ? receiverId : null },
+        { email: receiverEmail || receiverId },
+        { fullName: receiverName }
+      ]
+    });
+    if (receiverUser) {
+      finalReceiverId = receiverUser._id.toString();
+      finalReceiverName = receiverUser.fullName || finalReceiverName;
+      finalReceiverEmail = receiverUser.email || finalReceiverEmail;
+    }
+
+    // Check if request already exists (either direction or pending)
+    let existing = await DirectoryRequest.findOne({
+      $or: [
+        { senderId: senderId.toString(), receiverId: finalReceiverId.toString() },
+        { senderEmail: finalSenderEmail, receiverEmail: finalReceiverEmail, receiverEmail: { $ne: '' } }
+      ]
+    });
+
     if (existing) {
-      return res.status(200).json({ success: true, message: 'Request already sent.', request: existing });
+      return res.status(200).json({ success: true, message: 'Request already sent or registered.', request: existing });
     }
 
     const reqDoc = new DirectoryRequest({
-      senderId,
-      receiverId,
-      senderName: senderName || 'Member',
-      receiverName: receiverName || 'Member',
+      senderId: senderId.toString(),
+      receiverId: finalReceiverId.toString(),
+      senderName: finalSenderName,
+      receiverName: finalReceiverName,
+      senderEmail: finalSenderEmail,
+      receiverEmail: finalReceiverEmail,
+      senderOccupation: finalSenderOccupation,
+      senderCity: finalSenderCity,
+      senderPhoto: finalSenderPhoto,
       status: 'pending',
+      isPendingAlertSeenByReceiver: false,
+      isAcceptedAlertSeenBySender: false,
     });
     await reqDoc.save();
+
     return res.status(201).json({ success: true, message: 'Connect request sent successfully!', request: reqDoc });
+  } catch (error) {
+    console.error('Error sending directory request:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// Incoming pending connect requests for logged-in user (triggers approval popup)
+app.get('/api/directory/incoming-alerts/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    let userEmail = '';
+
+    const currentUser = await User.findOne({
+      $or: [{ _id: mongoose.isValidObjectId(userId) ? userId : null }, { email: userId }]
+    });
+    if (currentUser) {
+      userEmail = currentUser.email;
+    }
+
+    const query = {
+      status: 'pending',
+      $or: [
+        { receiverId: userId.toString() },
+        ...(userEmail ? [{ receiverEmail: userEmail }] : []),
+        ...(currentUser ? [{ receiverId: currentUser._id.toString() }] : [])
+      ]
+    };
+
+    const pendingRequests = await DirectoryRequest.find(query).sort({ createdAt: -1 });
+    const alerts = [];
+
+    for (const r of pendingRequests) {
+      let photo = r.senderPhoto;
+      let occupation = r.senderOccupation;
+      let city = r.senderCity;
+
+      if (!photo || !occupation) {
+        const sUser = await User.findOne({
+          $or: [
+            { _id: mongoose.isValidObjectId(r.senderId) ? r.senderId : null },
+            { email: r.senderEmail || r.senderId }
+          ]
+        });
+        if (sUser) {
+          photo = photo || sUser.profilePhoto || '';
+          occupation = occupation || sUser.occupation || '';
+          city = city || sUser.city || '';
+        }
+      }
+
+      alerts.push({
+        requestId: r._id,
+        senderId: r.senderId,
+        senderName: r.senderName,
+        senderEmail: r.senderEmail,
+        senderPhoto: photo,
+        senderOccupation: occupation,
+        senderCity: city,
+        createdAt: r.createdAt,
+      });
+    }
+
+    return res.status(200).json({ success: true, count: alerts.length, alerts });
+  } catch (error) {
+    console.error('Error fetching directory incoming alerts:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// Accepted requests alerts for sender (triggers celebratory "Request Accepted" popup)
+app.get('/api/directory/accepted-alerts/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    let userEmail = '';
+
+    const currentUser = await User.findOne({
+      $or: [{ _id: mongoose.isValidObjectId(userId) ? userId : null }, { email: userId }]
+    });
+    if (currentUser) {
+      userEmail = currentUser.email;
+    }
+
+    const query = {
+      status: 'accepted',
+      isAcceptedAlertSeenBySender: false,
+      $or: [
+        { senderId: userId.toString() },
+        ...(userEmail ? [{ senderEmail: userEmail }] : []),
+        ...(currentUser ? [{ senderId: currentUser._id.toString() }] : [])
+      ]
+    };
+
+    const acceptedRequests = await DirectoryRequest.find(query).sort({ updatedAt: -1 });
+    const alerts = [];
+
+    for (const r of acceptedRequests) {
+      alerts.push({
+        requestId: r._id,
+        receiverId: r.receiverId,
+        receiverName: r.receiverName,
+        receiverEmail: r.receiverEmail,
+        updatedAt: r.updatedAt,
+      });
+    }
+
+    return res.status(200).json({ success: true, count: alerts.length, alerts });
+  } catch (error) {
+    console.error('Error fetching accepted alerts:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// Acknowledge accepted popup so it does not repeat
+app.post('/api/directory/acknowledge-accepted', async (req, res) => {
+  try {
+    const { requestId } = req.body;
+    if (!requestId) {
+      return res.status(400).json({ success: false, message: 'Request ID is required.' });
+    }
+    await DirectoryRequest.findByIdAndUpdate(requestId, { isAcceptedAlertSeenBySender: true });
+    return res.status(200).json({ success: true, message: 'Alert acknowledged.' });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
   }
 });
 
+// Respond to a Connect Request (Approve / Decline)
 app.post('/api/directory/respond', async (req, res) => {
   try {
-    const { requestId, status } = req.body;
-    const doc = await DirectoryRequest.findByIdAndUpdate(requestId, { status, updatedAt: new Date() }, { new: true });
+    const { requestId, status } = req.body; // status: 'accepted' or 'rejected'
+    if (!requestId || !status) {
+      return res.status(400).json({ success: false, message: 'requestId and status are required.' });
+    }
+    const doc = await DirectoryRequest.findByIdAndUpdate(
+      requestId,
+      {
+        status: status.toLowerCase(),
+        updatedAt: new Date(),
+        isAcceptedAlertSeenBySender: false // trigger celebration for sender
+      },
+      { new: true }
+    );
     return res.status(200).json({ success: true, message: `Request ${status}`, request: doc });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
   }
 });
 
+// User directory connection list
 app.get('/api/directory/connections/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
-    const accepted = await DirectoryRequest.find({
-      $or: [{ senderId: userId }, { receiverId: userId }],
-      status: 'accepted',
+    let userEmail = '';
+
+    const currentUser = await User.findOne({
+      $or: [{ _id: mongoose.isValidObjectId(userId) ? userId : null }, { email: userId }]
     });
-    const connectedUserIds = accepted.map(r => r.senderId.toString() === userId.toString() ? r.receiverId.toString() : r.senderId.toString());
-    const pendingSent = await DirectoryRequest.find({ senderId: userId, status: 'pending' });
-    const pendingSentIds = pendingSent.map(r => r.receiverId.toString());
-    const pendingReceived = await DirectoryRequest.find({ receiverId: userId, status: 'pending' });
+    if (currentUser) {
+      userEmail = currentUser.email;
+    }
+
+    const accepted = await DirectoryRequest.find({
+      status: 'accepted',
+      $or: [
+        { senderId: userId.toString() },
+        { receiverId: userId.toString() },
+        ...(userEmail ? [{ senderEmail: userEmail }, { receiverEmail: userEmail }] : []),
+        ...(currentUser ? [{ senderId: currentUser._id.toString() }, { receiverId: currentUser._id.toString() }] : [])
+      ]
+    });
+
+    const connectedUserIds = accepted.map(r => {
+      const isSender = (r.senderId === userId.toString() || (userEmail && r.senderEmail === userEmail));
+      return isSender ? r.receiverId : r.senderId;
+    });
+
+    const pendingSent = await DirectoryRequest.find({
+      status: 'pending',
+      $or: [
+        { senderId: userId.toString() },
+        ...(userEmail ? [{ senderEmail: userEmail }] : []),
+        ...(currentUser ? [{ senderId: currentUser._id.toString() }] : [])
+      ]
+    });
+    const pendingSentIds = pendingSent.map(r => r.receiverId);
+
+    const pendingReceived = await DirectoryRequest.find({
+      status: 'pending',
+      $or: [
+        { receiverId: userId.toString() },
+        ...(userEmail ? [{ receiverEmail: userEmail }] : []),
+        ...(currentUser ? [{ receiverId: currentUser._id.toString() }] : [])
+      ]
+    });
 
     return res.status(200).json({
       success: true,
-      connectedUserIds,
-      pendingSentIds,
+      connectedUserIds: [...new Set(connectedUserIds)],
+      pendingSentIds: [...new Set(pendingSentIds)],
       pendingReceived,
     });
   } catch (error) {

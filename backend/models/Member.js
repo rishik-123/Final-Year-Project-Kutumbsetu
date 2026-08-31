@@ -1,192 +1,170 @@
 const mongoose = require('mongoose');
 
-const profileSchema = new mongoose.Schema({
+const memberSchema = new mongoose.Schema({
+  memberId: {
+    type: String,
+    required: true,
+    unique: true,
+    index: true,
+    trim: true,
+  },
   userId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
+    default: null,
+    index: true,
+  },
+  fullName: {
+    type: String,
     required: true,
-    unique: true,
+    trim: true,
+    index: true,
+  },
+  firstName: {
+    type: String,
+    default: '',
+    trim: true,
+  },
+  middleName: {
+    type: String,
+    default: '',
+    trim: true,
+  },
+  lastName: {
+    type: String,
+    default: '',
+    trim: true,
+  },
+  maidenName: {
+    type: String,
+    default: '',
+    trim: true,
+    index: true,
   },
   gender: {
     type: String,
-    trim: true,
+    enum: ['Male', 'Female', 'Other'],
     default: 'Male',
   },
   dateOfBirth: {
     type: String,
-    trim: true,
     default: '',
   },
   phoneNumber: {
     type: String,
-    trim: true,
     default: '',
+    trim: true,
   },
-  profilePhoto: {
+  email: {
     type: String,
-    trim: true,
     default: '',
-  },
-  bloodGroup: {
-    type: String,
     trim: true,
-    default: '',
-  },
-  willingToDonateBlood: {
-    type: Boolean,
-    default: false,
-  },
-  village: {
-    type: String,
-    trim: true,
-    default: '',
   },
   city: {
     type: String,
-    trim: true,
     default: '',
+    trim: true,
+  },
+  village: {
+    type: String,
+    default: '',
+    trim: true,
   },
   state: {
     type: String,
+    default: 'Gujarat',
     trim: true,
-    default: '',
   },
-  address: {
+  profilePhoto: {
     type: String,
-    trim: true,
-    default: '',
-  },
-  qualification: {
-    type: String,
-    trim: true,
-    default: '',
-  },
-  college: {
-    type: String,
-    trim: true,
-    default: '',
-  },
-  profession: {
-    type: String,
-    trim: true,
-    default: '',
-  },
-  memberId: {
-    type: String,
-    trim: true,
-    default: '',
-    index: true,
-  },
-  maidenName: {
-    type: String,
-    trim: true,
     default: '',
   },
   fatherId: {
     type: String,
-    trim: true,
     default: '',
+    trim: true,
   },
   fatherName: {
     type: String,
-    trim: true,
     default: '',
+    trim: true,
   },
   motherId: {
     type: String,
-    trim: true,
     default: '',
+    trim: true,
   },
   motherName: {
     type: String,
-    trim: true,
     default: '',
+    trim: true,
   },
   paternalGrandfatherId: {
     type: String,
-    trim: true,
     default: '',
+    trim: true,
   },
   grandfather: {
     type: String,
-    trim: true,
     default: '',
+    trim: true,
   },
   paternalGrandmotherId: {
     type: String,
-    trim: true,
     default: '',
+    trim: true,
   },
   grandmother: {
     type: String,
-    trim: true,
     default: '',
+    trim: true,
   },
   maternalGrandfatherId: {
     type: String,
-    trim: true,
     default: '',
+    trim: true,
   },
   nana: {
     type: String,
-    trim: true,
     default: '',
+    trim: true,
   },
   maternalGrandmotherId: {
     type: String,
-    trim: true,
     default: '',
+    trim: true,
   },
   nani: {
     type: String,
-    trim: true,
     default: '',
+    trim: true,
   },
   spouseId: {
     type: String,
-    trim: true,
     default: '',
+    trim: true,
   },
   spouseName: {
     type: String,
-    trim: true,
     default: '',
-  },
-  bio: {
-    type: String,
     trim: true,
-    default: '',
   },
   familyId: {
     type: String,
-    trim: true,
     default: '',
+    trim: true,
+    index: true,
   },
   relationshipToHead: {
     type: String,
-    trim: true,
-    default: 'Other',
-  },
-  familyHeadPhone: {
-    type: String,
-    trim: true,
-    default: '',
+    default: 'Self',
   },
   isDeceased: {
     type: Boolean,
     default: false,
   },
-  addedMembers: [
-    {
-      name: { type: String, required: true },
-      relation: { type: String, required: true },
-      isDeceased: { type: Boolean, default: false },
-    }
-  ],
-  createdAt: {
-    type: Date,
-    default: Date.now,
-  },
+}, {
+  timestamps: true,
 });
 
-module.exports = mongoose.model('Profile', profileSchema, 'profiles');
+module.exports = mongoose.model('Member', memberSchema);

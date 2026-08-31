@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import '../api_config.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/member_model.dart';
 import '../repository/member_repository.dart';
@@ -388,19 +391,23 @@ final groupedMembersProvider =
 class DirectoryConnectionState {
   final Set<String> connectedMemberIds;
   final Set<String> pendingRequestMemberIds;
+  final bool isLoading;
 
   const DirectoryConnectionState({
     this.connectedMemberIds = const {},
     this.pendingRequestMemberIds = const {},
+    this.isLoading = false,
   });
 
   DirectoryConnectionState copyWith({
     Set<String>? connectedMemberIds,
     Set<String>? pendingRequestMemberIds,
+    bool? isLoading,
   }) {
     return DirectoryConnectionState(
       connectedMemberIds: connectedMemberIds ?? this.connectedMemberIds,
       pendingRequestMemberIds: pendingRequestMemberIds ?? this.pendingRequestMemberIds,
+      isLoading: isLoading ?? this.isLoading,
     );
   }
 }
@@ -408,9 +415,70 @@ class DirectoryConnectionState {
 class DirectoryConnectionNotifier extends StateNotifier<DirectoryConnectionState> {
   DirectoryConnectionNotifier() : super(const DirectoryConnectionState());
 
-  void sendFollowRequest(String memberId) {
+  Future<void> loadUserConnections(String userId) async {
+    if (userId.isEmpty) return;
+    try {
+      final res = await http.get(
+        Uri.parse('${ApiConfig.baseUrl}/directory/connections/$userId'),
+      ).timeout(const Duration(seconds: 4));
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        if (data['success'] == true) {
+          final List connected = data['connectedUserIds'] ?? [];
+          final List pending = data['pendingSentIds'] ?? [];
+          state = state.copyWith(
+            connectedMemberIds: connected.map((e) => e.toString()).toSet(),
+            pendingRequestMemberIds: pending.map((e) => e.toString()).toSet(),
+          );
+        }
+      }
+    } catch (_) {}
+  }
+
+  Future<bool> sendFollowRequest({
+    required String senderId,
+    required String senderName,
+    required String senderEmail,
+    required Member targetMember,
+  }) async {
+    final memberId = targetMember.id;
     final pending = Set<String>.from(state.pendingRequestMemberIds)..add(memberId);
     state = state.copyWith(pendingRequestMemberIds: pending);
+
+    try {
+      final res = await http.post(
+        Uri.parse('${ApiConfig.baseUrl}/directory/request'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'senderId': senderId,
+          'senderName': senderName,
+          'senderEmail': senderEmail,
+          'receiverId': targetMember.id,
+          'receiverName': targetMember.fullName,
+          'receiverEmail': targetMember.email,
+        }),
+      );
+      if (res.statusCode == 200 || res.statusCode == 201) {
+        return true;
+      }
+    } catch (_) {}
+    return false;
+  }
+
+  Future<bool> respondToRequest(String requestId, String status) async {
+    try {
+      final res = await http.post(
+        Uri.parse('${ApiConfig.baseUrl}/directory/respond'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'requestId': requestId,
+          'status': status,
+        }),
+      );
+      return res.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
   }
 
   void acceptFollowRequest(String memberId) {

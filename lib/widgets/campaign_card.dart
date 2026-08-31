@@ -172,21 +172,24 @@ class CampaignCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 14),
 
-                      // Dates Row
+                      // 2. Date Range
                       Row(
                         children: [
-                          Icon(
+                          const Icon(
                             Icons.calendar_today_rounded,
                             size: 15,
                             color: AppColors.accentBlue,
                           ),
                           const SizedBox(width: 6),
-                          Text(
-                            '$formattedStart — $formattedEnd',
-                            style: GoogleFonts.inter(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                              color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                          Expanded(
+                            child: Text(
+                              '$formattedStart — $formattedEnd',
+                              style: GoogleFonts.inter(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                                color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                              ),
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                         ],
@@ -198,20 +201,27 @@ class CampaignCard extends StatelessWidget {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(
-                              'Raised: ${currencyFormat.format(campaign.amountRaised)}',
-                              style: GoogleFonts.inter(
-                                fontSize: 13,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.verifiedBadge,
+                            Flexible(
+                              child: Text(
+                                'Raised: ${currencyFormat.format(campaign.amountRaised)}',
+                                style: GoogleFonts.inter(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.verifiedBadge,
+                                ),
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
-                            Text(
-                              'Target: ${currencyFormat.format(campaign.targetAmount)}',
-                              style: GoogleFonts.inter(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                            const SizedBox(width: 8),
+                            Flexible(
+                              child: Text(
+                                'Target: ${currencyFormat.format(campaign.targetAmount)}',
+                                style: GoogleFonts.inter(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                                ),
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
                           ],

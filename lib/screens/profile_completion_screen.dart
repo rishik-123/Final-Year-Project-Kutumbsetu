@@ -401,12 +401,21 @@ class _ProfileCompletionScreenState extends ConsumerState<ProfileCompletionScree
         _addressController.text = user.address;
         _qualificationController.text = user.education;
         _professionController.text = user.occupation;
+        _memberId = user.memberId;
+        _maidenNameController.text = user.maidenName;
+        _fatherId = user.fatherId;
         _fatherNameController.text = user.fatherName;
+        _motherId = user.motherId;
         _motherNameController.text = user.motherName;
+        _spouseId = user.spouseId;
         _spouseNameController.text = user.spouseName;
+        _paternalGrandfatherId = user.paternalGrandfatherId;
         _grandfatherController.text = user.grandfather;
+        _paternalGrandmotherId = user.paternalGrandmotherId;
         _grandmotherController.text = user.grandmother;
+        _maternalGrandfatherId = user.maternalGrandfatherId;
         _nanaController.text = user.nana;
+        _maternalGrandmotherId = user.maternalGrandmotherId;
         _naniController.text = user.nani;
         _relationshipToHead = ['Self', 'Father', 'Mother', 'Wife', 'Son', 'Daughter', 'Brother', 'Sister', 'Grandfather', 'Grandmother', 'Other']
             .contains(user.relationshipToHead) ? user.relationshipToHead : 'Self';
@@ -417,6 +426,7 @@ class _ProfileCompletionScreenState extends ConsumerState<ProfileCompletionScree
   }
 
   // Personal
+  String _memberId = '';
   String _gender = 'Male';
   final _dobController = TextEditingController();
   final _phoneController = TextEditingController();
@@ -435,20 +445,28 @@ class _ProfileCompletionScreenState extends ConsumerState<ProfileCompletionScree
   final _collegeController = TextEditingController();
   final _professionController = TextEditingController();
 
-  // Family
+  // Family & ID Links
+  final _maidenNameController = TextEditingController();
+  String _fatherId = '';
   final _fatherNameController = TextEditingController();
+  String _motherId = '';
   final _motherNameController = TextEditingController();
+  String _paternalGrandfatherId = '';
   final _grandfatherController = TextEditingController();
+  String _paternalGrandmotherId = '';
   final _grandmotherController = TextEditingController();
+  String _maternalGrandfatherId = '';
   final _nanaController = TextEditingController();
+  String _maternalGrandmotherId = '';
   final _naniController = TextEditingController();
+  String _spouseId = '';
+  final _spouseNameController = TextEditingController();
 
   // Additional
   final _bioController = TextEditingController();
   final _familyIdController = TextEditingController();
   String _relationshipToHead = 'Self';
   final _familyHeadPhoneController = TextEditingController();
-  final _spouseNameController = TextEditingController();
   bool _isDeceased = false;
 
   @override
@@ -462,6 +480,7 @@ class _ProfileCompletionScreenState extends ConsumerState<ProfileCompletionScree
     _qualificationController.dispose();
     _collegeController.dispose();
     _professionController.dispose();
+    _maidenNameController.dispose();
     _fatherNameController.dispose();
     _motherNameController.dispose();
     _grandfatherController.dispose();
@@ -530,6 +549,8 @@ class _ProfileCompletionScreenState extends ConsumerState<ProfileCompletionScree
 
     final payload = {
       'userId': user.id,
+      'memberId': _memberId,
+      'maidenName': _maidenNameController.text.trim(),
       'gender': _gender,
       'dateOfBirth': _dobController.text.trim(),
       'phoneNumber': _phoneController.text.trim(),
@@ -544,17 +565,24 @@ class _ProfileCompletionScreenState extends ConsumerState<ProfileCompletionScree
       'qualification': _qualificationController.text.trim(),
       'college': _collegeController.text.trim(),
       'profession': _professionController.text.trim(),
+      'fatherId': _fatherId,
       'fatherName': _fatherNameController.text.trim(),
+      'motherId': _motherId,
       'motherName': _motherNameController.text.trim(),
+      'paternalGrandfatherId': _paternalGrandfatherId,
       'grandfather': _grandfatherController.text.trim(),
+      'paternalGrandmotherId': _paternalGrandmotherId,
       'grandmother': _grandmotherController.text.trim(),
+      'maternalGrandfatherId': _maternalGrandfatherId,
       'nana': _nanaController.text.trim(),
+      'maternalGrandmotherId': _maternalGrandmotherId,
       'nani': _naniController.text.trim(),
+      'spouseId': _spouseId,
+      'spouseName': _spouseNameController.text.trim(),
       'bio': _bioController.text.trim(),
       'familyId': _familyIdController.text.trim().toUpperCase(),
       'relationshipToHead': _relationshipToHead,
       'familyHeadPhone': _familyHeadPhoneController.text.trim(),
-      'spouseName': _spouseNameController.text.trim(),
       'isDeceased': _isDeceased,
     };
 
@@ -600,6 +628,132 @@ class _ProfileCompletionScreenState extends ConsumerState<ProfileCompletionScree
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message), backgroundColor: Colors.red),
+    );
+  }
+
+  Widget _buildSearchableMemberField({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    required String currentId,
+    required ValueChanged<Map<String, dynamic>?> onSelected,
+    String? gender,
+  }) {
+    return Autocomplete<Map<String, dynamic>>(
+      initialValue: TextEditingValue(text: controller.text),
+      displayStringForOption: (option) => option['fullName'] as String? ?? '',
+      optionsBuilder: (textEditingValue) async {
+        final query = textEditingValue.text.trim();
+        if (query.length < 2) {
+          return const Iterable<Map<String, dynamic>>.empty();
+        }
+        try {
+          final uri = Uri.parse('${ApiConfig.baseUrl}/members/search?q=${Uri.encodeComponent(query)}${gender != null ? '&gender=$gender' : ''}');
+          final res = await http.get(uri);
+          if (res.statusCode == 200) {
+            final data = jsonDecode(res.body);
+            if (data['success'] == true && data['members'] is List) {
+              return (data['members'] as List).cast<Map<String, dynamic>>();
+            }
+          }
+        } catch (_) {}
+        return const Iterable<Map<String, dynamic>>.empty();
+      },
+      onSelected: (selection) {
+        controller.text = selection['fullName'] ?? '';
+        onSelected(selection);
+      },
+      fieldViewBuilder: (context, textEditingController, focusNode, onFieldSubmitted) {
+        if (controller.text.isNotEmpty && textEditingController.text != controller.text) {
+          textEditingController.text = controller.text;
+        }
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            TextFormField(
+              controller: textEditingController,
+              focusNode: focusNode,
+              onChanged: (val) {
+                controller.text = val;
+                onSelected(null);
+              },
+              decoration: InputDecoration(
+                labelText: label,
+                prefixIcon: Icon(icon),
+                suffixIcon: currentId.isNotEmpty
+                    ? Padding(
+                        padding: const EdgeInsets.only(right: 8.0),
+                        child: Chip(
+                          label: Text(
+                            currentId,
+                            style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white),
+                          ),
+                          backgroundColor: const Color(0xFF2E7D32),
+                          padding: EdgeInsets.zero,
+                          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                      )
+                    : null,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                helperText: currentId.isNotEmpty
+                    ? 'Linked to Member ID: $currentId'
+                    : 'Search existing member by name or type new',
+                helperStyle: TextStyle(
+                  fontSize: 11,
+                  color: currentId.isNotEmpty ? const Color(0xFF2E7D32) : Colors.grey,
+                  fontWeight: currentId.isNotEmpty ? FontWeight.w600 : FontWeight.normal,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+      optionsViewBuilder: (context, onSelectedOption, options) {
+        return Align(
+          alignment: Alignment.topLeft,
+          child: Material(
+            elevation: 6,
+            borderRadius: BorderRadius.circular(12),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 240, maxWidth: 320),
+              child: ListView.separated(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                shrinkWrap: true,
+                itemCount: options.length,
+                separatorBuilder: (_, __) => const Divider(height: 1),
+                itemBuilder: (context, index) {
+                  final option = options.elementAt(index);
+                  final name = option['fullName'] ?? 'Unnamed';
+                  final memberId = option['memberId'] ?? '';
+                  final maiden = option['maidenName'] ?? '';
+                  final city = option['city'] ?? option['village'] ?? '';
+
+                  return ListTile(
+                    dense: true,
+                    leading: CircleAvatar(
+                      radius: 16,
+                      backgroundColor: const Color(0xFFD35400).withValues(alpha: 0.15),
+                      child: Text(
+                        name.isNotEmpty ? name[0].toUpperCase() : 'M',
+                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFFD35400)),
+                      ),
+                    ),
+                    title: Text(
+                      maiden.isNotEmpty ? '$name (Maiden: $maiden)' : name,
+                      style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 13),
+                    ),
+                    subtitle: Text(
+                      'ID: $memberId ${city.isNotEmpty ? "• $city" : ""}',
+                      style: const TextStyle(fontSize: 11, color: Colors.black54),
+                    ),
+                    onTap: () => onSelectedOption(option),
+                  );
+                },
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -903,69 +1057,109 @@ class _ProfileCompletionScreenState extends ConsumerState<ProfileCompletionScree
                       ),
                     ),
 
-                    // SECTION 4: Family Details
+                    // SECTION 4: Family Details with Autocomplete & Member ID Matching
                     _buildSectionHeader('Family Members & Relations', Icons.family_restroom_outlined),
-                    TextFormField(
+                    _buildSearchableMemberField(
                       controller: _fatherNameController,
-                      decoration: InputDecoration(
-                        labelText: 'Father\'s Name',
-                        prefixIcon: const Icon(Icons.person),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
+                      label: 'Father\'s Name',
+                      icon: Icons.person,
+                      currentId: _fatherId,
+                      gender: 'Male',
+                      onSelected: (item) {
+                        setState(() {
+                          _fatherId = item != null ? (item['memberId'] ?? '') : '';
+                        });
+                      },
                     ),
                     const SizedBox(height: 16),
-                    TextFormField(
+                    _buildSearchableMemberField(
                       controller: _motherNameController,
-                      decoration: InputDecoration(
-                        labelText: 'Mother\'s Name',
-                        prefixIcon: const Icon(Icons.person_2),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
+                      label: 'Mother\'s Name',
+                      icon: Icons.person_2,
+                      currentId: _motherId,
+                      gender: 'Female',
+                      onSelected: (item) {
+                        setState(() {
+                          _motherId = item != null ? (item['memberId'] ?? '') : '';
+                        });
+                      },
                     ),
+                    if (_gender == 'Female') ...[
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _maidenNameController,
+                        decoration: InputDecoration(
+                          labelText: 'Maiden / Birth Surname (Before Marriage)',
+                          prefixIcon: const Icon(Icons.badge_outlined),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                          helperText: 'Used to link family tree with your parents and native family',
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 16),
-                    TextFormField(
+                    _buildSearchableMemberField(
                       controller: _grandfatherController,
-                      decoration: InputDecoration(
-                        labelText: 'Grandfather\'s Name',
-                        prefixIcon: const Icon(Icons.elderly_rounded),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
+                      label: 'Paternal Grandfather\'s Name',
+                      icon: Icons.elderly_rounded,
+                      currentId: _paternalGrandfatherId,
+                      gender: 'Male',
+                      onSelected: (item) {
+                        setState(() {
+                          _paternalGrandfatherId = item != null ? (item['memberId'] ?? '') : '';
+                        });
+                      },
                     ),
                     const SizedBox(height: 16),
-                    TextFormField(
+                    _buildSearchableMemberField(
                       controller: _grandmotherController,
-                      decoration: InputDecoration(
-                        labelText: 'Grandmother\'s Name',
-                        prefixIcon: const Icon(Icons.elderly_woman_rounded),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
+                      label: 'Paternal Grandmother\'s Name',
+                      icon: Icons.elderly_woman_rounded,
+                      currentId: _paternalGrandmotherId,
+                      gender: 'Female',
+                      onSelected: (item) {
+                        setState(() {
+                          _paternalGrandmotherId = item != null ? (item['memberId'] ?? '') : '';
+                        });
+                      },
                     ),
                     const SizedBox(height: 16),
-                    TextFormField(
+                    _buildSearchableMemberField(
                       controller: _nanaController,
-                      decoration: InputDecoration(
-                        labelText: 'Nana\'s Name (Maternal Grandfather)',
-                        prefixIcon: const Icon(Icons.elderly_rounded),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
+                      label: 'Nana\'s Name (Maternal Grandfather)',
+                      icon: Icons.elderly_rounded,
+                      currentId: _maternalGrandfatherId,
+                      gender: 'Male',
+                      onSelected: (item) {
+                        setState(() {
+                          _maternalGrandfatherId = item != null ? (item['memberId'] ?? '') : '';
+                        });
+                      },
                     ),
                     const SizedBox(height: 16),
-                    TextFormField(
+                    _buildSearchableMemberField(
                       controller: _naniController,
-                      decoration: InputDecoration(
-                        labelText: 'Nani\'s Name (Maternal Grandmother)',
-                        prefixIcon: const Icon(Icons.elderly_woman_rounded),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
+                      label: 'Nani\'s Name (Maternal Grandmother)',
+                      icon: Icons.elderly_woman_rounded,
+                      currentId: _maternalGrandmotherId,
+                      gender: 'Female',
+                      onSelected: (item) {
+                        setState(() {
+                          _maternalGrandmotherId = item != null ? (item['memberId'] ?? '') : '';
+                        });
+                      },
                     ),
                     const SizedBox(height: 16),
-                    TextFormField(
+                    _buildSearchableMemberField(
                       controller: _spouseNameController,
-                      decoration: InputDecoration(
-                        labelText: 'Spouse\'s Name',
-                        prefixIcon: const Icon(Icons.favorite_outline_rounded),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
+                      label: 'Spouse\'s Name',
+                      icon: Icons.favorite_outline_rounded,
+                      currentId: _spouseId,
+                      gender: _gender == 'Male' ? 'Female' : 'Male',
+                      onSelected: (item) {
+                        setState(() {
+                          _spouseId = item != null ? (item['memberId'] ?? '') : '';
+                        });
+                      },
                     ),
 
                     // SECTION 5: Family Node Links

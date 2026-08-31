@@ -33,6 +33,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   String? _developmentOtp;
 
   @override
+  void initState() {
+    super.initState();
+    _emailController.clear();
+    _otpController.clear();
+    _adminUsernameController.clear();
+    _adminPasswordController.clear();
+  }
+
+  @override
   void dispose() {
     _emailController.dispose();
     _otpController.dispose();
@@ -60,40 +69,42 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               ),
             ],
           ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Use the following OTP to log in:',
-                style: GoogleFonts.inter(fontSize: 14),
-              ),
-              const SizedBox(height: 12),
-              Center(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: Colors.orange.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.orange, width: 2),
-                  ),
-                  child: Text(
-                    otp,
-                    style: GoogleFonts.poppins(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 4,
-                      color: Colors.orange,
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Use the following OTP to log in:',
+                  style: GoogleFonts.inter(fontSize: 14),
+                ),
+                const SizedBox(height: 12),
+                Center(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.orange, width: 2),
+                    ),
+                    child: Text(
+                      otp,
+                      style: GoogleFonts.poppins(
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 4,
+                        color: Colors.orange,
+                      ),
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'Development OTP: $otp',
-                style: GoogleFonts.inter(fontSize: 12, color: Colors.grey),
-              ),
-            ],
+                const SizedBox(height: 12),
+                Text(
+                  'Development OTP: $otp',
+                  style: GoogleFonts.inter(fontSize: 12, color: Colors.grey),
+                ),
+              ],
+            ),
           ),
           actions: [
             TextButton(
@@ -131,6 +142,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         setState(() {
           _currentStep = 'otp';
           _isSendingOtp = false;
+          _otpController.clear(); // Always keep OTP input fresh and blank!
           _developmentOtp = null;
         });
 
@@ -442,6 +454,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               OutlinedButton.icon(
                                 onPressed: () {
                                   setState(() {
+                                    _otpController.clear();
                                     _currentStep = 'admin';
                                   });
                                 },
@@ -476,6 +489,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   TextButton(
                                     onPressed: () {
                                       setState(() {
+                                        _otpController.clear();
                                         _currentStep = 'email';
                                       });
                                     },
@@ -527,6 +541,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   TextButton(
                                     onPressed: () {
                                       setState(() {
+                                        _otpController.clear();
                                         _currentStep = 'email';
                                       });
                                     },

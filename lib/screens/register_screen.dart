@@ -64,40 +64,42 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               ),
             ],
           ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Use the following OTP to verify your email:',
-                style: GoogleFonts.inter(fontSize: 14),
-              ),
-              const SizedBox(height: 12),
-              Center(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: Colors.orange.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.orange, width: 2),
-                  ),
-                  child: Text(
-                    otp,
-                    style: GoogleFonts.poppins(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 4,
-                      color: Colors.orange,
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Use the following OTP to verify your email:',
+                  style: GoogleFonts.inter(fontSize: 14),
+                ),
+                const SizedBox(height: 12),
+                Center(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.orange, width: 2),
+                    ),
+                    child: Text(
+                      otp,
+                      style: GoogleFonts.poppins(
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 4,
+                        color: Colors.orange,
+                      ),
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'Development OTP: $otp',
-                style: GoogleFonts.inter(fontSize: 12, color: Colors.grey),
-              ),
-            ],
+                const SizedBox(height: 12),
+                Text(
+                  'Development OTP: $otp',
+                  style: GoogleFonts.inter(fontSize: 12, color: Colors.grey),
+                ),
+              ],
+            ),
           ),
           actions: [
             TextButton(
@@ -149,7 +151,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('OTP sent to $email. Please check your Gmail inbox.'),
+            content: Text('OTP sent to $email. Please check your inbox.'),
             backgroundColor: const Color(0xFF2E7D32),
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -211,56 +213,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     });
 
     final email = _emailController.text.trim();
+    final fullName = '${_firstNameController.text.trim()} ${_middleNameController.text.trim()} ${_lastNameController.text.trim()}';
 
-    // 1. Verify OTP
+    // Call backend register API with OTP
     try {
-      final verifyResponse = await http.post(
-        Uri.parse('${ApiConfig.baseUrl}/auth/verify-email-otp'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'email': email,
-          'otp': enteredOtp,
-        }),
-      );
-
-      final verifyData = jsonDecode(verifyResponse.body);
-
-      if (verifyResponse.statusCode == 200 && verifyData['success'] == true) {
-        setState(() {
-          _isOtpVerified = true;
-        });
-      } else {
-        setState(() {
-          _isSubmitting = false;
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(verifyData['message'] ?? 'Invalid OTP code.'),
-            backgroundColor: Colors.redAccent,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          ),
-        );
-        return;
-      }
-    } catch (e) {
-      setState(() {
-        _isSubmitting = false;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('OTP verification failed: $e'),
-          backgroundColor: Colors.redAccent,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        ),
-      );
-      return;
-    }
-
-    // 2. Call backend register API
-    try {
-      final fullName = '${_firstNameController.text.trim()} ${_middleNameController.text.trim()} ${_lastNameController.text.trim()}';
       final registerResponse = await http.post(
         Uri.parse('${ApiConfig.baseUrl}/users/register'),
         headers: {'Content-Type': 'application/json'},
@@ -268,19 +224,27 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           'fullName': fullName,
           'email': email,
           'phoneNumber': _phoneController.text.trim(),
+          'otp': enteredOtp,
         }),
       );
 
       final registerData = jsonDecode(registerResponse.body);
 
       if (registerResponse.statusCode == 201 && registerData['success'] == true) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Registration successful! Please login to continue.'),
-            backgroundColor: Color(0xFF2E7D32),
-          ),
-        );
         if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Registration submitted successfully! Waiting for Admin approval.'),
+              backgroundColor: Color(0xFF2E7D32),
+              duration: Duration(seconds: 4),
+            ),
+          );
+          _firstNameController.clear();
+          _middleNameController.clear();
+          _lastNameController.clear();
+          _phoneController.clear();
+          _emailController.clear();
+          _otpController.clear();
           context.go('/');
         }
       } else {
@@ -486,17 +450,21 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        TextButton(
-                          onPressed: _isSendingOtp ? null : _sendOtp,
-                          child: Text('Resend OTP', style: TextStyle(color: saffronColor)),
+                        Flexible(
+                          child: TextButton(
+                            onPressed: _isSendingOtp ? null : _sendOtp,
+                            child: Text('Resend OTP', style: TextStyle(color: saffronColor), overflow: TextOverflow.ellipsis),
+                          ),
                         ),
-                        TextButton(
-                          onPressed: () {
-                            setState(() {
-                              _isOtpSent = false;
-                            });
-                          },
-                          child: const Text('Change Email', style: TextStyle(color: Colors.grey)),
+                        Flexible(
+                          child: TextButton(
+                            onPressed: () {
+                              setState(() {
+                                _isOtpSent = false;
+                              });
+                            },
+                            child: const Text('Change Email', style: TextStyle(color: Colors.grey), overflow: TextOverflow.ellipsis),
+                          ),
                         ),
                       ],
                     ),

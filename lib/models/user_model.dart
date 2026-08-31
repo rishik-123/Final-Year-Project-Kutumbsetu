@@ -18,16 +18,25 @@ class UserModel {
   final String education;
   final String bloodGroup;
   final String profilePhoto;
+  final String memberId;
+  final String maidenName;
   final String familyId;
   final String familyName;
   final String relationshipToHead;
+  final String fatherId;
+  final String motherId;
   final String motherName;
+  final String paternalGrandfatherId;
+  final String grandfather;
+  final String paternalGrandmotherId;
+  final String grandmother;
+  final String maternalGrandfatherId;
+  final String nana;
+  final String maternalGrandmotherId;
+  final String nani;
+  final String spouseId;
   final String spouseName;
   final String familyHeadPhone;
-  final String grandfather;
-  final String grandmother;
-  final String nana;
-  final String nani;
   final String role; // 'user', 'admin', 'organizer'
   final bool isApproved;
   final bool willingToDonateBlood;
@@ -51,16 +60,25 @@ class UserModel {
     this.education = '',
     this.bloodGroup = '',
     this.profilePhoto = '',
+    this.memberId = '',
+    this.maidenName = '',
     this.familyId = '',
     this.familyName = '',
     this.relationshipToHead = '',
+    this.fatherId = '',
+    this.motherId = '',
     this.motherName = '',
+    this.paternalGrandfatherId = '',
+    this.grandfather = '',
+    this.paternalGrandmotherId = '',
+    this.grandmother = '',
+    this.maternalGrandfatherId = '',
+    this.nana = '',
+    this.maternalGrandmotherId = '',
+    this.nani = '',
+    this.spouseId = '',
     this.spouseName = '',
     this.familyHeadPhone = '',
-    this.grandfather = '',
-    this.grandmother = '',
-    this.nana = '',
-    this.nani = '',
     this.role = 'user',
     this.isApproved = false,
     this.willingToDonateBlood = false,
@@ -100,16 +118,25 @@ class UserModel {
         }
         return pPhoto;
       })(),
+      memberId: json['memberId'] as String? ?? '',
+      maidenName: json['maidenName'] as String? ?? '',
       familyId: json['familyId'] as String? ?? '',
       familyName: json['familyName'] as String? ?? '',
       relationshipToHead: json['relationshipToHead'] as String? ?? 'Other',
+      fatherId: json['fatherId'] as String? ?? '',
+      motherId: json['motherId'] as String? ?? '',
       motherName: json['motherName'] as String? ?? '',
+      paternalGrandfatherId: json['paternalGrandfatherId'] as String? ?? '',
+      grandfather: json['grandfather'] as String? ?? '',
+      paternalGrandmotherId: json['paternalGrandmotherId'] as String? ?? '',
+      grandmother: json['grandmother'] as String? ?? '',
+      maternalGrandfatherId: json['maternalGrandfatherId'] as String? ?? '',
+      nana: json['nana'] as String? ?? '',
+      maternalGrandmotherId: json['maternalGrandmotherId'] as String? ?? '',
+      nani: json['nani'] as String? ?? '',
+      spouseId: json['spouseId'] as String? ?? '',
       spouseName: json['spouseName'] as String? ?? '',
       familyHeadPhone: json['familyHeadPhone'] as String? ?? '',
-      grandfather: json['grandfather'] as String? ?? '',
-      grandmother: json['grandmother'] as String? ?? '',
-      nana: json['nana'] as String? ?? '',
-      nani: json['nani'] as String? ?? '',
       role: json['role'] as String? ?? 'user',
       isApproved: json['isApproved'] as bool? ?? false,
       willingToDonateBlood: json['willingToDonateBlood'] as bool? ?? false,
@@ -136,16 +163,25 @@ class UserModel {
       'education': education,
       'bloodGroup': bloodGroup,
       'profilePhoto': profilePhoto,
+      'memberId': memberId,
+      'maidenName': maidenName,
       'familyId': familyId,
       'familyName': familyName,
       'relationshipToHead': relationshipToHead,
+      'fatherId': fatherId,
+      'motherId': motherId,
       'motherName': motherName,
+      'paternalGrandfatherId': paternalGrandfatherId,
+      'grandfather': grandfather,
+      'paternalGrandmotherId': paternalGrandmotherId,
+      'grandmother': grandmother,
+      'maternalGrandfatherId': maternalGrandfatherId,
+      'nana': nana,
+      'maternalGrandmotherId': maternalGrandmotherId,
+      'nani': nani,
+      'spouseId': spouseId,
       'spouseName': spouseName,
       'familyHeadPhone': familyHeadPhone,
-      'grandfather': grandfather,
-      'grandmother': grandmother,
-      'nana': nana,
-      'nani': nani,
       'role': role,
       'isApproved': isApproved,
       'willingToDonateBlood': willingToDonateBlood,
@@ -171,16 +207,25 @@ class UserModel {
     String? education,
     String? bloodGroup,
     String? profilePhoto,
+    String? memberId,
+    String? maidenName,
     String? familyId,
     String? familyName,
     String? relationshipToHead,
+    String? fatherId,
+    String? motherId,
     String? motherName,
+    String? paternalGrandfatherId,
+    String? grandfather,
+    String? paternalGrandmotherId,
+    String? grandmother,
+    String? maternalGrandfatherId,
+    String? nana,
+    String? maternalGrandmotherId,
+    String? nani,
+    String? spouseId,
     String? spouseName,
     String? familyHeadPhone,
-    String? grandfather,
-    String? grandmother,
-    String? nana,
-    String? nani,
     String? role,
     bool? isApproved,
     bool? willingToDonateBlood,
@@ -204,16 +249,25 @@ class UserModel {
       education: education ?? this.education,
       bloodGroup: bloodGroup ?? this.bloodGroup,
       profilePhoto: profilePhoto ?? this.profilePhoto,
+      memberId: memberId ?? this.memberId,
+      maidenName: maidenName ?? this.maidenName,
       familyId: familyId ?? this.familyId,
       familyName: familyName ?? this.familyName,
       relationshipToHead: relationshipToHead ?? this.relationshipToHead,
+      fatherId: fatherId ?? this.fatherId,
+      motherId: motherId ?? this.motherId,
       motherName: motherName ?? this.motherName,
+      paternalGrandfatherId: paternalGrandfatherId ?? this.paternalGrandfatherId,
+      grandfather: grandfather ?? this.grandfather,
+      paternalGrandmotherId: paternalGrandmotherId ?? this.paternalGrandmotherId,
+      grandmother: grandmother ?? this.grandmother,
+      maternalGrandfatherId: maternalGrandfatherId ?? this.maternalGrandfatherId,
+      nana: nana ?? this.nana,
+      maternalGrandmotherId: maternalGrandmotherId ?? this.maternalGrandmotherId,
+      nani: nani ?? this.nani,
+      spouseId: spouseId ?? this.spouseId,
       spouseName: spouseName ?? this.spouseName,
       familyHeadPhone: familyHeadPhone ?? this.familyHeadPhone,
-      grandfather: grandfather ?? this.grandfather,
-      grandmother: grandmother ?? this.grandmother,
-      nana: nana ?? this.nana,
-      nani: nani ?? this.nani,
       role: role ?? this.role,
       isApproved: isApproved ?? this.isApproved,
       willingToDonateBlood: willingToDonateBlood ?? this.willingToDonateBlood,

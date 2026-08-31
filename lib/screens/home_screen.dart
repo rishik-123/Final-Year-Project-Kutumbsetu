@@ -11,13 +11,13 @@ import '../constants/app_colors.dart';
 import '../models/user_model.dart';
 import '../providers/auth_provider.dart';
 import '../providers/theme_provider.dart';
+import '../providers/member_providers.dart';
 import 'family_tree_screen.dart';
 import 'matrimonial/matrimonial_hub_screen.dart';
 import 'profile_completion_screen.dart';
 import '../community/community_feed.dart';
 import 'package:http/http.dart' as http;
 import '../api_config.dart';
-import '../widgets/admin_user_approvals_widget.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -39,6 +39,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   List<dynamic> _dynamicFeaturedFamilies = [];
   int _communityTotalMembers = 1240;
   bool _checkedMatrimonialAlerts = false;
+  bool _checkedDirectoryAlerts = false;
+  bool _checkedAcceptedAlerts = false;
 
   @override
   void initState() {
@@ -58,11 +60,28 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         }
       });
 
-      // Check for incoming matrimonial interest alerts on login
       final user = ref.read(currentUserProvider);
-      if (user != null && !_checkedMatrimonialAlerts) {
-        _checkedMatrimonialAlerts = true;
-        _checkIncomingMatrimonialAlerts(user);
+      if (user != null) {
+        // Load directory connection state from backend
+        ref.read(directoryConnectionProvider.notifier).loadUserConnections(user.id);
+
+        // Check for incoming matrimonial interest alerts on login
+        if (!_checkedMatrimonialAlerts) {
+          _checkedMatrimonialAlerts = true;
+          _checkIncomingMatrimonialAlerts(user);
+        }
+
+        // Check for incoming connect / follow requests on login (Approval Dialog)
+        if (!_checkedDirectoryAlerts) {
+          _checkedDirectoryAlerts = true;
+          _checkIncomingDirectoryRequests(user);
+        }
+
+        // Check for accepted requests on login (Celebration Dialog)
+        if (!_checkedAcceptedAlerts) {
+          _checkedAcceptedAlerts = true;
+          _checkAcceptedDirectoryAlerts(user);
+        }
       }
     });
   }
@@ -207,12 +226,207 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 }
               } catch (_) {}
             },
+  Future<void> _checkIncomingDirectoryRequests(UserModel user) async {
+    try {
+      final res = await http.get(Uri.parse('${ApiConfig.baseUrl}/directory/incoming-alerts/${user.id}'));
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        if (data['success'] == true && data['alerts'] != null) {
+          final List alerts = data['alerts'];
+          if (alerts.isNotEmpty && mounted) {
+            final first = alerts.first;
+            _showIncomingDirectoryRequestDialog(first, user);
+          }
+        }
+      }
+    } catch (_) {}
+  }
+
+  void _showIncomingDirectoryRequestDialog(Map<String, dynamic> alert, UserModel user) {
+    final reqId = alert['requestId'] ?? '';
+    final senderName = alert['senderName'] ?? 'A member';
+    final senderOccupation = alert['senderOccupation'] ?? '';
+    final senderCity = alert['senderCity'] ?? '';
+
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            const Icon(Icons.person_add_alt_1_rounded, color: Color(0xFFE67E22), size: 28),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'New Connect Request!',
+                style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 17),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '$senderName has requested to connect with you on KutumbSetu.',
+              style: GoogleFonts.inter(fontSize: 14),
+            ),
+            const SizedBox(height: 10),
+            if (senderOccupation.isNotEmpty || senderCity.isNotEmpty)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE67E22).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  '$senderOccupation ${senderCity.isNotEmpty ? "• $senderCity" : ""}',
+                  style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFFE67E22)),
+                ),
+              ),
+            const SizedBox(height: 8),
+            Text(
+              'Approving will unlock full contact details, phone number, and allow direct connection with each other.',
+              style: GoogleFonts.inter(fontSize: 12, color: Colors.grey.shade600),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              try {
+                await http.post(
+                  Uri.parse('${ApiConfig.baseUrl}/directory/respond'),
+                  headers: {'Content-Type': 'application/json'},
+                  body: jsonEncode({'requestId': reqId, 'status': 'rejected'}),
+                );
+              } catch (_) {}
+            },
+            child: const Text('Decline', style: TextStyle(color: Colors.redAccent)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              try {
+                await http.post(
+                  Uri.parse('${ApiConfig.baseUrl}/directory/respond'),
+                  headers: {'Content-Type': 'application/json'},
+                  body: jsonEncode({'requestId': reqId, 'status': 'accepted'}),
+                );
+                ref.read(directoryConnectionProvider.notifier).loadUserConnections(user.id);
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('You approved $senderName\'s request! Details unlocked.'),
+                      backgroundColor: const Color(0xFF2E7D32),
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                  );
+                }
+              } catch (_) {}
+            },
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF2E7D32),
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
-            child: const Text('Accept Connect'),
+            child: const Text('Approve & Connect'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _checkAcceptedDirectoryAlerts(UserModel user) async {
+    try {
+      final res = await http.get(Uri.parse('${ApiConfig.baseUrl}/directory/accepted-alerts/${user.id}'));
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        if (data['success'] == true && data['alerts'] != null) {
+          final List alerts = data['alerts'];
+          if (alerts.isNotEmpty && mounted) {
+            final first = alerts.first;
+            _showAcceptedDirectoryDialog(first, user);
+          }
+        }
+      }
+    } catch (_) {}
+  }
+
+  void _showAcceptedDirectoryDialog(Map<String, dynamic> alert, UserModel user) {
+    final reqId = alert['requestId'] ?? '';
+    final receiverName = alert['receiverName'] ?? 'A member';
+
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            const Icon(Icons.celebration_rounded, color: Color(0xFF2E7D32), size: 28),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Request Accepted! 🎉',
+                style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 17),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '$receiverName has approved your connect request!',
+              style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 10),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFF2E7D32).withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFF2E7D32).withValues(alpha: 0.3)),
+              ),
+              child: Text(
+                'You can now view $receiverName\'s complete contact number, address, and profile in the Member Directory.',
+                style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF2E7D32)),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              try {
+                await http.post(
+                  Uri.parse('${ApiConfig.baseUrl}/directory/acknowledge-accepted'),
+                  headers: {'Content-Type': 'application/json'},
+                  body: jsonEncode({'requestId': reqId}),
+                );
+                ref.read(directoryConnectionProvider.notifier).loadUserConnections(user.id);
+              } catch (_) {}
+              setState(() {
+                _currentIndex = 1; // Jump to Directory tab
+              });
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFE67E22),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: const Text('View in Directory'),
           ),
         ],
       ),
@@ -881,7 +1095,7 @@ Contact: ${user.phoneNumber}
                   const FamilyTreeScreen(),
                   const MatrimonialHubScreen(),
                   const CommunityFeedScreen(),
-                  user.role == 'admin' ? const AdminUserApprovalsWidget() : const ProfileCompletionScreen(),
+                  const ProfileCompletionScreen(),
                 ],
               ),
             ),
@@ -904,48 +1118,6 @@ Contact: ${user.phoneNumber}
           // 1. Saffron Header
           _buildHeader(user, isDark),
           const SizedBox(height: 16),
-
-          // Admin Dashboard Access Banner (if admin)
-          if (isAdminUser) ...[
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF1B4F72),
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(color: Colors.black.withValues(alpha: 0.15), blurRadius: 8),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.admin_panel_settings_rounded, color: Color(0xFFE67E22), size: 28),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Admin Control Panel', style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
-                          const Text('Manage approvals, requests, and posts', style: TextStyle(color: Colors.white70, fontSize: 11)),
-                        ],
-                      ),
-                    ),
-                    ElevatedButton(
-                      onPressed: () => context.push('/admin'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFE67E22),
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      ),
-                      child: const Text('Open Panel', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-          ],
 
           // 2. Quick Actions
           Padding(
@@ -2608,9 +2780,7 @@ Contact: ${user.phoneNumber}
             _buildNavBarItem(1, Icons.park_rounded, 'Tree', isDark),
             _buildNavBarCenterButton(isDark),
             _buildNavBarItem(3, Icons.people_alt_rounded, 'Community Hub', isDark),
-            user.role == 'admin'
-                ? _buildNavBarItem(4, Icons.admin_panel_settings_rounded, 'Approvals', isDark)
-                : _buildNavBarItem(4, Icons.assignment_ind_rounded, 'Build Profile', isDark),
+            _buildNavBarItem(4, Icons.assignment_ind_rounded, 'Build Profile', isDark),
           ],
         ),
       ),

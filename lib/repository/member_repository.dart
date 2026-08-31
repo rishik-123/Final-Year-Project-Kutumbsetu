@@ -70,9 +70,11 @@ class LocalMemberRepository implements MemberRepository {
               initials: initials.isNotEmpty ? initials : 'U',
               gender: user.gender.isNotEmpty ? user.gender : 'Male',
               mobileNumber: user.phoneNumber,
-              email: user.fullName.isNotEmpty
-                  ? '${user.fullName.toLowerCase().replaceAll(' ', '')}@kutumbsetu.org'
-                  : 'member@kutumbsetu.org',
+              email: user.email.isNotEmpty
+                  ? user.email
+                  : (user.fullName.isNotEmpty
+                      ? '${user.fullName.toLowerCase().replaceAll(' ', '')}@kutumbsetu.org'
+                      : 'member@kutumbsetu.org'),
               village: user.nativePlace.isNotEmpty ? user.nativePlace : 'Karamsad',
               city: user.city.isNotEmpty ? user.city : 'Vadodara',
               district: user.city.isNotEmpty ? user.city : 'Vadodara',

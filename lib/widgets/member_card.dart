@@ -7,6 +7,7 @@ import '../constants/app_colors.dart';
 import '../constants/app_styles.dart';
 import '../models/member_model.dart';
 import '../providers/member_providers.dart';
+import '../providers/auth_provider.dart';
 
 class MemberCard extends ConsumerWidget {
   final Member member;
@@ -31,45 +32,40 @@ class MemberCard extends ConsumerWidget {
   }
 
   Future<void> _makeCall(BuildContext context, String phoneNumber) async {
-    final Uri uri = Uri(scheme: 'tel', path: phoneNumber.replaceAll(' ', ''));
+    final cleanPhone = phoneNumber.replaceAll(RegExp(r'[^\d+]'), '');
+    if (cleanPhone.isEmpty) {
+      _showActionSnackBar(context, 'No phone number available');
+      return;
+    }
+    final Uri launchUri = Uri(scheme: 'tel', path: cleanPhone);
     try {
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri);
+      if (await canLaunchUrl(launchUri)) {
+        await launchUrl(launchUri);
       } else {
-        if (!context.mounted) return;
         _showActionSnackBar(context, 'Could not launch dialer for $phoneNumber');
       }
-    } catch (e) {
-      if (!context.mounted) return;
-      _showActionSnackBar(context, 'Could not call: $e');
+    } catch (_) {
+      _showActionSnackBar(context, 'Could not initiate call');
     }
   }
 
   Future<void> _sendMessage(BuildContext context, Member member) async {
-    String cleanPhone = member.mobileNumber.replaceAll(RegExp(r'[^\d]'), '');
-    if (cleanPhone.length == 10) {
-      cleanPhone = '91$cleanPhone';
-    }
-    final String messageText = 'Jay Shree Krishna ${member.fullName}, connecting via KutumbSetu!';
-    final Uri waUri = Uri.parse('https://wa.me/$cleanPhone?text=${Uri.encodeComponent(messageText)}');
-    final Uri smsUri = Uri(
+    final cleanPhone = member.mobileNumber.replaceAll(RegExp(r'[^\d+]'), '');
+    final Uri launchUri = Uri(
       scheme: 'sms',
-      path: member.mobileNumber,
-      queryParameters: {'body': messageText},
+      path: cleanPhone,
+      queryParameters: <String, String>{
+        'body': 'Hello ${member.fullName}, connecting via KutumbSetu directory.',
+      },
     );
-
     try {
-      if (await canLaunchUrl(waUri)) {
-        await launchUrl(waUri, mode: LaunchMode.externalApplication);
-      } else if (await canLaunchUrl(smsUri)) {
-        await launchUrl(smsUri);
+      if (await canLaunchUrl(launchUri)) {
+        await launchUrl(launchUri);
       } else {
-        if (!context.mounted) return;
-        _showActionSnackBar(context, 'Could not open WhatsApp or SMS for ${member.fullName}');
+        _showActionSnackBar(context, 'Could not open messaging app');
       }
-    } catch (e) {
-      if (!context.mounted) return;
-      _showActionSnackBar(context, 'Could not initiate message: $e');
+    } catch (_) {
+      _showActionSnackBar(context, 'Could not open messaging app');
     }
   }
 
@@ -93,6 +89,7 @@ Contact: ${member.mobileNumber}
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final currentUser = ref.watch(currentUserProvider);
     final favorites = ref.watch(favoriteMemberIdsProvider);
     final isFavorite = favorites.contains(member.id);
     final connectionState = ref.watch(directoryConnectionProvider);
@@ -106,12 +103,13 @@ Contact: ${member.mobileNumber}
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           title: Row(
             children: [
-              const Icon(Icons.person_add_alt_1_rounded, color: const Color(0xFFE67E22), size: 26),
+              const Icon(Icons.person_add_alt_1_rounded, color: Color(0xFFE67E22), size: 26),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
                   'Follow ${member.fullName}',
                   style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],
@@ -133,12 +131,12 @@ Contact: ${member.mobileNumber}
                 ),
                 child: const Row(
                   children: [
-                    Icon(Icons.shield_outlined, color: const Color(0xFFE67E22), size: 18),
+                    Icon(Icons.shield_outlined, color: Color(0xFFE67E22), size: 18),
                     SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         'Once accepted, full member details and direct contact will be unlocked.',
-                        style: TextStyle(fontSize: 11.5, color: const Color(0xFFE67E22), fontWeight: FontWeight.w600),
+                        style: TextStyle(fontSize: 11.5, color: Color(0xFFE67E22), fontWeight: FontWeight.w600),
                       ),
                     ),
                   ],
@@ -154,7 +152,12 @@ Contact: ${member.mobileNumber}
             ElevatedButton.icon(
               onPressed: () {
                 Navigator.pop(ctx);
-                ref.read(directoryConnectionProvider.notifier).sendFollowRequest(member.id);
+                ref.read(directoryConnectionProvider.notifier).sendFollowRequest(
+                  senderId: currentUser?.id ?? 'guest',
+                  senderName: currentUser?.fullName ?? 'Samaj Member',
+                  senderEmail: currentUser?.email ?? '',
+                  targetMember: member,
+                );
                 _showActionSnackBar(context, 'Follow request sent to ${member.fullName}!');
               },
               icon: const Icon(Icons.send_rounded, size: 16),
@@ -346,16 +349,23 @@ Contact: ${member.mobileNumber}
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Row(
-                        children: [
-                          Icon(Icons.lock_outline_rounded, size: 14, color: Colors.grey.shade600),
-                          const SizedBox(width: 4),
-                          Text(
-                            isPending ? 'Follow Requested (Pending)' : 'Details & Contact Protected',
-                            style: TextStyle(fontSize: 11, color: isPending ? Colors.orange : Colors.grey.shade600),
-                          ),
-                        ],
+                      Expanded(
+                        child: Row(
+                          children: [
+                            Icon(Icons.lock_outline_rounded, size: 14, color: Colors.grey.shade600),
+                            const SizedBox(width: 4),
+                            Flexible(
+                              child: Text(
+                                isPending ? 'Follow Requested (Pending)' : 'Details & Contact Protected',
+                                style: TextStyle(fontSize: 11, color: isPending ? Colors.orange : Colors.grey.shade600),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
+                      const SizedBox(width: 8),
                       if (isPending)
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -384,17 +394,27 @@ Contact: ${member.mobileNumber}
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Row(
-                        children: [
-                          const Icon(Icons.location_on_outlined, size: 14, color: AppColors.accentBlue),
-                          const SizedBox(width: 4),
-                          Text(member.village, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
-                          if (member.bloodGroup.isNotEmpty) ...[
-                            const SizedBox(width: 8),
-                            Text('• ${member.bloodGroup}', style: const TextStyle(fontSize: 12, color: AppColors.favoriteRed, fontWeight: FontWeight.bold)),
+                      Expanded(
+                        child: Row(
+                          children: [
+                            const Icon(Icons.location_on_outlined, size: 14, color: AppColors.accentBlue),
+                            const SizedBox(width: 4),
+                            Flexible(
+                              child: Text(
+                                member.village,
+                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            if (member.bloodGroup.isNotEmpty) ...[
+                              const SizedBox(width: 6),
+                              Text('• ${member.bloodGroup}', style: const TextStyle(fontSize: 12, color: AppColors.favoriteRed, fontWeight: FontWeight.bold)),
+                            ],
                           ],
-                        ],
+                        ),
                       ),
+                      const SizedBox(width: 8),
                       Row(
                         children: [
                           _ActionIconBtn(

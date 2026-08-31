@@ -70,40 +70,42 @@ class _AdminRegistrationsScreenState extends ConsumerState<AdminRegistrationsScr
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (ctx) {
-        return Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('User Registration Form Responses', style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 12),
-              const Divider(),
-              const SizedBox(height: 12),
+        return SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('User Registration Form Responses', style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 12),
+                const Divider(),
+                const SizedBox(height: 12),
 
-              _buildRow('Registration ID', reg.registrationNumber),
-              _buildRow('Member Name', user?.fullName ?? 'Member'),
-              _buildRow('Phone Number', user?.phoneNumber ?? 'N/A'),
-              _buildRow('City', user?.city ?? 'N/A'),
-              _buildRow('Gender', user?.gender ?? 'N/A'),
-              _buildRow('Date of Birth', user?.dateOfBirth ?? 'N/A'),
+                _buildRow('Registration ID', reg.registrationNumber),
+                _buildRow('Member Name', user?.fullName ?? 'Member'),
+                _buildRow('Phone Number', user?.phoneNumber ?? 'N/A'),
+                _buildRow('City', user?.city ?? 'N/A'),
+                _buildRow('Gender', user?.gender ?? 'N/A'),
+                _buildRow('Date of Birth', user?.dateOfBirth ?? 'N/A'),
 
-              if (reg.submittedData.isNotEmpty) ...[
-                const SizedBox(height: 14),
-                Text('Campaign Custom Responses:', style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 14)),
-                const SizedBox(height: 8),
-                ...reg.submittedData.entries.map((e) => _buildRow(e.key, e.value.toString())),
-              ],
+                if (reg.submittedData.isNotEmpty) ...[
+                  const SizedBox(height: 14),
+                  Text('Campaign Custom Responses:', style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 14)),
+                  const SizedBox(height: 8),
+                  ...reg.submittedData.entries.map((e) => _buildRow(e.key, e.value.toString())),
+                ],
 
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  child: const Text('Close'),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    child: const Text('Close'),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         );
       },

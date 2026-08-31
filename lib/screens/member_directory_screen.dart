@@ -6,6 +6,7 @@ import '../constants/app_constants.dart';
 import '../models/member_model.dart';
 import '../providers/member_providers.dart';
 import '../providers/theme_provider.dart';
+import '../providers/auth_provider.dart';
 import '../widgets/filter_chips_bar.dart';
 import '../widgets/filter_modal_sheet.dart';
 import '../widgets/member_card.dart';
@@ -34,6 +35,12 @@ class _MemberDirectoryScreenState
     for (final letter in AppConstants.alphabetIndex) {
       _letterKeys[letter] = GlobalKey();
     }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final user = ref.read(currentUserProvider);
+      if (user != null) {
+        ref.read(directoryConnectionProvider.notifier).loadUserConnections(user.id);
+      }
+    });
   }
 
   @override

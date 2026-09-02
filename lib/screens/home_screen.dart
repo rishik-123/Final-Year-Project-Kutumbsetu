@@ -63,7 +63,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       final user = ref.read(currentUserProvider);
       if (user != null) {
         // Load directory connection state from backend
-        ref.read(directoryConnectionProvider.notifier).loadUserConnections(user.id);
+        ref.read(directoryConnectionProvider.notifier).loadUserConnections(user.id.isNotEmpty ? user.id : user.email);
 
         // Check for incoming matrimonial interest alerts on login
         if (!_checkedMatrimonialAlerts) {
@@ -226,9 +226,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 }
               } catch (_) {}
             },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF2E7D32),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: const Text('Accept Connect'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _checkIncomingDirectoryRequests(UserModel user) async {
     try {
-      final res = await http.get(Uri.parse('${ApiConfig.baseUrl}/directory/incoming-alerts/${user.id}'));
+      final targetId = user.email.isNotEmpty ? user.email : user.id;
+      final res = await http.get(Uri.parse('${ApiConfig.baseUrl}/directory/incoming-alerts/$targetId'));
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body);
         if (data['success'] == true && data['alerts'] != null) {
@@ -345,7 +358,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   Future<void> _checkAcceptedDirectoryAlerts(UserModel user) async {
     try {
-      final res = await http.get(Uri.parse('${ApiConfig.baseUrl}/directory/accepted-alerts/${user.id}'));
+      final targetId = user.email.isNotEmpty ? user.email : user.id;
+      final res = await http.get(Uri.parse('${ApiConfig.baseUrl}/directory/accepted-alerts/$targetId'));
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body);
         if (data['success'] == true && data['alerts'] != null) {
@@ -974,7 +988,25 @@ Contact: ${user.phoneNumber}
 
   @override
   Widget build(BuildContext context) {
-    final user = ref.watch(currentUserProvider) ?? const UserModel(
+    ref.listen<UserModel?>(currentUserProvider, (prev, next) {
+      if (next != null) {
+        final uid = next.email.isNotEmpty ? next.email : next.id;
+        ref.read(directoryConnectionProvider.notifier).loadUserConnections(uid);
+        _checkIncomingDirectoryRequests(next);
+        _checkAcceptedDirectoryAlerts(next);
+      }
+    });
+
+    final realUser = ref.watch(currentUserProvider);
+    if (realUser != null && !_checkedDirectoryAlerts) {
+      _checkedDirectoryAlerts = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _checkIncomingDirectoryRequests(realUser);
+        _checkAcceptedDirectoryAlerts(realUser);
+      });
+    }
+
+    final user = realUser ?? const UserModel(
       id: 'USR001',
       fullName: 'Rajeshbhai',
       email: 'rajesh@example.com',

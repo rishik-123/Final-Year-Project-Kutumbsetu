@@ -272,6 +272,7 @@ final filteredMembersProvider = Provider<AsyncValue<List<Member>>>((ref) {
     if (query.isNotEmpty) {
       result = result.where((m) {
         return m.fullName.toLowerCase().contains(query) ||
+            m.email.toLowerCase().contains(query) ||
             m.village.toLowerCase().contains(query) ||
             m.city.toLowerCase().contains(query) ||
             m.profession.toLowerCase().contains(query) ||

@@ -206,7 +206,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             _isVerifyingOtp = false;
           });
           _showSuccessSnackBar('Email verified. Please register your account.');
-          context.push('/register');
+          context.go('/register');
         }
       } else {
         setState(() {

@@ -320,9 +320,11 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> wit
 
     return Scaffold(
       backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(142),
-        child: Container(
+      appBar: AppBar(
+        toolbarHeight: 70,
+        elevation: 4,
+        backgroundColor: Colors.transparent,
+        flexibleSpace: Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: isDark
@@ -331,136 +333,122 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> wit
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.3),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              )
-            ],
           ),
-          child: SafeArea(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 6.0),
-                  child: Row(
+        ),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(7),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: const Color(0xFFE67E22).withValues(alpha: 0.2),
+                border: Border.all(color: const Color(0xFFE67E22), width: 1.5),
+              ),
+              child: const Icon(Icons.admin_panel_settings_rounded, color: Color(0xFFE67E22), size: 20),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
+                      Flexible(
+                        child: Text(
+                          'KutumbSetu Admin',
+                          style: GoogleFonts.poppins(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
                       Container(
-                        padding: const EdgeInsets.all(7),
+                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
                         decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: const Color(0xFFE67E22).withValues(alpha: 0.2),
-                          border: Border.all(color: const Color(0xFFE67E22), width: 1.5),
+                          color: const Color(0xFFE67E22),
+                          borderRadius: BorderRadius.circular(5),
                         ),
-                        child: const Icon(Icons.admin_panel_settings_rounded, color: Color(0xFFE67E22), size: 22),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Flexible(
-                                  child: Text(
-                                    'KutumbSetu Admin',
-                                    style: GoogleFonts.poppins(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                                const SizedBox(width: 6),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFE67E22),
-                                    borderRadius: BorderRadius.circular(5),
-                                  ),
-                                  child: const Text(
-                                    'MASTER',
-                                    style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            Text(
-                              'Logged in as ${currentUser?.fullName ?? "Administrator"}',
-                              style: GoogleFonts.inter(fontSize: 11, color: Colors.white70),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      // Switch to User App Preview
-                      TextButton.icon(
-                        onPressed: () => context.go('/home'),
-                        icon: const Icon(Icons.visibility_rounded, color: Colors.cyanAccent, size: 15),
-                        label: const Text('User App', style: TextStyle(color: Colors.cyanAccent, fontSize: 11)),
-                        style: TextButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          minimumSize: Size.zero,
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          backgroundColor: Colors.white.withValues(alpha: 0.1),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        child: const Text(
+                          'MASTER',
+                          style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold),
                         ),
                       ),
                     ],
                   ),
-                ),
-                TabBar(
-                  controller: _tabController,
-                  isScrollable: true,
-                  tabAlignment: TabAlignment.start,
-                  indicatorColor: const Color(0xFFE67E22),
-                  indicatorWeight: 3,
-                  labelColor: const Color(0xFFE67E22),
-                  unselectedLabelColor: Colors.white70,
-                  labelStyle: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 12),
-                  unselectedLabelStyle: GoogleFonts.poppins(fontSize: 12),
-                  tabs: [
-                    Tab(
-                      icon: const Icon(Icons.how_to_reg_rounded, size: 18),
-                      text: 'Approvals (${_pendingUsers.length})',
-                    ),
-                    Tab(
-                      icon: const Icon(Icons.mark_email_unread_rounded, size: 18),
-                      text: 'User Requests (${_postRequests.length})',
-                    ),
-                    Tab(
-                      icon: const Icon(Icons.post_add_rounded, size: 18),
-                      text: 'Upload Post / Reel',
-                    ),
-                    Tab(
-                      icon: const Icon(Icons.favorite_rounded, size: 18),
-                      text: 'Matrimonial Match Tracker',
-                    ),
-                    Tab(
-                      icon: const Icon(Icons.security_rounded, size: 18),
-                      text: 'Profile Moderation',
-                    ),
-                    Tab(
-                      icon: const Icon(Icons.pie_chart_rounded, size: 18),
-                      text: 'Featured Family Analytics',
-                    ),
-                    Tab(
-                      icon: const Icon(Icons.event_available_rounded, size: 18),
-                      text: 'Broadcast Events',
-                    ),
-                  ],
-                ),
-              ],
+                  Text(
+                    'Logged in as ${currentUser?.fullName ?? "Administrator"}',
+                    style: GoogleFonts.inter(fontSize: 11, color: Colors.white70),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 12.0),
+            child: TextButton.icon(
+              onPressed: () => context.go('/home'),
+              icon: const Icon(Icons.visibility_rounded, color: Colors.cyanAccent, size: 14),
+              label: const Text('User App', style: TextStyle(color: Colors.cyanAccent, fontSize: 11)),
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                backgroundColor: Colors.white.withValues(alpha: 0.1),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
             ),
           ),
+        ],
+        bottom: TabBar(
+          controller: _tabController,
+          isScrollable: true,
+          tabAlignment: TabAlignment.start,
+          indicatorColor: const Color(0xFFE67E22),
+          indicatorWeight: 3,
+          labelColor: const Color(0xFFE67E22),
+          unselectedLabelColor: Colors.white70,
+          labelStyle: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 12),
+          unselectedLabelStyle: GoogleFonts.poppins(fontSize: 12),
+          tabs: [
+            Tab(
+              icon: const Icon(Icons.how_to_reg_rounded, size: 18),
+              text: 'Approvals (${_pendingUsers.length})',
+            ),
+            Tab(
+              icon: const Icon(Icons.mark_email_unread_rounded, size: 18),
+              text: 'User Requests (${_postRequests.length})',
+            ),
+            Tab(
+              icon: const Icon(Icons.post_add_rounded, size: 18),
+              text: 'Upload Post / Reel',
+            ),
+            Tab(
+              icon: const Icon(Icons.favorite_rounded, size: 18),
+              text: 'Matrimonial Match Tracker',
+            ),
+            Tab(
+              icon: const Icon(Icons.security_rounded, size: 18),
+              text: 'Profile Moderation',
+            ),
+            Tab(
+              icon: const Icon(Icons.pie_chart_rounded, size: 18),
+              text: 'Featured Family Analytics',
+            ),
+            Tab(
+              icon: const Icon(Icons.event_available_rounded, size: 18),
+              text: 'Broadcast Events',
+            ),
+          ],
         ),
       ),
       body: TabBarView(

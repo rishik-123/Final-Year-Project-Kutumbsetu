@@ -93,8 +93,10 @@ Contact: ${member.mobileNumber}
     final favorites = ref.watch(favoriteMemberIdsProvider);
     final isFavorite = favorites.contains(member.id);
     final connectionState = ref.watch(directoryConnectionProvider);
-    final isConnected = connectionState.connectedMemberIds.contains(member.id);
-    final isPending = connectionState.pendingRequestMemberIds.contains(member.id);
+    final isConnected = connectionState.connectedMemberIds.contains(member.id) ||
+        (member.email.isNotEmpty && connectionState.connectedMemberIds.contains(member.email));
+    final isPending = connectionState.pendingRequestMemberIds.contains(member.id) ||
+        (member.email.isNotEmpty && connectionState.pendingRequestMemberIds.contains(member.email));
 
     void showFollowRequestDialog() {
       showDialog(
@@ -153,8 +155,8 @@ Contact: ${member.mobileNumber}
               onPressed: () {
                 Navigator.pop(ctx);
                 ref.read(directoryConnectionProvider.notifier).sendFollowRequest(
-                  senderId: currentUser?.id ?? 'guest',
-                  senderName: currentUser?.fullName ?? 'Samaj Member',
+                  senderId: currentUser?.id.isNotEmpty == true ? currentUser!.id : (currentUser?.email ?? 'guest'),
+                  senderName: currentUser?.fullName.isNotEmpty == true ? currentUser!.fullName : 'Samaj Member',
                   senderEmail: currentUser?.email ?? '',
                   targetMember: member,
                 );
@@ -283,14 +285,18 @@ Contact: ${member.mobileNumber}
                                     : AppColors.textSecondaryLight,
                               ),
                               const SizedBox(width: 4),
-                              Text(
-                                'Age: ${member.age} • Gender: ${member.gender}',
-                                style: TextStyle(
-                                  fontSize: 12.5,
-                                  fontWeight: FontWeight.w500,
-                                  color: isDark
-                                      ? AppColors.textSecondaryDark
-                                      : AppColors.textSecondaryLight,
+                              Flexible(
+                                child: Text(
+                                  'Age: ${member.age} • Gender: ${member.gender}',
+                                  style: TextStyle(
+                                    fontSize: 12.5,
+                                    fontWeight: FontWeight.w500,
+                                    color: isDark
+                                        ? AppColors.textSecondaryDark
+                                        : AppColors.textSecondaryLight,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
                             ],

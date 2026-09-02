@@ -1177,35 +1177,42 @@ app.post('/api/users/profile', async (req, res) => {
  */
 app.get('/api/users/all', async (req, res) => {
   try {
-    const profiles = await Profile.find({}).populate('userId');
-    const mergedList = profiles.map(p => {
-      if (!p.userId) return null;
-      
+    const allUsers = await User.find({});
+    const profiles = await Profile.find({});
+    const profileMap = new Map();
+    profiles.forEach(p => {
+      if (p.userId) {
+        profileMap.set(p.userId.toString(), p);
+      }
+    });
+
+    const mergedList = allUsers.map(u => {
+      const p = profileMap.get(u._id.toString()) || {};
       const willing = p.willingToDonateBlood || false;
       return {
-        _id: p.userId._id,
-        fullName: p.userId.fullName,
-        email: p.userId.email,
-        phoneNumber: p.phoneNumber,
-        gender: p.gender,
-        dateOfBirth: p.dateOfBirth,
-        nativePlace: p.village,
-        address: p.address,
-        city: p.city,
-        state: p.state,
-        maritalStatus: p.maritalStatus || 'Single',
-        occupation: p.profession,
-        education: p.qualification || p.education || '',
-        bloodGroup: p.bloodGroup,
-        profilePhoto: p.profilePhoto,
-        familyId: p.familyId,
+        _id: u._id,
+        fullName: u.fullName,
+        email: u.email || '',
+        phoneNumber: p.phoneNumber || u.phoneNumber || '',
+        gender: p.gender || u.gender || 'Male',
+        dateOfBirth: p.dateOfBirth || u.dateOfBirth || '',
+        nativePlace: p.village || u.nativePlace || '',
+        address: p.address || u.address || '',
+        city: p.city || u.city || '',
+        state: p.state || u.state || 'Gujarat',
+        maritalStatus: p.maritalStatus || u.maritalStatus || 'Single',
+        occupation: p.profession || u.occupation || '',
+        education: p.qualification || p.education || u.education || '',
+        bloodGroup: p.bloodGroup || u.bloodGroup || '',
+        profilePhoto: p.profilePhoto || u.profilePhoto || '',
+        familyId: p.familyId || '',
         familyName: p.familyName || '',
         relationshipToHead: p.relationshipToHead || 'Other',
         memberId: p.memberId || '',
         motherName: p.motherName || '',
         spouseName: p.spouseName || '',
         familyHeadPhone: p.familyHeadPhone || '',
-        fatherName: p.fatherName || '',
+        fatherName: p.fatherName || u.fatherName || '',
         grandfather: p.grandfather || '',
         grandmother: p.grandmother || '',
         nana: p.nana || '',
@@ -1213,11 +1220,15 @@ app.get('/api/users/all', async (req, res) => {
         bio: p.bio || '',
         isDeceased: p.isDeceased || false,
         willingToDonateBlood: willing,
+        isApproved: u.isApproved,
+        role: u.role,
+        createdAt: u.createdAt,
       };
-    }).filter(Boolean);
+    });
 
     return res.status(200).json({
       success: true,
+      count: mergedList.length,
       users: mergedList,
     });
   } catch (error) {
@@ -3891,21 +3902,31 @@ app.get('/api/matrimonial/incoming-alerts/:userId', async (req, res) => {
 app.post('/api/directory/request', async (req, res) => {
   try {
     const { senderId, receiverId, senderName, receiverName, senderEmail, receiverEmail } = req.body;
-    if (!senderId || (!receiverId && !receiverEmail)) {
+    if (!senderId || (!receiverId && !receiverEmail && !receiverName)) {
       return res.status(400).json({ success: false, message: 'Sender and receiver identifiers are required.' });
     }
 
-    // Attempt to lookup sender user info if missing
+    const sEmail = (senderEmail || '').toLowerCase().trim();
+    const rEmail = (receiverEmail || '').toLowerCase().trim();
+    const rName = (receiverName || '').trim();
+
+    // Look up sender user in database
+    let finalSenderId = senderId;
     let finalSenderName = senderName || 'Member';
-    let finalSenderEmail = senderEmail || '';
+    let finalSenderEmail = sEmail;
     let finalSenderOccupation = '';
     let finalSenderCity = '';
     let finalSenderPhoto = '';
 
     const senderUser = await User.findOne({
-      $or: [{ _id: mongoose.isValidObjectId(senderId) ? senderId : null }, { email: senderEmail || senderId }]
+      $or: [
+        { _id: mongoose.isValidObjectId(senderId) ? senderId : null },
+        ...(sEmail ? [{ email: new RegExp(`^${sEmail}$`, 'i') }] : []),
+        ...(senderName ? [{ fullName: new RegExp(`^${senderName.trim()}$`, 'i') }] : [])
+      ].filter(Boolean)
     });
     if (senderUser) {
+      finalSenderId = senderUser._id.toString();
       finalSenderName = senderUser.fullName || finalSenderName;
       finalSenderEmail = senderUser.email || finalSenderEmail;
       finalSenderOccupation = senderUser.occupation || '';
@@ -3913,17 +3934,19 @@ app.post('/api/directory/request', async (req, res) => {
       finalSenderPhoto = senderUser.profilePhoto || '';
     }
 
-    // Attempt to lookup receiver user info
+    // Look up receiver user in database
     let finalReceiverId = receiverId;
-    let finalReceiverName = receiverName || 'Member';
-    let finalReceiverEmail = receiverEmail || '';
+    let finalReceiverName = rName || 'Member';
+    let finalReceiverEmail = rEmail;
 
     const receiverUser = await User.findOne({
       $or: [
         { _id: mongoose.isValidObjectId(receiverId) ? receiverId : null },
-        { email: receiverEmail || receiverId },
-        { fullName: receiverName }
-      ]
+        ...(rEmail ? [{ email: new RegExp(`^${rEmail}$`, 'i') }] : []),
+        ...(receiverId && receiverId.includes('@') ? [{ email: new RegExp(`^${receiverId.trim()}$`, 'i') }] : []),
+        ...(rName ? [{ fullName: new RegExp(`^${rName}$`, 'i') }] : []),
+        ...(rName && rName.includes(' ') ? [{ fullName: new RegExp(rName.split(' ')[0], 'i') }] : [])
+      ].filter(Boolean)
     });
     if (receiverUser) {
       finalReceiverId = receiverUser._id.toString();
@@ -3931,20 +3954,31 @@ app.post('/api/directory/request', async (req, res) => {
       finalReceiverEmail = receiverUser.email || finalReceiverEmail;
     }
 
-    // Check if request already exists (either direction or pending)
+    // Check if request already exists
     let existing = await DirectoryRequest.findOne({
       $or: [
-        { senderId: senderId.toString(), receiverId: finalReceiverId.toString() },
-        { senderEmail: finalSenderEmail, receiverEmail: finalReceiverEmail, receiverEmail: { $ne: '' } }
+        { senderId: finalSenderId.toString(), receiverId: finalReceiverId.toString() },
+        { senderId: senderId.toString(), receiverId: receiverId.toString() },
+        ...(finalSenderEmail && finalReceiverEmail ? [
+          { senderEmail: new RegExp(`^${finalSenderEmail}$`, 'i'), receiverEmail: new RegExp(`^${finalReceiverEmail}$`, 'i') }
+        ] : [])
       ]
     });
 
     if (existing) {
+      if (existing.status === 'rejected') {
+        existing.status = 'pending';
+        existing.isPendingAlertSeenByReceiver = false;
+        existing.isAcceptedAlertSeenBySender = false;
+        existing.updatedAt = new Date();
+        await existing.save();
+        return res.status(200).json({ success: true, message: 'Connect request re-sent!', request: existing });
+      }
       return res.status(200).json({ success: true, message: 'Request already sent or registered.', request: existing });
     }
 
     const reqDoc = new DirectoryRequest({
-      senderId: senderId.toString(),
+      senderId: finalSenderId.toString(),
       receiverId: finalReceiverId.toString(),
       senderName: finalSenderName,
       receiverName: finalReceiverName,
@@ -3958,6 +3992,7 @@ app.post('/api/directory/request', async (req, res) => {
       isAcceptedAlertSeenBySender: false,
     });
     await reqDoc.save();
+    console.log(`Directory connect request created: ${finalSenderName} (${finalSenderEmail}) -> ${finalReceiverName} (${finalReceiverEmail})`);
 
     return res.status(201).json({ success: true, message: 'Connect request sent successfully!', request: reqDoc });
   } catch (error) {
@@ -3971,20 +4006,32 @@ app.get('/api/directory/incoming-alerts/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
     let userEmail = '';
+    let userFullName = '';
+    let userPhone = '';
 
     const currentUser = await User.findOne({
-      $or: [{ _id: mongoose.isValidObjectId(userId) ? userId : null }, { email: userId }]
+      $or: [
+        { _id: mongoose.isValidObjectId(userId) ? userId : null },
+        { email: new RegExp(`^${userId.trim()}$`, 'i') },
+        { phoneNumber: userId.trim() }
+      ].filter(Boolean)
     });
     if (currentUser) {
       userEmail = currentUser.email;
+      userFullName = currentUser.fullName;
+      userPhone = currentUser.phoneNumber;
     }
 
     const query = {
       status: 'pending',
       $or: [
         { receiverId: userId.toString() },
-        ...(userEmail ? [{ receiverEmail: userEmail }] : []),
-        ...(currentUser ? [{ receiverId: currentUser._id.toString() }] : [])
+        ...(userEmail ? [
+          { receiverEmail: new RegExp(`^${userEmail.trim()}$`, 'i') },
+          { receiverId: userEmail }
+        ] : []),
+        ...(currentUser ? [{ receiverId: currentUser._id.toString() }] : []),
+        ...(userFullName ? [{ receiverName: new RegExp(`^${userFullName.trim()}$`, 'i') }] : [])
       ]
     };
 
@@ -4000,8 +4047,8 @@ app.get('/api/directory/incoming-alerts/:userId', async (req, res) => {
         const sUser = await User.findOne({
           $or: [
             { _id: mongoose.isValidObjectId(r.senderId) ? r.senderId : null },
-            { email: r.senderEmail || r.senderId }
-          ]
+            { email: new RegExp(`^${r.senderEmail}$`, 'i') }
+          ].filter(Boolean)
         });
         if (sUser) {
           photo = photo || sUser.profilePhoto || '';
@@ -4036,7 +4083,10 @@ app.get('/api/directory/accepted-alerts/:userId', async (req, res) => {
     let userEmail = '';
 
     const currentUser = await User.findOne({
-      $or: [{ _id: mongoose.isValidObjectId(userId) ? userId : null }, { email: userId }]
+      $or: [
+        { _id: mongoose.isValidObjectId(userId) ? userId : null },
+        { email: new RegExp(`^${userId.trim()}$`, 'i') }
+      ].filter(Boolean)
     });
     if (currentUser) {
       userEmail = currentUser.email;
@@ -4047,23 +4097,22 @@ app.get('/api/directory/accepted-alerts/:userId', async (req, res) => {
       isAcceptedAlertSeenBySender: false,
       $or: [
         { senderId: userId.toString() },
-        ...(userEmail ? [{ senderEmail: userEmail }] : []),
+        ...(userEmail ? [
+          { senderEmail: new RegExp(`^${userEmail.trim()}$`, 'i') },
+          { senderId: userEmail }
+        ] : []),
         ...(currentUser ? [{ senderId: currentUser._id.toString() }] : [])
       ]
     };
 
     const acceptedRequests = await DirectoryRequest.find(query).sort({ updatedAt: -1 });
-    const alerts = [];
-
-    for (const r of acceptedRequests) {
-      alerts.push({
-        requestId: r._id,
-        receiverId: r.receiverId,
-        receiverName: r.receiverName,
-        receiverEmail: r.receiverEmail,
-        updatedAt: r.updatedAt,
-      });
-    }
+    const alerts = acceptedRequests.map(r => ({
+      requestId: r._id,
+      receiverId: r.receiverId,
+      receiverName: r.receiverName,
+      receiverEmail: r.receiverEmail,
+      updatedAt: r.updatedAt,
+    }));
 
     return res.status(200).json({ success: true, count: alerts.length, alerts });
   } catch (error) {
@@ -4096,14 +4145,17 @@ app.post('/api/directory/respond', async (req, res) => {
     const doc = await DirectoryRequest.findByIdAndUpdate(
       requestId,
       {
-        status: status.toLowerCase(),
+        status: status.toLowerCase() === 'accepted' ? 'accepted' : 'rejected',
         updatedAt: new Date(),
+        isPendingAlertSeenByReceiver: true,
         isAcceptedAlertSeenBySender: false // trigger celebration for sender
       },
       { new: true }
     );
+    console.log(`Directory request ${requestId} responded: ${doc ? doc.status : 'not found'}`);
     return res.status(200).json({ success: true, message: `Request ${status}`, request: doc });
   } catch (error) {
+    console.error('Error responding to directory request:', error);
     return res.status(500).json({ success: false, message: error.message });
   }
 });
@@ -4115,53 +4167,75 @@ app.get('/api/directory/connections/:userId', async (req, res) => {
     let userEmail = '';
 
     const currentUser = await User.findOne({
-      $or: [{ _id: mongoose.isValidObjectId(userId) ? userId : null }, { email: userId }]
+      $or: [
+        { _id: mongoose.isValidObjectId(userId) ? userId : null },
+        { email: new RegExp(`^${userId.trim()}$`, 'i') }
+      ].filter(Boolean)
     });
     if (currentUser) {
       userEmail = currentUser.email;
     }
 
-    const accepted = await DirectoryRequest.find({
+    const acceptedDocs = await DirectoryRequest.find({
       status: 'accepted',
       $or: [
         { senderId: userId.toString() },
         { receiverId: userId.toString() },
-        ...(userEmail ? [{ senderEmail: userEmail }, { receiverEmail: userEmail }] : []),
-        ...(currentUser ? [{ senderId: currentUser._id.toString() }, { receiverId: currentUser._id.toString() }] : [])
+        ...(userEmail ? [
+          { senderEmail: new RegExp(`^${userEmail.trim()}$`, 'i') },
+          { receiverEmail: new RegExp(`^${userEmail.trim()}$`, 'i') }
+        ] : []),
+        ...(currentUser ? [
+          { senderId: currentUser._id.toString() },
+          { receiverId: currentUser._id.toString() }
+        ] : [])
       ]
     });
 
-    const connectedUserIds = accepted.map(r => {
-      const isSender = (r.senderId === userId.toString() || (userEmail && r.senderEmail === userEmail));
-      return isSender ? r.receiverId : r.senderId;
+    const connectedUserIds = new Set();
+    acceptedDocs.forEach(d => {
+      const sId = d.senderId;
+      const rId = d.receiverId;
+      const sEmail = d.senderEmail;
+      const rEmail = d.receiverEmail;
+
+      const isCurrentSender = (
+        sId === userId.toString() ||
+        (userEmail && sEmail && sEmail.toLowerCase() === userEmail.toLowerCase()) ||
+        (currentUser && sId === currentUser._id.toString())
+      );
+
+      if (isCurrentSender) {
+        if (rId) connectedUserIds.add(rId);
+        if (rEmail) connectedUserIds.add(rEmail);
+      } else {
+        if (sId) connectedUserIds.add(sId);
+        if (sEmail) connectedUserIds.add(sEmail);
+      }
     });
 
-    const pendingSent = await DirectoryRequest.find({
+    const pendingDocs = await DirectoryRequest.find({
       status: 'pending',
       $or: [
         { senderId: userId.toString() },
-        ...(userEmail ? [{ senderEmail: userEmail }] : []),
+        ...(userEmail ? [{ senderEmail: new RegExp(`^${userEmail.trim()}$`, 'i') }] : []),
         ...(currentUser ? [{ senderId: currentUser._id.toString() }] : [])
       ]
     });
-    const pendingSentIds = pendingSent.map(r => r.receiverId);
 
-    const pendingReceived = await DirectoryRequest.find({
-      status: 'pending',
-      $or: [
-        { receiverId: userId.toString() },
-        ...(userEmail ? [{ receiverEmail: userEmail }] : []),
-        ...(currentUser ? [{ receiverId: currentUser._id.toString() }] : [])
-      ]
+    const pendingSentIds = new Set();
+    pendingDocs.forEach(d => {
+      if (d.receiverId) pendingSentIds.add(d.receiverId);
+      if (d.receiverEmail) pendingSentIds.add(d.receiverEmail);
     });
 
     return res.status(200).json({
       success: true,
-      connectedUserIds: [...new Set(connectedUserIds)],
-      pendingSentIds: [...new Set(pendingSentIds)],
-      pendingReceived,
+      connectedUserIds: Array.from(connectedUserIds),
+      pendingSentIds: Array.from(pendingSentIds),
     });
   } catch (error) {
+    console.error('Error fetching directory connections:', error);
     return res.status(500).json({ success: false, message: error.message });
   }
 });

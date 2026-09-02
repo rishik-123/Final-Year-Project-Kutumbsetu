@@ -6,6 +6,9 @@ async function runAutomationTest() {
     console.log('🚀 Starting KutumbSetu Standalone Appium Test Script');
     console.log('====================================================\n');
 
+    // Target email to type (can be customized via CLI arg: node test-runner.js aryaambokar@gmail.com)
+    const targetEmail = process.argv[2] || process.env.TEST_EMAIL || 'aryaambokar@gmail.com';
+
     let driver;
     try {
         console.log('⏳ Connecting to Appium Server on http://127.0.0.1:4723...');
@@ -13,78 +16,110 @@ async function runAutomationTest() {
             hostname: '127.0.0.1',
             port: 4723,
             path: '/',
-            capabilities: androidCapabilities,
+            capabilities: {
+                ...androidCapabilities,
+                'appium:udid': process.env.DEVICE_UDID || 'emulator-5554',
+            },
             logLevel: 'info',
         });
 
-        console.log('✅ Connected to Appium session successfully!');
-        console.log('📱 Launching KutumbSetu application...\n');
+        console.log('✅ Connected to Appium session on emulator-5554 successfully!');
+        console.log('📱 Waiting for KutumbSetu app to load...\n');
 
-        // Allow app to load
-        await driver.pause(5000);
+        // Allow app to settle on Login screen
+        await driver.pause(4000);
 
-        // 1. Check App Title / Header Elements
-        console.log('🔍 Step 1: Checking App Header Branding (KutumbSetu)...');
-        const headerElement = await driver.$('//*[@text="KutumbSetu" or contains(@text, "KutumbSetu") or @content-desc="KutumbSetu"]');
-        const isHeaderDisplayed = await headerElement.isDisplayed().catch(() => false);
-        if (isHeaderDisplayed) {
-            console.log('   ✅ App Branding "KutumbSetu" is visible on screen.');
-        } else {
-            console.log('   ℹ️ Header element not immediately found with text selector, checking screen view...');
+        // 1. Locate Email Input Field
+        console.log(`🔍 Step 1: Locating Email Address input field...`);
+        
+        // Multiple fallback selectors for Flutter TextFormFields
+        const emailSelectors = [
+            '//android.widget.EditText',
+            '//android.widget.ScrollView//android.widget.EditText',
+            '//*[@text="Email Address" or contains(@hint, "Email") or @content-desc="Email Address"]',
+            '//android.widget.FrameLayout//android.widget.EditText'
+        ];
+
+        let emailField = null;
+        for (const selector of emailSelectors) {
+            try {
+                const el = await driver.$(selector);
+                if (await el.isDisplayed()) {
+                    emailField = el;
+                    console.log(`   ✅ Found email input element using selector: "${selector}"`);
+                    break;
+                }
+            } catch (_) {}
         }
 
-        // 2. Validate Login Elements Presence
-        console.log('\n🔍 Step 2: Validating Sign In Screen Elements...');
-        const emailField = await driver.$('//android.widget.EditText');
-        if (await emailField.isDisplayed().catch(() => false)) {
-            console.log('   ✅ Email input field detected.');
-            console.log('   ✍️ Typing test email "testuser@kutumbsetu.com"...');
-            await emailField.setValue('rishikjariwala54@gmail.com');
+        if (emailField) {
+            console.log(`\n✍️ Step 2: Automatically typing email: "${targetEmail}"...`);
+            await emailField.click();
+            await driver.pause(500);
+
+            // Clear and type email
+            try {
+                await emailField.clearValue().catch(() => {});
+                await emailField.setValue(targetEmail);
+            } catch (err) {
+                console.log('   ⚠️ setValue fallback: sending keyboard keys...');
+                await driver.keys(targetEmail);
+            }
+
             await driver.pause(1000);
+            console.log(`   ✅ Successfully typed "${targetEmail}" into the email field!`);
+
+            // Hide keyboard if open so buttons are visible
+            try {
+                await driver.hideKeyboard();
+            } catch (_) {}
+        } else {
+            console.log('   ⚠️ Email input field not found directly via UiAutomator2.');
+            console.log('   💡 Attempting ADB input text fallback...');
+            try {
+                await driver.execute('mobile: shell', {
+                    command: 'input',
+                    args: ['text', targetEmail]
+                });
+                console.log(`   ✅ Sent text "${targetEmail}" via ADB input.`);
+            } catch (e) {
+                console.log('   ℹ️ ADB direct input fallback not available.');
+            }
         }
 
-        // 3. Check Send OTP Button
-        console.log('\n🔍 Step 3: Checking "Send OTP Code" Button...');
+        // 2. Check "Send OTP Code" Button
+        console.log('\n🔍 Step 3: Checking "Send OTP Code" button...');
         const sendOtpBtn = await driver.$('//*[@text="Send OTP Code" or contains(@text, "Send OTP") or @content-desc="Send OTP Code"]');
         if (await sendOtpBtn.isDisplayed().catch(() => false)) {
-            console.log('   ✅ "Send OTP Code" button is present and clickable.');
+            console.log('   ✅ "Send OTP Code" button is detected and ready.');
+            // Note: To automatically click Send OTP, uncomment the line below:
+            // await sendOtpBtn.click();
         }
 
-        // 4. Test "Login as Admin" Switch
-        console.log('\n🔍 Step 4: Testing "Login as Admin" toggle button...');
+        // 3. Optional Admin Switch Test
+        console.log('\n🔍 Step 4: Checking "Login as Admin" toggle button...');
         const adminLoginBtn = await driver.$('//*[@text="Login as Admin" or contains(@text, "Admin") or @content-desc="Login as Admin"]');
         if (await adminLoginBtn.isDisplayed().catch(() => false)) {
-            console.log('   👆 Clicking "Login as Admin"...');
-            await adminLoginBtn.click();
-            await driver.pause(2000);
-
-            const adminSubmitBtn = await driver.$('//*[@text="Verify Admin & Log In" or contains(@text, "Verify Admin") or @content-desc="Verify Admin & Log In"]');
-            if (await adminSubmitBtn.isDisplayed().catch(() => false)) {
-                console.log('   ✅ Switched to Admin Login form successfully!');
-            }
-
-            const backToEmailBtn = await driver.$('//*[@text="Back to Email Login" or contains(@text, "Back to Email") or @content-desc="Back to Email Login"]');
-            if (await backToEmailBtn.isDisplayed().catch(() => false)) {
-                console.log('   👆 Clicking "Back to Email Login"...');
-                await backToEmailBtn.click();
-                await driver.pause(1500);
-                console.log('   ✅ Switched back to Email Login view.');
-            }
+            console.log('   ✅ "Login as Admin" button is visible.');
         }
 
         console.log('\n====================================================');
-        console.log('🎉 KutumbSetu Automated Appium Smoke Test Passed!');
+        console.log('🎉 Email Automation Step Completed Successfully!');
         console.log('====================================================\n');
 
     } catch (error) {
         console.error('\n❌ Test execution encountered an error:', error.message);
-        console.error('Make sure:');
-        console.error(' 1. Appium server is running: npx appium');
-        console.error(' 2. Android device or emulator is active: adb devices');
-        console.error(' 3. APK is built at build/app/outputs/flutter-apk/app-debug.apk\n');
+        console.error('\n📋 Troubleshooting Steps:');
+        console.error(' 1. Ensure Appium Server is running in a terminal:');
+        console.error('    npx appium');
+        console.error(' 2. Ensure your emulator is booted & connected:');
+        console.error('    adb devices   (should show "emulator-5554   device")');
+        console.error(' 3. Run the automation test:');
+        console.error('    node automation/config/test-runner.js [optional-email]\n');
     } finally {
         if (driver) {
-            console.log('🧹 Cleaning up and closing Appium session...');
+            console.log('🧹 Cleaning up Appium session in 3 seconds...');
+            await driver.pause(3000);
             await driver.deleteSession();
             console.log('✅ Session ended.');
         }

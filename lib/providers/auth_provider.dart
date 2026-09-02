@@ -125,12 +125,10 @@ final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
 
   // Sync authProvider state when currentUserProvider is mutated directly (e.g. at login screen)
   ref.listen<UserModel?>(currentUserProvider, (previous, next) {
-    if (notifier.state.user != next) {
-      if (next != null) {
-        notifier.setUser(next);
-      } else {
-        notifier.logout();
-      }
+    if (next != null) {
+      notifier.setUser(next);
+    } else {
+      notifier.logout();
     }
   });
 

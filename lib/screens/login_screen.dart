@@ -197,7 +197,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             ref.read(currentUserProvider.notifier).state = userModel;
             ref.read(authProvider.notifier).setUser(userModel);
             _showSuccessSnackBar('Welcome to KutumbSetu!');
-            context.go('/home');
+            if (mounted) context.go('/home');
           } else {
             _showErrorSnackBar('Failed to fetch user profile details.');
           }
@@ -207,7 +207,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             _isVerifyingOtp = false;
           });
           _showSuccessSnackBar('Email verified. Please register your account.');
-          context.go('/register');
+          if (mounted) context.go('/register');
         }
       } else {
         setState(() {
@@ -224,11 +224,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   Future<void> _handleAdminLogin() async {
-    final email = _adminEmailController.text.trim();
+    final username = _adminUsernameController.text.trim();
     final password = _adminPasswordController.text;
 
-    if (email.isEmpty || password.isEmpty) {
-      _showErrorSnackBar('Please enter admin email and password.');
+    if (username.isEmpty || password.isEmpty) {
+      _showErrorSnackBar('Please enter admin username and password.');
       return;
     }
 
@@ -241,7 +241,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         Uri.parse('${ApiConfig.baseUrl}/auth/admin-login'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
-          'email': email,
+          'username': username,
           'password': password,
         }),
       );
@@ -256,7 +256,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         ref.read(currentUserProvider.notifier).state = userModel;
         ref.read(authProvider.notifier).setUser(userModel);
         _showSuccessSnackBar('Welcome, Admin!');
-        context.go('/admin');
+        if (mounted) context.go('/admin');
       } else {
         setState(() {
           _isVerifyingOtp = false;

@@ -70,41 +70,51 @@ class _AdminRegistrationsScreenState extends ConsumerState<AdminRegistrationsScr
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (ctx) {
-        return SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('User Registration Form Responses', style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 12),
-                const Divider(),
-                const SizedBox(height: 12),
+        return SafeArea(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(ctx).size.height * 0.85,
+            ),
+            child: SingleChildScrollView(
+              padding: EdgeInsets.only(
+                left: 24.0,
+                right: 24.0,
+                top: 24.0,
+                bottom: MediaQuery.of(ctx).viewInsets.bottom + 24.0,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('User Registration Form Responses', style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 12),
+                  const Divider(),
+                  const SizedBox(height: 12),
 
-                _buildRow('Registration ID', reg.registrationNumber),
-                _buildRow('Member Name', user?.fullName ?? 'Member'),
-                _buildRow('Phone Number', user?.phoneNumber ?? 'N/A'),
-                _buildRow('City', user?.city ?? 'N/A'),
-                _buildRow('Gender', user?.gender ?? 'N/A'),
-                _buildRow('Date of Birth', user?.dateOfBirth ?? 'N/A'),
+                  _buildRow('Registration ID', reg.registrationNumber),
+                  _buildRow('Member Name', user?.fullName ?? 'Member'),
+                  _buildRow('Phone Number', user?.phoneNumber ?? 'N/A'),
+                  _buildRow('City', user?.city ?? 'N/A'),
+                  _buildRow('Gender', user?.gender ?? 'N/A'),
+                  _buildRow('Date of Birth', user?.dateOfBirth ?? 'N/A'),
 
-                if (reg.submittedData.isNotEmpty) ...[
-                  const SizedBox(height: 14),
-                  Text('Campaign Custom Responses:', style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 14)),
-                  const SizedBox(height: 8),
-                  ...reg.submittedData.entries.map((e) => _buildRow(e.key, e.value.toString())),
-                ],
+                  if (reg.submittedData.isNotEmpty) ...[
+                    const SizedBox(height: 14),
+                    Text('Campaign Custom Responses:', style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 14)),
+                    const SizedBox(height: 8),
+                    ...reg.submittedData.entries.map((e) => _buildRow(e.key, e.value.toString())),
+                  ],
 
-                const SizedBox(height: 24),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () => Navigator.pop(ctx),
-                    child: const Text('Close'),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      child: const Text('Close'),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         );
@@ -118,13 +128,15 @@ class _AdminRegistrationsScreenState extends ConsumerState<AdminRegistrationsScr
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(fontSize: 13, color: Colors.grey)),
+          Expanded(child: Text(label, style: const TextStyle(fontSize: 13, color: Colors.grey), maxLines: 2, overflow: TextOverflow.ellipsis)),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
               value,
               textAlign: TextAlign.end,
               style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 13),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
         ],
@@ -258,11 +270,12 @@ class _AdminRegistrationsScreenState extends ConsumerState<AdminRegistrationsScr
                                     child: Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
-                                        Text(user?.fullName ?? 'Registered Member', style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 15)),
-                                        Text('${user?.phoneNumber ?? ''} • ${user?.city ?? ''}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                                        Text(user?.fullName ?? 'Registered Member', style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 15), maxLines: 1, overflow: TextOverflow.ellipsis),
+                                        Text('${user?.phoneNumber ?? ''} • ${user?.city ?? ''}', style: const TextStyle(fontSize: 12, color: Colors.grey), maxLines: 1, overflow: TextOverflow.ellipsis),
                                       ],
                                     ),
                                   ),
+                                  const SizedBox(width: 8),
                                   CampaignStatusBadge(status: reg.registrationStatus, isCompact: true),
                                 ],
                               ),
@@ -273,7 +286,15 @@ class _AdminRegistrationsScreenState extends ConsumerState<AdminRegistrationsScr
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
-                                  Text('Ref: ${reg.registrationNumber}', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.accentBlue)),
+                                  Expanded(
+                                    child: Text(
+                                      'Ref: ${reg.registrationNumber}',
+                                      style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.accentBlue),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
                                   Text(dateFormat.format(reg.registeredAt), style: const TextStyle(fontSize: 11, color: Colors.grey)),
                                 ],
                               ),
@@ -282,28 +303,46 @@ class _AdminRegistrationsScreenState extends ConsumerState<AdminRegistrationsScr
                               // Admin Action Controls
                               Row(
                                 children: [
-                                  OutlinedButton.icon(
-                                    onPressed: () => _showDynamicDetailsModal(reg),
-                                    icon: const Icon(Icons.description_outlined, size: 16),
-                                    label: const Text('View Answers'),
-                                  ),
-                                  const Spacer(),
-                                  PopupMenuButton<String>(
-                                    onSelected: (newSt) => _updateRegistrationStatus(reg.id, newSt),
-                                    itemBuilder: (ctx) => ['Registered', 'Approved', 'Attended', 'Rejected', 'Cancelled']
-                                        .map((st) => PopupMenuItem(value: st, child: Text('Mark as $st')))
-                                        .toList(),
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                      decoration: BoxDecoration(
-                                        color: AppColors.accentBlue,
-                                        borderRadius: BorderRadius.circular(10),
+                                  Expanded(
+                                    child: OutlinedButton.icon(
+                                      onPressed: () => _showDynamicDetailsModal(reg),
+                                      icon: const Icon(Icons.description_outlined, size: 16),
+                                      label: const FittedBox(
+                                        fit: BoxFit.scaleDown,
+                                        child: Text('View Answers'),
                                       ),
-                                      child: Row(
-                                        children: [
-                                          const Text('Update Status', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
-                                          const Icon(Icons.arrow_drop_down, color: Colors.white, size: 18),
-                                        ],
+                                      style: OutlinedButton.styleFrom(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: PopupMenuButton<String>(
+                                      onSelected: (newSt) => _updateRegistrationStatus(reg.id, newSt),
+                                      itemBuilder: (ctx) => ['Registered', 'Approved', 'Attended', 'Rejected', 'Cancelled']
+                                          .map((st) => PopupMenuItem(value: st, child: Text('Mark as $st')))
+                                          .toList(),
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                        decoration: BoxDecoration(
+                                          color: AppColors.accentBlue,
+                                          borderRadius: BorderRadius.circular(10),
+                                        ),
+                                        child: const Row(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            Flexible(
+                                              child: Text(
+                                                'Update Status',
+                                                style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                            Icon(Icons.arrow_drop_down, color: Colors.white, size: 18),
+                                          ],
+                                        ),
                                       ),
                                     ),
                                   ),

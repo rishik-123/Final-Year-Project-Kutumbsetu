@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import '../api_config.dart';
@@ -59,7 +58,7 @@ class _AdminUserApprovalsWidgetState extends State<AdminUserApprovalsWidget> {
         }
       }
     } catch (e) {
-      print('Error fetching pending users: $e');
+      debugPrint('Error fetching pending users: $e');
     } finally {
       if (showLoading && mounted) {
         setState(() {
@@ -75,6 +74,7 @@ class _AdminUserApprovalsWidgetState extends State<AdminUserApprovalsWidget> {
         Uri.parse('${ApiConfig.baseUrl}/admin/approve-user/$userId'),
       );
       final data = jsonDecode(response.body);
+      if (!mounted) return;
       if (response.statusCode == 200 && data['success'] == true) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -94,6 +94,7 @@ class _AdminUserApprovalsWidgetState extends State<AdminUserApprovalsWidget> {
         );
       }
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Failed to approve user. Check backend.'),
@@ -207,6 +208,8 @@ class _AdminUserApprovalsWidgetState extends State<AdminUserApprovalsWidget> {
                                       fontSize: 15,
                                       color: isDark ? Colors.white : Colors.black87,
                                     ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                   ),
                                   if (email.isNotEmpty) ...[
                                     const SizedBox(height: 2),
@@ -216,6 +219,8 @@ class _AdminUserApprovalsWidgetState extends State<AdminUserApprovalsWidget> {
                                         fontSize: 12,
                                         color: Colors.grey,
                                       ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
                                     ),
                                   ],
                                   const SizedBox(height: 2),
@@ -225,10 +230,13 @@ class _AdminUserApprovalsWidgetState extends State<AdminUserApprovalsWidget> {
                                       fontSize: 12,
                                       color: Colors.grey,
                                     ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                   ),
                                 ],
                               ),
                             ),
+                            const SizedBox(width: 10),
                             ElevatedButton(
                               onPressed: () => _approveUser(userId, fullName),
                               style: ElevatedButton.styleFrom(
@@ -239,11 +247,14 @@ class _AdminUserApprovalsWidgetState extends State<AdminUserApprovalsWidget> {
                                 ),
                                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                               ),
-                              child: Text(
-                                'Approve',
-                                style: GoogleFonts.poppins(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 12,
+                              child: const FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  'Approve',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
+                                  ),
                                 ),
                               ),
                             ),

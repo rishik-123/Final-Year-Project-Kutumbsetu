@@ -6,10 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import '../../api_config.dart';
-import '../../constants/app_colors.dart';
-import '../../models/user_model.dart';
 import '../../providers/auth_provider.dart';
-import '../../providers/theme_provider.dart';
 
 class AdminDashboardScreen extends ConsumerStatefulWidget {
   const AdminDashboardScreen({super.key});
@@ -551,7 +548,14 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> wit
                     children: [
                       const Icon(Icons.location_on_outlined, size: 16, color: Colors.grey),
                       const SizedBox(width: 4),
-                      Text('Village / Native: $village', style: GoogleFonts.inter(fontSize: 13, color: Colors.grey.shade600)),
+                      Expanded(
+                        child: Text(
+                          'Village / Native: $village',
+                          style: GoogleFonts.inter(fontSize: 13, color: Colors.grey.shade600),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 16),
@@ -560,11 +564,15 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> wit
                       Expanded(
                         child: OutlinedButton.icon(
                           onPressed: () => _rejectUser(userId),
-                          icon: const Icon(Icons.close, color: Colors.redAccent, size: 18),
-                          label: const Text('Reject', style: TextStyle(color: Colors.redAccent)),
+                          icon: const Icon(Icons.close, color: Colors.redAccent, size: 16),
+                          label: const FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text('Reject', style: TextStyle(color: Colors.redAccent)),
+                          ),
                           style: OutlinedButton.styleFrom(
                             side: const BorderSide(color: Colors.redAccent),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                           ),
                         ),
                       ),
@@ -572,12 +580,16 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> wit
                       Expanded(
                         child: ElevatedButton.icon(
                           onPressed: () => _approveUser(userId),
-                          icon: const Icon(Icons.check, size: 18),
-                          label: const Text('Approve Access'),
+                          icon: const Icon(Icons.check, size: 16),
+                          label: const FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text('Approve Access'),
+                          ),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF2E7D32),
                             foregroundColor: Colors.white,
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                           ),
                         ),
                       ),
@@ -598,45 +610,49 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> wit
       children: [
         // Filter bar
         Container(
+          width: double.infinity,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           color: isDark ? const Color(0xFF1E293B) : Colors.grey.shade100,
-          child: Row(
-            children: [
-              const Text('Filter: ', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-              const SizedBox(width: 8),
-              ChoiceChip(
-                label: const Text('Pending'),
-                selected: _postRequestFilter == 'pending',
-                onSelected: (val) {
-                  if (val) {
-                    setState(() => _postRequestFilter = 'pending');
-                    _fetchPostRequests();
-                  }
-                },
-              ),
-              const SizedBox(width: 8),
-              ChoiceChip(
-                label: const Text('Approved'),
-                selected: _postRequestFilter == 'approved',
-                onSelected: (val) {
-                  if (val) {
-                    setState(() => _postRequestFilter = 'approved');
-                    _fetchPostRequests();
-                  }
-                },
-              ),
-              const SizedBox(width: 8),
-              ChoiceChip(
-                label: const Text('Rejected'),
-                selected: _postRequestFilter == 'rejected',
-                onSelected: (val) {
-                  if (val) {
-                    setState(() => _postRequestFilter = 'rejected');
-                    _fetchPostRequests();
-                  }
-                },
-              ),
-            ],
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                const Text('Filter: ', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                const SizedBox(width: 8),
+                ChoiceChip(
+                  label: const Text('Pending'),
+                  selected: _postRequestFilter == 'pending',
+                  onSelected: (val) {
+                    if (val) {
+                      setState(() => _postRequestFilter = 'pending');
+                      _fetchPostRequests();
+                    }
+                  },
+                ),
+                const SizedBox(width: 8),
+                ChoiceChip(
+                  label: const Text('Approved'),
+                  selected: _postRequestFilter == 'approved',
+                  onSelected: (val) {
+                    if (val) {
+                      setState(() => _postRequestFilter = 'approved');
+                      _fetchPostRequests();
+                    }
+                  },
+                ),
+                const SizedBox(width: 8),
+                ChoiceChip(
+                  label: const Text('Rejected'),
+                  selected: _postRequestFilter == 'rejected',
+                  onSelected: (val) {
+                    if (val) {
+                      setState(() => _postRequestFilter = 'rejected');
+                      _fetchPostRequests();
+                    }
+                  },
+                ),
+              ],
+            ),
           ),
         ),
         Expanded(
@@ -683,20 +699,27 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> wit
                                   Row(
                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
-                                      Row(
-                                        children: [
-                                          Icon(
-                                            contentType == 'reel' ? Icons.video_collection_rounded : Icons.article_rounded,
-                                            color: const Color(0xFFE67E22),
-                                            size: 20,
-                                          ),
-                                          const SizedBox(width: 8),
-                                          Text(
-                                            purpose,
-                                            style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 15),
-                                          ),
-                                        ],
+                                      Expanded(
+                                        child: Row(
+                                          children: [
+                                            Icon(
+                                              contentType == 'reel' ? Icons.video_collection_rounded : Icons.article_rounded,
+                                              color: const Color(0xFFE67E22),
+                                              size: 20,
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Expanded(
+                                              child: Text(
+                                                purpose,
+                                                style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 15),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
                                       ),
+                                      const SizedBox(width: 8),
                                       Container(
                                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                                         decoration: BoxDecoration(
@@ -771,19 +794,29 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> wit
                                         Expanded(
                                           child: OutlinedButton(
                                             onPressed: () => _respondToPostRequest(id, 'rejected'),
-                                            style: OutlinedButton.styleFrom(foregroundColor: Colors.redAccent),
-                                            child: const Text('Reject'),
+                                            style: OutlinedButton.styleFrom(
+                                              foregroundColor: Colors.redAccent,
+                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                                            ),
+                                            child: const FittedBox(
+                                              fit: BoxFit.scaleDown,
+                                              child: Text('Reject'),
+                                            ),
                                           ),
                                         ),
                                         const SizedBox(width: 12),
                                         Expanded(
                                           child: ElevatedButton.icon(
                                             onPressed: () => _respondToPostRequest(id, 'approved'),
-                                            icon: const Icon(Icons.check_circle_outline, size: 18),
-                                            label: const Text('Approve & Publish'),
+                                            icon: const Icon(Icons.check_circle_outline, size: 16),
+                                            label: const FittedBox(
+                                              fit: BoxFit.scaleDown,
+                                              child: Text('Approve & Publish'),
+                                            ),
                                             style: ElevatedButton.styleFrom(
                                               backgroundColor: const Color(0xFF2E7D32),
                                               foregroundColor: Colors.white,
+                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                                             ),
                                           ),
                                         ),
@@ -804,7 +837,6 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> wit
 
   // TAB 3: Upload Post / Reel Directly
   Widget _buildUploadMediaTab(bool isDark) {
-    final titleController = TextEditingController();
     final descController = TextEditingController();
     String contentType = 'post';
     XFile? pickedFile;
@@ -825,26 +857,29 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> wit
                 style: GoogleFonts.inter(fontSize: 13, color: Colors.grey),
               ),
               const SizedBox(height: 20),
-              Row(
-                children: [
-                  ChoiceChip(
-                    label: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [Icon(Icons.image, size: 16), SizedBox(width: 4), Text('Photo Post')],
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    ChoiceChip(
+                      label: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [Icon(Icons.image, size: 16), SizedBox(width: 4), Text('Photo Post')],
+                      ),
+                      selected: contentType == 'post',
+                      onSelected: (val) => setMediaState(() => contentType = 'post'),
                     ),
-                    selected: contentType == 'post',
-                    onSelected: (val) => setMediaState(() => contentType = 'post'),
-                  ),
-                  const SizedBox(width: 12),
-                  ChoiceChip(
-                    label: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [Icon(Icons.video_collection, size: 16), SizedBox(width: 4), Text('Video Reel')],
+                    const SizedBox(width: 12),
+                    ChoiceChip(
+                      label: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [Icon(Icons.video_collection, size: 16), SizedBox(width: 4), Text('Video Reel')],
+                      ),
+                      selected: contentType == 'reel',
+                      onSelected: (val) => setMediaState(() => contentType = 'reel'),
                     ),
-                    selected: contentType == 'reel',
-                    onSelected: (val) => setMediaState(() => contentType = 'reel'),
-                  ),
-                ],
+                  ],
+                ),
               ),
               const SizedBox(height: 16),
               TextField(
@@ -892,6 +927,9 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> wit
                         Text(
                           pickedFile != null ? 'Media selected: ${pickedFile!.name}' : 'Tap to attach ${contentType == "post" ? "Photo" : "Video"}',
                           style: TextStyle(fontWeight: FontWeight.w600, color: pickedFile != null ? Colors.green : Colors.grey),
+                          textAlign: TextAlign.center,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
                     ),
@@ -1019,37 +1057,42 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> wit
                           child: Row(
                             children: [
                               CircleAvatar(
+                                radius: 18,
                                 backgroundColor: Colors.blue.withValues(alpha: 0.2),
-                                child: Text(sender.isNotEmpty ? sender[0] : 'S', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blue)),
+                                child: Text(sender.isNotEmpty ? sender[0] : 'S', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blue, fontSize: 13)),
                               ),
-                              const SizedBox(width: 8),
+                              const SizedBox(width: 6),
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(sender, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                                    if (senderCity.isNotEmpty) Text(senderCity, style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                                    Text(sender, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis),
+                                    if (senderCity.isNotEmpty) Text(senderCity, style: const TextStyle(fontSize: 11, color: Colors.grey), maxLines: 1, overflow: TextOverflow.ellipsis),
                                   ],
                                 ),
                               ),
-                              const Icon(Icons.arrow_forward_rounded, color: Color(0xFFE67E22), size: 20),
-                              const SizedBox(width: 8),
+                              const Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 4.0),
+                                child: Icon(Icons.arrow_forward_rounded, color: Color(0xFFE67E22), size: 18),
+                              ),
                               CircleAvatar(
+                                radius: 18,
                                 backgroundColor: Colors.pink.withValues(alpha: 0.2),
-                                child: Text(receiver.isNotEmpty ? receiver[0] : 'R', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.pink)),
+                                child: Text(receiver.isNotEmpty ? receiver[0] : 'R', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.pink, fontSize: 13)),
                               ),
-                              const SizedBox(width: 8),
+                              const SizedBox(width: 6),
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(receiver, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                                    if (receiverCity.isNotEmpty) Text(receiverCity, style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                                    Text(receiver, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis),
+                                    if (receiverCity.isNotEmpty) Text(receiverCity, style: const TextStyle(fontSize: 11, color: Colors.grey), maxLines: 1, overflow: TextOverflow.ellipsis),
                                   ],
                                 ),
                               ),
+                              const SizedBox(width: 6),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                                 decoration: BoxDecoration(
                                   color: status == 'Accepted'
                                       ? Colors.green.withValues(alpha: 0.2)
@@ -1061,7 +1104,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> wit
                                 child: Text(
                                   status,
                                   style: TextStyle(
-                                    fontSize: 11,
+                                    fontSize: 10,
                                     fontWeight: FontWeight.bold,
                                     color: status == 'Accepted' ? Colors.green : status == 'Rejected' ? Colors.red : Colors.orange,
                                   ),
@@ -1111,7 +1154,14 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> wit
               ),
               title: Row(
                 children: [
-                  Text(name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                  Expanded(
+                    child: Text(
+                      name,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
                   if (isFlagged) ...[
                     const SizedBox(width: 6),
                     Container(
@@ -1208,7 +1258,15 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> wit
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('$name Parivar', style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 14)),
+                      Expanded(
+                        child: Text(
+                          '$name Parivar',
+                          style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 14),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
                       Text('$count members ($percentage%)', style: GoogleFonts.sourceCodePro(fontWeight: FontWeight.bold, color: color, fontSize: 12)),
                     ],
                   ),
@@ -1259,7 +1317,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> wit
                   TextField(controller: titleController, decoration: const InputDecoration(labelText: 'Event Title (e.g. Samuh Lagna Sammelan 2026)', border: OutlineInputBorder())),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
-                    value: category,
+                    initialValue: category,
                     decoration: const InputDecoration(labelText: 'Category', border: OutlineInputBorder()),
                     items: ['Samuh Lagna', 'Blood Donation', 'Youth Sports Meet', 'Trust Election', 'Festival', 'General']
                         .map((c) => DropdownMenuItem(value: c, child: Text(c)))
@@ -1321,21 +1379,31 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> wit
           const SizedBox(height: 24),
           Text('Active Published Events (${_events.length})', style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 16)),
           const SizedBox(height: 12),
-          ..._events.map((ev) => Card(
-                elevation: 2,
-                margin: const EdgeInsets.only(bottom: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                child: ListTile(
-                  leading: const CircleAvatar(backgroundColor: Color(0xFFE67E22), child: Icon(Icons.event, color: Colors.white)),
-                  title: Text(ev['title'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: Text('${ev["date"]} • ${ev["location"]}'),
-                  trailing: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(color: Colors.green.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(6)),
-                    child: Text(ev['category'] ?? 'Event', style: const TextStyle(color: Colors.green, fontSize: 10, fontWeight: FontWeight.bold)),
+          if (_isLoadingEvents)
+            const Center(child: Padding(padding: EdgeInsets.all(24.0), child: CircularProgressIndicator()))
+          else if (_events.isEmpty)
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Text('No active broadcast events.', style: GoogleFonts.inter(color: Colors.grey)),
+              ),
+            )
+          else
+            ..._events.map((ev) => Card(
+                  elevation: 2,
+                  margin: const EdgeInsets.only(bottom: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  child: ListTile(
+                    leading: const CircleAvatar(backgroundColor: Color(0xFFE67E22), child: Icon(Icons.event, color: Colors.white)),
+                    title: Text(ev['title'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
+                    subtitle: Text('${ev["date"]} • ${ev["location"]}', maxLines: 1, overflow: TextOverflow.ellipsis),
+                    trailing: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(color: Colors.green.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(6)),
+                      child: Text(ev['category'] ?? 'Event', style: const TextStyle(color: Colors.green, fontSize: 10, fontWeight: FontWeight.bold)),
+                    ),
                   ),
-                ),
-              )),
+                )),
         ],
       ),
     );

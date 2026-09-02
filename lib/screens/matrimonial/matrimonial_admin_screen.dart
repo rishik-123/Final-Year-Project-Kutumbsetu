@@ -107,10 +107,15 @@ class _MatrimonialAdminScreenState extends ConsumerState<MatrimonialAdminScreen>
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(
-                              name,
-                              style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 15),
+                            Expanded(
+                              child: Text(
+                                name,
+                                style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 15),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
+                            const SizedBox(width: 8),
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                               decoration: BoxDecoration(
@@ -128,33 +133,49 @@ class _MatrimonialAdminScreenState extends ConsumerState<MatrimonialAdminScreen>
                         Text(
                           'Age: ${item['age']} • Gender: ${item['gender']} • City: ${item['city']}',
                           style: GoogleFonts.inter(fontSize: 13, color: Colors.grey.shade600),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                         ),
+                        const SizedBox(height: 2),
                         Text(
                           'Edu: ${item['education']} • Occupation: ${item['occupation']}',
                           style: GoogleFonts.inter(fontSize: 13, color: Colors.grey.shade600),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                         ),
                         const SizedBox(height: 16),
                         Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
                           children: [
-                            OutlinedButton(
-                              onPressed: () {
-                                setState(() {
-                                  _pendingProfiles.removeAt(index);
-                                });
-                              },
-                              style: OutlinedButton.styleFrom(
-                                foregroundColor: Colors.red,
+                            Expanded(
+                              child: OutlinedButton(
+                                onPressed: () {
+                                  setState(() {
+                                    _pendingProfiles.removeAt(index);
+                                  });
+                                },
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: Colors.red,
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                                ),
+                                child: const FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Text('Reject'),
+                                ),
                               ),
-                              child: const Text('Reject'),
                             ),
                             const SizedBox(width: 12),
-                            ElevatedButton(
-                              onPressed: () => _approveProfile(index, name),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: primaryBlue,
+                            Expanded(
+                              child: ElevatedButton(
+                                onPressed: () => _approveProfile(index, name),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: primaryBlue,
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                                ),
+                                child: const FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Text('Approve & Publish', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                                ),
                               ),
-                              child: const Text('Approve & Publish', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                             ),
                           ],
                         ),

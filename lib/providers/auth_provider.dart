@@ -60,36 +60,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
   final Ref ref;
 
   AuthNotifier(this.ref) : super(const AuthState()) {
-    _initDefaultUser();
-  }
-
-  void _initDefaultUser() {
-    // Default user profile matching KutumbSetu member profile
-    final defaultUser = UserModel(
-      id: '6a7962b212a58c4a0e118cab',
-      fullName: 'Rishi Patel',
-      surname: 'Patel',
-      fatherName: 'Rameshchandra Patel',
-      phoneNumber: '+919888877777',
-      gender: 'Male',
-      dateOfBirth: '1995-05-15',
-      nativePlace: 'Karamsad',
-      address: 'Station Road, Karamsad',
-      city: 'Anand',
-      state: 'Gujarat',
-      maritalStatus: 'Married',
-      occupation: 'Software Engineer',
-      role: 'admin', // Admin by default for campaign creation & registration testing
-    );
-
-    state = state.copyWith(user: defaultUser);
-    
-    // Sync to currentUserProvider
-    Future.microtask(() {
-      ref.read(currentUserProvider.notifier).state = defaultUser;
-    });
-
-    fetchUserByPhone('+919888877777');
+    final current = ref.read(currentUserProvider);
+    if (current != null) {
+      state = state.copyWith(user: current);
+    }
   }
 
   Future<void> fetchUserByPhone(String phone) async {

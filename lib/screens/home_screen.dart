@@ -1590,15 +1590,21 @@ Contact: ${user.phoneNumber}
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Row(
-                        children: [
-                          const Icon(Icons.send_and_archive_rounded, color: Color(0xFFE67E22), size: 24),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Send Request to Admin',
-                            style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 18),
-                          ),
-                        ],
+                      Expanded(
+                        child: Row(
+                          children: [
+                            const Icon(Icons.send_and_archive_rounded, color: Color(0xFFE67E22), size: 24),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'Send Request to Admin',
+                                style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 18),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                       IconButton(
                         icon: const Icon(Icons.close),
@@ -1614,7 +1620,7 @@ Contact: ${user.phoneNumber}
                   
                   // Purpose dropdown
                   DropdownButtonFormField<String>(
-                    value: selectedPurpose,
+                    initialValue: selectedPurpose,
                     decoration: const InputDecoration(
                       labelText: 'Purpose of Request',
                       border: OutlineInputBorder(),
@@ -1638,22 +1644,25 @@ Contact: ${user.phoneNumber}
                   const SizedBox(height: 12),
 
                   // Format selection: Post or Reel
-                  Row(
-                    children: [
-                      const Text('Format: ', style: TextStyle(fontWeight: FontWeight.bold)),
-                      const SizedBox(width: 8),
-                      ChoiceChip(
-                        label: const Text('Post (Image/Text)'),
-                        selected: contentType == 'post',
-                        onSelected: (val) => setModalState(() => contentType = 'post'),
-                      ),
-                      const SizedBox(width: 8),
-                      ChoiceChip(
-                        label: const Text('Reel (Video)'),
-                        selected: contentType == 'reel',
-                        onSelected: (val) => setModalState(() => contentType = 'reel'),
-                      ),
-                    ],
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        const Text('Format: ', style: TextStyle(fontWeight: FontWeight.bold)),
+                        const SizedBox(width: 8),
+                        ChoiceChip(
+                          label: const Text('Post (Image/Text)'),
+                          selected: contentType == 'post',
+                          onSelected: (val) => setModalState(() => contentType = 'post'),
+                        ),
+                        const SizedBox(width: 8),
+                        ChoiceChip(
+                          label: const Text('Reel (Video)'),
+                          selected: contentType == 'reel',
+                          onSelected: (val) => setModalState(() => contentType = 'reel'),
+                        ),
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 12),
 

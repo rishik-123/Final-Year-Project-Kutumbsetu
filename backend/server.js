@@ -3912,7 +3912,9 @@ app.post('/api/directory/request', async (req, res) => {
 
     // Look up sender user in database
     let finalSenderId = senderId;
-    let finalSenderName = senderName || 'Member';
+    let finalSenderName = (senderName && senderName.trim().length > 0 && senderName !== 'Samaj Member' && senderName !== 'Campaign Test User' && senderName !== 'Test User')
+      ? senderName.trim()
+      : '';
     let finalSenderEmail = sEmail;
     let finalSenderOccupation = '';
     let finalSenderCity = '';
@@ -3920,18 +3922,24 @@ app.post('/api/directory/request', async (req, res) => {
 
     const senderUser = await User.findOne({
       $or: [
-        { _id: mongoose.isValidObjectId(senderId) ? senderId : null },
         ...(sEmail ? [{ email: new RegExp(`^${sEmail}$`, 'i') }] : []),
+        { _id: mongoose.isValidObjectId(senderId) ? senderId : null },
         ...(senderName ? [{ fullName: new RegExp(`^${senderName.trim()}$`, 'i') }] : [])
       ].filter(Boolean)
     });
     if (senderUser) {
       finalSenderId = senderUser._id.toString();
-      finalSenderName = senderUser.fullName || finalSenderName;
+      if (!finalSenderName || (senderUser.fullName && senderUser.fullName !== 'Campaign Test User' && senderUser.fullName !== 'Test User')) {
+        finalSenderName = senderUser.fullName || finalSenderName;
+      }
       finalSenderEmail = senderUser.email || finalSenderEmail;
       finalSenderOccupation = senderUser.occupation || '';
       finalSenderCity = senderUser.city || '';
       finalSenderPhoto = senderUser.profilePhoto || '';
+    }
+
+    if (!finalSenderName || finalSenderName === 'Member') {
+      finalSenderName = senderName || 'Samaj Member';
     }
 
     // Look up receiver user in database
@@ -3968,6 +3976,7 @@ app.post('/api/directory/request', async (req, res) => {
     if (existing) {
       if (existing.status === 'rejected') {
         existing.status = 'pending';
+        existing.senderName = finalSenderName;
         existing.isPendingAlertSeenByReceiver = false;
         existing.isAcceptedAlertSeenBySender = false;
         existing.updatedAt = new Date();
@@ -4042,25 +4051,29 @@ app.get('/api/directory/incoming-alerts/:userId', async (req, res) => {
       let photo = r.senderPhoto;
       let occupation = r.senderOccupation;
       let city = r.senderCity;
+      let senderDisplayName = r.senderName;
 
-      if (!photo || !occupation) {
+      if (!photo || !occupation || !senderDisplayName || senderDisplayName === 'Campaign Test User' || senderDisplayName === 'Test User') {
         const sUser = await User.findOne({
           $or: [
-            { _id: mongoose.isValidObjectId(r.senderId) ? r.senderId : null },
-            { email: new RegExp(`^${r.senderEmail}$`, 'i') }
+            ...(r.senderEmail ? [{ email: new RegExp(`^${r.senderEmail}$`, 'i') }] : []),
+            { _id: mongoose.isValidObjectId(r.senderId) ? r.senderId : null }
           ].filter(Boolean)
         });
         if (sUser) {
           photo = photo || sUser.profilePhoto || '';
           occupation = occupation || sUser.occupation || '';
           city = city || sUser.city || '';
+          if (sUser.fullName && sUser.fullName !== 'Campaign Test User' && sUser.fullName !== 'Test User') {
+            senderDisplayName = sUser.fullName;
+          }
         }
       }
 
       alerts.push({
         requestId: r._id,
         senderId: r.senderId,
-        senderName: r.senderName,
+        senderName: senderDisplayName || 'Samaj Member',
         senderEmail: r.senderEmail,
         senderPhoto: photo,
         senderOccupation: occupation,

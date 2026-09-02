@@ -195,6 +195,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           });
           if (userModel != null) {
             ref.read(currentUserProvider.notifier).state = userModel;
+            ref.read(authProvider.notifier).setUser(userModel);
             _showSuccessSnackBar('Welcome to KutumbSetu!');
             context.go('/home');
           } else {
@@ -223,11 +224,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   Future<void> _handleAdminLogin() async {
-    final username = _adminUsernameController.text.trim();
-    final password = _adminPasswordController.text.trim();
+    final email = _adminEmailController.text.trim();
+    final password = _adminPasswordController.text;
 
-    if (username.isEmpty || password.isEmpty) {
-      _showErrorSnackBar('Please enter both username and password.');
+    if (email.isEmpty || password.isEmpty) {
+      _showErrorSnackBar('Please enter admin email and password.');
       return;
     }
 
@@ -240,7 +241,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         Uri.parse('${ApiConfig.baseUrl}/auth/admin-login'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
-          'username': username,
+          'email': email,
           'password': password,
         }),
       );
@@ -253,6 +254,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           _isVerifyingOtp = false;
         });
         ref.read(currentUserProvider.notifier).state = userModel;
+        ref.read(authProvider.notifier).setUser(userModel);
         _showSuccessSnackBar('Welcome, Admin!');
         context.go('/admin');
       } else {

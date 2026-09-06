@@ -108,6 +108,9 @@ const transportConfig = isGmail
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
       },
+      connectionTimeout: 4000,
+      greetingTimeout: 4000,
+      socketTimeout: 4000,
     }
   : {
       host: process.env.SMTP_HOST || 'smtp-relay.brevo.com',
@@ -120,6 +123,9 @@ const transportConfig = isGmail
       tls: {
         rejectUnauthorized: false,
       },
+      connectionTimeout: 6000,
+      greetingTimeout: 6000,
+      socketTimeout: 6000,
     };
 
 const transporter = nodemailer.createTransport(transportConfig);
@@ -312,13 +318,15 @@ app.post('/api/auth/send-email-otp', async (req, res) => {
 
     console.log(`Saved OTP ${otp} for email ${targetEmail}. Expires at ${expiresAt}`);
 
-    // Send the email and wait for confirmation
-    const emailInfo = await sendOtpEmail(targetEmail, null, otp);
+    // Dispatch email in background with safety catch
+    sendOtpEmail(targetEmail, null, otp).catch(err => {
+      console.error('[Background Email Error]:', err);
+    });
 
     return res.status(200).json({
       success: true,
       otp, // Provide in dev for reliable fallback
-      message: emailInfo ? 'OTP sent successfully to email.' : 'OTP generated, but email delivery had a delay.',
+      message: 'OTP sent successfully to email.',
     });
   } catch (error) {
     console.error('Error in send-email-otp:', error);

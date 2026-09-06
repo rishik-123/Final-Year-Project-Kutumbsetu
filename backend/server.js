@@ -100,23 +100,32 @@ app.get('/api', (req, res) => {
 });
 
 // Nodemailer configuration
-const transportConfig = {
-  host: process.env.SMTP_HOST || 'smtp-relay.brevo.com',
-  port: parseInt(process.env.SMTP_PORT || '587'),
-  secure: process.env.SMTP_SECURE === 'true',
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-  tls: {
-    rejectUnauthorized: false,
-  },
-};
+const isGmail = (process.env.SMTP_HOST || '').toLowerCase().includes('gmail');
+const transportConfig = isGmail
+  ? {
+      service: 'gmail',
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+      },
+    }
+  : {
+      host: process.env.SMTP_HOST || 'smtp-relay.brevo.com',
+      port: parseInt(process.env.SMTP_PORT || '587'),
+      secure: process.env.SMTP_SECURE === 'true',
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+      },
+      tls: {
+        rejectUnauthorized: false,
+      },
+    };
 
 const transporter = nodemailer.createTransport(transportConfig);
 
 // Helper: Send OTP Email
-const sendOtpEmail = (email, name, otp) => {
+const sendOtpEmail = async (email, name, otp) => {
   const senderEmail = process.env.SMTP_FROM || process.env.SMTP_USER || 'no-reply@kutumbsetu.org';
   const mailOptions = {
     from: `"KutumbSetu Portal" <${senderEmail}>`,
@@ -157,13 +166,14 @@ const sendOtpEmail = (email, name, otp) => {
     `,
   };
 
-  transporter.sendMail(mailOptions, (error, info) => {
-    if (error) {
-      console.error(`[Nodemailer ERROR] Failed to send OTP to ${email}:`, error);
-    } else {
-      console.log(`[Nodemailer SUCCESS] OTP email sent to ${email}: ${info.messageId}`);
-    }
-  });
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    console.log(`[Nodemailer SUCCESS] OTP email sent to ${email}: ${info.messageId}`);
+    return info;
+  } catch (error) {
+    console.error(`[Nodemailer ERROR] Failed to send OTP to ${email}:`, error);
+    return null;
+  }
 };
 
 // Configure Multer for File Uploads

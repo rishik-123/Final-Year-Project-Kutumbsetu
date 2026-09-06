@@ -83,6 +83,22 @@ app.use((req, res, next) => {
   next();
 });
 
+// Root & Health check routes
+app.get('/', (req, res) => {
+  res.status(200).json({
+    status: 'online',
+    message: 'KutumbSetu Backend Server is running successfully!',
+    timestamp: new Date().toISOString(),
+  });
+});
+
+app.get('/api', (req, res) => {
+  res.status(200).json({
+    status: 'online',
+    message: 'KutumbSetu API is active and ready.',
+  });
+});
+
 // Nodemailer configuration
 const transportConfig = {
   host: process.env.SMTP_HOST || 'smtp-relay.brevo.com',

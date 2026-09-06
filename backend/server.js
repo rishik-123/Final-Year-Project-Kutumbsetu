@@ -84,37 +84,26 @@ app.use((req, res, next) => {
 });
 
 // Nodemailer configuration
-const isGmail = (process.env.SMTP_HOST || '').includes('gmail.com');
-const transportConfig = isGmail
-  ? {
-      host: 'smtp.gmail.com',
-      port: 587,
-      secure: false,
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      },
-      tls: {
-        rejectUnauthorized: false,
-        minVersion: 'TLSv1.2',
-      },
-    }
-  : {
-      host: process.env.SMTP_HOST || 'smtp.ethereal.email',
-      port: parseInt(process.env.SMTP_PORT || '587'),
-      secure: process.env.SMTP_SECURE === 'true',
-      auth: {
-        user: process.env.SMTP_USER || 'test@ethereal.email',
-        pass: process.env.SMTP_PASS || 'testpassword',
-      },
-    };
+const transportConfig = {
+  host: process.env.SMTP_HOST || 'smtp-relay.brevo.com',
+  port: parseInt(process.env.SMTP_PORT || '587'),
+  secure: process.env.SMTP_SECURE === 'true',
+  auth: {
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS,
+  },
+  tls: {
+    rejectUnauthorized: false,
+  },
+};
 
 const transporter = nodemailer.createTransport(transportConfig);
 
 // Helper: Send OTP Email
 const sendOtpEmail = (email, name, otp) => {
+  const senderEmail = process.env.SMTP_FROM || process.env.SMTP_USER || 'no-reply@kutumbsetu.org';
   const mailOptions = {
-    from: '"KutumbSetu Portal" <no-reply@kutumbsetu.org>',
+    from: `"KutumbSetu Portal" <${senderEmail}>`,
     to: email.toLowerCase().trim(),
     subject: 'KutumbSetu - Your Email Verification OTP',
     html: `

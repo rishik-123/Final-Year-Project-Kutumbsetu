@@ -69,9 +69,10 @@ def send_otp_email(recipient_email, otp, name="User"):
     </div>
     """
 
+    smtp_from = os.environ.get('SMTP_FROM') or smtp_user
     msg = MIMEMultipart('alternative')
     msg['Subject'] = 'KutumbSetu - Your Email Verification OTP'
-    msg['From'] = f"KutumbSetu Portal <{smtp_user}>"
+    msg['From'] = f"KutumbSetu Portal <{smtp_from}>"
     msg['To'] = recipient_email
 
     msg.attach(MIMEText(html_content, 'html'))

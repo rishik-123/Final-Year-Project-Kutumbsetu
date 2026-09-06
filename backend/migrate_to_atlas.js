@@ -38,20 +38,14 @@ async function migrateData() {
         continue;
       }
 
-      // Upsert each document by _id to avoid duplicate key errors
-      const operations = docs.map(doc => ({
-        replaceOne: {
-          filter: { _id: doc._id },
-          replacement: doc,
-          upsert: true,
-        },
-      }));
+      // Clear existing atlas collection to ensure fresh 1:1 mirror of local data
+      await atlasColl.deleteMany({});
 
-      const result = await atlasColl.bulkWrite(operations, { ordered: false });
-      const count = (result.upsertedCount || 0) + (result.modifiedCount || 0) + (result.matchedCount || 0);
+      // Insert all documents from local
+      await atlasColl.insertMany(docs, { ordered: false });
       totalMigratedDocs += docs.length;
 
-      console.log(`  ✅ [${collName}] Successfully exported ${docs.length} documents.`);
+      console.log(`  ✅ [${collName}] Exported ${docs.length} documents.`);
     }
 
     console.log('\n========================================================');

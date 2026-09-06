@@ -127,10 +127,11 @@ const transporter = nodemailer.createTransport(transportConfig);
 // Helper: Send OTP Email
 const sendOtpEmail = async (email, name, otp) => {
   const senderEmail = process.env.SMTP_FROM || process.env.SMTP_USER || 'no-reply@kutumbsetu.org';
+  const timeStr = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   const mailOptions = {
     from: `"KutumbSetu Portal" <${senderEmail}>`,
     to: email.toLowerCase().trim(),
-    subject: 'KutumbSetu - Your Email Verification OTP',
+    subject: `KutumbSetu OTP: ${otp} [${timeStr}]`,
     html: `
       <div style="font-family: 'Poppins', 'Inter', sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
         <!-- Saffron Top Banner -->
@@ -311,13 +312,13 @@ app.post('/api/auth/send-email-otp', async (req, res) => {
 
     console.log(`Saved OTP ${otp} for email ${targetEmail}. Expires at ${expiresAt}`);
 
-    // Asynchronously send the email
-    sendOtpEmail(targetEmail, null, otp);
+    // Send the email and wait for confirmation
+    const emailInfo = await sendOtpEmail(targetEmail, null, otp);
 
     return res.status(200).json({
       success: true,
       otp, // Provide in dev for reliable fallback
-      message: 'OTP sent successfully to email.',
+      message: emailInfo ? 'OTP sent successfully to email.' : 'OTP generated, but email delivery had a delay.',
     });
   } catch (error) {
     console.error('Error in send-email-otp:', error);

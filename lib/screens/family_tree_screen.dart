@@ -14,6 +14,7 @@ class FamilyTreeNode {
   final String relation;
   final String? parentId;
   final bool isDeceased;
+  final bool isSelf;
   final List<FamilyTreeNode> children;
 
   FamilyTreeNode({
@@ -23,6 +24,7 @@ class FamilyTreeNode {
     required this.relation,
     this.parentId,
     required this.isDeceased,
+    this.isSelf = false,
     required this.children,
   });
 
@@ -38,6 +40,7 @@ class FamilyTreeNode {
       relation: json['relation'] as String? ?? '',
       parentId: json['parentId'] as String?,
       isDeceased: json['isDeceased'] as bool? ?? false,
+      isSelf: json['isSelf'] as bool? ?? false,
       children: childrenList,
     );
   }
@@ -112,22 +115,25 @@ class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
               _parentMap.clear();
               _mapNodes(root, null);
               
-              final user = ref.read(currentUserProvider);
-              FamilyTreeNode? selfNode;
-              if (user != null) {
-                selfNode = _nodesMap[user.id];
+              // Find the focal child node for the 3-generation canvas (Son/Daughter/Child)
+              FamilyTreeNode? focalChildNode;
+              for (var n in _nodesMap.values) {
+                final rel = n.relation.toLowerCase().trim();
+                if (rel == 'son' || rel == 'daughter' || rel == 'child') {
+                  focalChildNode = n;
+                  break;
+                }
               }
-              if (selfNode == null) {
+              if (focalChildNode == null) {
                 for (var n in _nodesMap.values) {
-                  final rel = n.relation.toLowerCase().trim();
-                  if (rel == 'self' || rel == 'son' || rel == 'daughter') {
-                    selfNode = n;
+                  if (n.relation.toLowerCase().trim() == 'self') {
+                    focalChildNode = n;
                     break;
                   }
                 }
               }
-              _focalNode = selfNode ?? root;
-              _focusPath = [selfNode ?? root];
+              _focalNode = focalChildNode ?? root;
+              _focusPath = [focalChildNode ?? root];
               _isLoading = false;
             });
             
@@ -623,12 +629,16 @@ class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
             color: isDark ? const Color(0xFF1E293B) : Colors.white,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: isFocal ? const Color(0xFF27AE60) : relColor,
-              width: isFocal ? 2.5 : 1.5,
+              color: node.isSelf
+                  ? const Color(0xFFD35400)
+                  : (isFocal ? const Color(0xFF27AE60) : relColor),
+              width: (node.isSelf || isFocal) ? 2.5 : 1.5,
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.1),
+                color: node.isSelf
+                    ? const Color(0xFFD35400).withValues(alpha: 0.25)
+                    : Colors.black.withValues(alpha: 0.1),
                 blurRadius: 8,
                 offset: const Offset(0, 4),
               ),
@@ -655,22 +665,46 @@ class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 4),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: relColor.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        node.relation.toUpperCase(),
-                        style: GoogleFonts.inter(
-                          fontSize: 9,
-                          fontWeight: FontWeight.bold,
-                          color: relColor,
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: relColor.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              node.relation.toUpperCase(),
+                              style: GoogleFonts.inter(
+                                fontSize: 9,
+                                fontWeight: FontWeight.bold,
+                                color: relColor,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
+                        if (node.isSelf) ...[
+                          const SizedBox(width: 4),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFD35400),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              'YOU',
+                              style: GoogleFonts.inter(
+                                fontSize: 8,
+                                fontWeight: FontWeight.w900,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                   ],
                 ),
@@ -691,7 +725,7 @@ class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
 
   FamilyTreeNode getFatherOf(FamilyTreeNode node) {
     final rel = node.relation.toLowerCase().trim();
-    if (rel == 'self' || rel == 'son' || rel == 'daughter') {
+    if (rel == 'self' || rel == 'son' || rel == 'daughter' || rel == 'child' || rel == 'brother' || rel == 'sister') {
       for (var n in _nodesMap.values) {
         if (n.relation.toLowerCase().trim() == 'father') return n;
       }
@@ -741,7 +775,7 @@ class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
 
   FamilyTreeNode getMotherOf(FamilyTreeNode node) {
     final rel = node.relation.toLowerCase().trim();
-    if (rel == 'self' || rel == 'son' || rel == 'daughter') {
+    if (rel == 'self' || rel == 'son' || rel == 'daughter' || rel == 'child' || rel == 'brother' || rel == 'sister') {
       for (var n in _nodesMap.values) {
         if (n.relation.toLowerCase().trim() == 'mother') return n;
       }

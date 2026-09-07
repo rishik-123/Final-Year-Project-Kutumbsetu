@@ -1613,7 +1613,7 @@ Contact: ${user.phoneNumber}
                     ],
                   ),
                   Text(
-                    'Submit your post, video reel, wedding announcement, or birthday wish for Admin approval before public broadcast.',
+                    'Submit your post, wedding announcement, or birthday wish for Admin approval before public broadcast.',
                     style: GoogleFonts.inter(fontSize: 12, color: Colors.grey),
                   ),
                   const Divider(height: 20),
@@ -1635,34 +1635,9 @@ Contact: ${user.phoneNumber}
                     onChanged: (val) {
                       setModalState(() {
                         selectedPurpose = val ?? 'General Post';
-                        if (selectedPurpose == 'Marriage Announcement') {
-                          contentType = 'post';
-                        }
+                        contentType = 'post';
                       });
                     },
-                  ),
-                  const SizedBox(height: 12),
-
-                  // Format selection: Post or Reel
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: [
-                        const Text('Format: ', style: TextStyle(fontWeight: FontWeight.bold)),
-                        const SizedBox(width: 8),
-                        ChoiceChip(
-                          label: const Text('Post (Image/Text)'),
-                          selected: contentType == 'post',
-                          onSelected: (val) => setModalState(() => contentType = 'post'),
-                        ),
-                        const SizedBox(width: 8),
-                        ChoiceChip(
-                          label: const Text('Reel (Video)'),
-                          selected: contentType == 'reel',
-                          onSelected: (val) => setModalState(() => contentType = 'reel'),
-                        ),
-                      ],
-                    ),
                   ),
                   const SizedBox(height: 12),
 

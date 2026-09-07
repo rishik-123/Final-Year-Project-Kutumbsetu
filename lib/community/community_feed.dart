@@ -117,7 +117,7 @@ class _CommunityFeedScreenState extends ConsumerState<CommunityFeedScreen> {
                       ],
                     ),
                     Text(
-                      'All user posts & reels are reviewed by Admin before public broadcast to ensure quality & community standards.',
+                      'All user posts are reviewed by Admin before public broadcast to ensure quality & community standards.',
                       style: GoogleFonts.inter(fontSize: 11.5, color: Colors.grey.shade600),
                     ),
                     const Divider(height: 20),
@@ -133,27 +133,10 @@ class _CommunityFeedScreenState extends ConsumerState<CommunityFeedScreen> {
                         'Samaj News / Event',
                         'Achievement',
                       ].map((p) => DropdownMenuItem(value: p, child: Text(p))).toList(),
-                      onChanged: (val) => setSheetState(() => selectedPurpose = val ?? 'General Post'),
-                    ),
-                    const SizedBox(height: 12),
-
-                    // Format: Post or Reel
-                    Row(
-                      children: [
-                        const Text('Format: ', style: TextStyle(fontWeight: FontWeight.bold)),
-                        const SizedBox(width: 8),
-                        ChoiceChip(
-                          label: const Text('Post (Image/Text)'),
-                          selected: contentType == 'post',
-                          onSelected: (val) => setSheetState(() => contentType = 'post'),
-                        ),
-                        const SizedBox(width: 8),
-                        ChoiceChip(
-                          label: const Text('Reel (Video)'),
-                          selected: contentType == 'reel',
-                          onSelected: (val) => setSheetState(() => contentType = 'reel'),
-                        ),
-                      ],
+                      onChanged: (val) => setSheetState(() {
+                        selectedPurpose = val ?? 'General Post';
+                        contentType = 'post';
+                      }),
                     ),
                     const SizedBox(height: 12),
 

@@ -427,7 +427,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> wit
             ),
             Tab(
               icon: const Icon(Icons.post_add_rounded, size: 18),
-              text: 'Upload Post / Reel',
+              text: 'Upload Post / Announcement',
             ),
             Tab(
               icon: const Icon(Icons.favorite_rounded, size: 18),
@@ -835,10 +835,9 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> wit
     );
   }
 
-  // TAB 3: Upload Post / Reel Directly
+  // TAB 3: Upload Post / Announcement Directly
   Widget _buildUploadMediaTab(bool isDark) {
     final descController = TextEditingController();
-    String contentType = 'post';
     XFile? pickedFile;
 
     return StatefulBuilder(
@@ -849,44 +848,19 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> wit
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Direct Broadcast Post / Reel',
+                'Direct Broadcast Post / Announcement',
                 style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               Text(
-                'Publish official posts and video reels visible directly on all members\' feeds.',
+                'Publish official posts and community announcements visible directly on all members\' feeds.',
                 style: GoogleFonts.inter(fontSize: 13, color: Colors.grey),
               ),
               const SizedBox(height: 20),
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    ChoiceChip(
-                      label: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [Icon(Icons.image, size: 16), SizedBox(width: 4), Text('Photo Post')],
-                      ),
-                      selected: contentType == 'post',
-                      onSelected: (val) => setMediaState(() => contentType = 'post'),
-                    ),
-                    const SizedBox(width: 12),
-                    ChoiceChip(
-                      label: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [Icon(Icons.video_collection, size: 16), SizedBox(width: 4), Text('Video Reel')],
-                      ),
-                      selected: contentType == 'reel',
-                      onSelected: (val) => setMediaState(() => contentType = 'reel'),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
               TextField(
                 controller: descController,
                 maxLines: 4,
                 decoration: InputDecoration(
-                  labelText: contentType == 'post' ? 'Post Content / Announcement' : 'Reel Caption',
+                  labelText: 'Post Content / Announcement',
                   hintText: 'Enter description, details, or wishes...',
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 ),
@@ -896,44 +870,52 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> wit
               InkWell(
                 onTap: () async {
                   final picker = ImagePicker();
-                  final file = contentType == 'post'
-                      ? await picker.pickImage(source: ImageSource.gallery)
-                      : await picker.pickVideo(source: ImageSource.gallery);
+                  final file = await picker.pickImage(source: ImageSource.gallery);
                   if (file != null) {
-                    setMediaState(() {
-                      pickedFile = file;
-                    });
+                    setMediaState(() => pickedFile = file);
                   }
                 },
-                borderRadius: BorderRadius.circular(12),
                 child: Container(
                   width: double.infinity,
-                  height: 120,
+                  height: 130,
                   decoration: BoxDecoration(
                     color: isDark ? const Color(0xFF1E293B) : Colors.grey.shade100,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: Colors.grey.shade300, style: BorderStyle.solid),
                   ),
-                  child: Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          pickedFile != null ? Icons.check_circle : (contentType == 'post' ? Icons.add_photo_alternate_rounded : Icons.video_call_rounded),
-                          color: pickedFile != null ? Colors.green : const Color(0xFFE67E22),
-                          size: 36,
+                  child: pickedFile == null
+                      ? Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.add_photo_alternate_rounded, size: 36, color: Color(0xFFD35400)),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Attach Photo (Optional)',
+                              style: GoogleFonts.poppins(fontSize: 14, color: Colors.grey.shade700, fontWeight: FontWeight.w500),
+                            ),
+                          ],
+                        )
+                      : Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              child: Text(
+                                'Selected: ${pickedFile!.name}',
+                                style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                            Positioned(
+                              top: 4,
+                              right: 4,
+                              child: IconButton(
+                                icon: const Icon(Icons.close, color: Colors.red),
+                                onPressed: () => setMediaState(() => pickedFile = null),
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 8),
-                        Text(
-                          pickedFile != null ? 'Media selected: ${pickedFile!.name}' : 'Tap to attach ${contentType == "post" ? "Photo" : "Video"}',
-                          style: TextStyle(fontWeight: FontWeight.w600, color: pickedFile != null ? Colors.green : Colors.grey),
-                          textAlign: TextAlign.center,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ),
-                  ),
                 ),
               ),
               const SizedBox(height: 24),
@@ -944,13 +926,13 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> wit
                   onPressed: () async {
                     final text = descController.text.trim();
                     if (text.isEmpty) {
-                      _showErrorSnackBar('Please enter description or caption.');
+                      _showErrorSnackBar('Please enter description or content.');
                       return;
                     }
 
                     try {
                       final currentUser = ref.read(currentUserProvider);
-                      final url = '${ApiConfig.baseUrl}/community/${contentType == "post" ? "posts" : "reels"}';
+                      final url = '${ApiConfig.baseUrl}/community/posts';
                       
                       String mediaBase64 = '';
                       if (pickedFile != null) {
@@ -958,19 +940,12 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> wit
                         mediaBase64 = base64Encode(bytes);
                       }
 
-                      final body = contentType == 'post'
-                          ? {
-                              'authorName': 'Admin Announcement',
-                              'content': text,
-                              'userId': currentUser?.id ?? '6a7962b212a58c4a0e118cab',
-                              if (mediaBase64.isNotEmpty) 'imageBase64': mediaBase64,
-                            }
-                          : {
-                              'authorName': 'Admin Reel',
-                              'caption': text,
-                              'userId': currentUser?.id ?? '6a7962b212a58c4a0e118cab',
-                              if (mediaBase64.isNotEmpty) 'videoBase64': mediaBase64,
-                            };
+                      final body = {
+                        'authorName': 'Admin Announcement',
+                        'content': text,
+                        'userId': currentUser?.id ?? '6a7962b212a58c4a0e118cab',
+                        if (mediaBase64.isNotEmpty) 'imageBase64': mediaBase64,
+                      };
 
                       final res = await http.post(
                         Uri.parse(url),
@@ -979,7 +954,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> wit
                       );
 
                       if (res.statusCode == 200 || res.statusCode == 201) {
-                        _showSuccessSnackBar('Broadcast ${contentType.toUpperCase()} uploaded successfully!');
+                        _showSuccessSnackBar('Broadcast Post uploaded successfully!');
                         descController.clear();
                         setMediaState(() => pickedFile = null);
                       } else {
@@ -989,11 +964,10 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> wit
                       _showErrorSnackBar('Error broadcasting media: $e');
                     }
                   },
-                  icon: const Icon(Icons.rocket_launch_rounded),
-                  label: const Text('Publish Broadcast to All Users', style: TextStyle(fontWeight: FontWeight.bold)),
+                  icon: const Icon(Icons.send_rounded, color: Colors.white),
+                  label: Text('Broadcast Post', style: GoogleFonts.poppins(fontWeight: FontWeight.bold, color: Colors.white)),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFE67E22),
-                    foregroundColor: Colors.white,
+                    backgroundColor: const Color(0xFFD35400),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                 ),

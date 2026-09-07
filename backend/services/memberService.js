@@ -3,6 +3,7 @@ const Counter = require('../models/Counter');
 const Member = require('../models/Member');
 const User = require('../models/User');
 const Profile = require('../models/Profile');
+const MatrimonialProfile = require('../models/MatrimonialProfile');
 
 /**
  * Escape regular expression special characters
@@ -509,9 +510,114 @@ async function syncMembersAndBackfill() {
         if (!prof.profilePhoto) prof.profilePhoto = 'avatar_female_1';
         await prof.save();
       }
+
+      // Upsert Matrimonial Profile for Payal Jariwala
+      let payalMat = await MatrimonialProfile.findOne({ userId: u._id });
+      if (!payalMat) {
+        payalMat = new MatrimonialProfile({
+          userId: u._id,
+          name: 'Payal Jariwala',
+          gender: 'Female',
+          dob: new Date('1998-05-15'),
+          heightCm: 162,
+          weightKg: 54,
+          bloodGroup: 'B+',
+          maritalStatus: 'Never Married',
+          education: 'M.Com, Chartered Accountancy (CA)',
+          occupation: 'Senior Financial Analyst',
+          company: 'Ernst & Young (EY)',
+          annualIncome: 1500000,
+          village: 'Surat',
+          city: 'Surat',
+          workingCountry: 'India',
+          description: 'Enthusiastic finance professional from a respected Kutumb family. Values cultural roots, open-minded conversations, and family bonding.',
+          partnerExpectations: 'Looking for an educated, understanding, and culturally grounded partner from our community.',
+          profilePhoto: 'avatar_female_1',
+          profileStatus: 'Approved',
+          familyInformation: {
+            fatherName: 'Dilip Gandhi',
+            motherName: 'Aruna Gandhi',
+            grandfather: 'Dinesh Jariwala',
+            grandmother: 'Urmi Jariwala',
+            familyOccupation: 'Textile Business'
+          },
+          lifestyle: {
+            diet: 'Vegetarian',
+            smoking: 'No',
+            drinking: 'No'
+          },
+          partnerPreferences: {
+            ageMin: 24,
+            ageMax: 32,
+            heightMin: 165,
+            heightMax: 188,
+            education: 'Graduate / Post Graduate',
+            maritalStatus: 'Never Married'
+          }
+        });
+      } else {
+        payalMat.name = 'Payal Jariwala';
+        payalMat.gender = 'Female';
+        payalMat.profileStatus = 'Approved';
+        if (!payalMat.profilePhoto) payalMat.profilePhoto = 'avatar_female_1';
+      }
+      await payalMat.save();
+    }
+
+    // Ensure Rishik also has an approved Matrimonial Profile
+    for (const u of allRishikUsers) {
+      let rishikMat = await MatrimonialProfile.findOne({ userId: u._id });
+      if (!rishikMat) {
+        rishikMat = new MatrimonialProfile({
+          userId: u._id,
+          name: u.fullName || 'Rishik Jariwala',
+          gender: 'Male',
+          dob: new Date('1997-08-20'),
+          heightCm: 175,
+          weightKg: 68,
+          bloodGroup: 'O+',
+          maritalStatus: 'Never Married',
+          education: 'B.Tech in Computer Science',
+          occupation: 'Software Development Engineer',
+          company: 'Tech Innovations Ltd',
+          annualIncome: 1800000,
+          village: 'Surat',
+          city: 'Surat',
+          workingCountry: 'India',
+          description: 'Passionate software engineer with interest in tech, sports, and community development.',
+          partnerExpectations: 'Seeking an educated, kind-hearted partner who values family unity and personal growth.',
+          profilePhoto: 'avatar_male_1',
+          profileStatus: 'Approved',
+          familyInformation: {
+            fatherName: 'Alak Jariwala',
+            motherName: 'Payal Jariwala',
+            grandfather: 'Dinesh Jariwala',
+            grandmother: 'Urmi Jariwala',
+            familyOccupation: 'Business & Technology'
+          },
+          lifestyle: {
+            diet: 'Vegetarian',
+            smoking: 'No',
+            drinking: 'No'
+          },
+          partnerPreferences: {
+            ageMin: 22,
+            ageMax: 29,
+            heightMin: 155,
+            heightMax: 175,
+            education: 'Graduate / Post Graduate',
+            maritalStatus: 'Never Married'
+          }
+        });
+      } else {
+        rishikMat.profileStatus = 'Approved';
+        if (!rishikMat.profilePhoto) rishikMat.profilePhoto = 'avatar_male_1';
+      }
+      await rishikMat.save();
     }
 
     console.log(`[MemberService] Synced Rishik's family hierarchy: Rishik (${rishikMember.memberId}) -> Alak (${alakMember.memberId}) & Payal (${payalMember.memberId}) -> Dinesh (${dineshMember.memberId}), Urmi (${urmiMember.memberId}), Dilip (${dilipMember.memberId}), Aruna (${arunaMember.memberId})`);
+    console.log('[MemberService] Synced Matrimonial Profiles for Payal and Rishik.');
     console.log('[MemberService] Sync and ID backfill completed successfully.');
   } catch (err) {
     console.error('[MemberService] Error in syncMembersAndBackfill:', err);

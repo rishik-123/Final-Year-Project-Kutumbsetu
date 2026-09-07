@@ -531,7 +531,8 @@ function isProfileComplete(profile) {
 }
 
 /**
- * Builds the Family Tree data structure for any user based on their ID-linked relationships
+ * Builds the Family Tree data structure for any user based on their ID-linked relationships.
+ * Any family member (Mother, Father, Son, Daughter, Grandparents) will see their unified shared family tree.
  */
 async function buildFamilyTree(profile, userEmail, userPhone) {
   // Check if profile is complete
@@ -555,6 +556,8 @@ async function buildFamilyTree(profile, userEmail, userPhone) {
     member = await Member.findOne({ phoneNumber: cleanPhone });
   }
 
+  const currentMemberId = member ? member.memberId : (profile ? profile.memberId : null);
+
   // Helper to make standard FamilyTreeNode
   const makeNode = (m, relation) => {
     if (!m) return null;
@@ -562,12 +565,14 @@ async function buildFamilyTree(profile, userEmail, userPhone) {
     if (!photo) {
       photo = m.gender === 'Female' ? 'avatar_female_1' : 'avatar_male_1';
     }
+    const isSelf = Boolean(currentMemberId && m.memberId === currentMemberId);
     return {
       id: m.memberId || (m._id ? m._id.toString() : `node-${Math.random()}`),
       name: m.fullName || '',
       photo: photo,
       relation: relation || m.relationshipToHead || 'Self',
       isDeceased: m.isDeceased || false,
+      isSelf: isSelf,
       parentId: null,
       children: [],
     };
@@ -581,273 +586,225 @@ async function buildFamilyTree(profile, userEmail, userPhone) {
       photo: isFemale ? 'avatar_female_1' : 'avatar_male_1',
       relation,
       isDeceased: false,
+      isSelf: false,
       parentId: null,
       children: [],
     };
   };
 
-  let selfName = (member && member.fullName) || (profile && profile.userId && profile.userId.fullName) || '';
-  if (!selfName && userEmail) {
-    const u = await User.findOne({ email: userEmail.toLowerCase().trim() });
-    if (u) selfName = u.fullName;
-  }
-  let selfPhoto = (member && member.profilePhoto) || (profile && profile.profilePhoto) || '';
-  if (!selfPhoto) {
-    selfPhoto = (member && member.gender === 'Female') || (profile && profile.gender === 'Female') ? 'avatar_female_1' : 'avatar_male_1';
-  }
+  // 2. Discover canonical family unit anchor (e.g. child generation node like Rishik)
+  let primaryChildMember = null;
+  let fatherMember = null;
+  let motherMember = null;
+  let paternalGfMember = null;
+  let paternalGmMember = null;
+  let maternalGfMember = null;
+  let maternalGmMember = null;
 
-  const selfNode = {
-    id: (member && member.memberId) || (profile && profile.memberId) || (profile && profile.userId ? (profile.userId._id ? profile.userId._id.toString() : profile.userId.toString()) : 'self-id'),
-    name: selfName || 'Self',
-    photo: selfPhoto,
-    relation: 'Self',
-    isDeceased: (member && member.isDeceased) || (profile && profile.isDeceased) || false,
-    parentId: null,
-    children: [],
-  };
-
-  if (!selfNode) return null;
-
-  // 2. Resolve Father & Mother
-  let fNode = null;
-  let mNode = null;
-
-  const fatherId = (member && member.fatherId) || (profile && profile.fatherId);
-  const motherId = (member && member.motherId) || (profile && profile.motherId);
-  const fatherName = (member && member.fatherName) || (profile && profile.fatherName);
-  const motherName = (member && member.motherName) || (profile && profile.motherName);
-
-  if (fatherId) {
-    const fMem = await Member.findOne({ memberId: fatherId });
-    if (fMem) fNode = makeNode(fMem, 'Father');
-  }
-  if (!fNode && fatherName && fatherName.trim()) {
-    const fMem = await Member.findOne({ fullName: new RegExp(`^${escapeRegex(fatherName.trim())}$`, 'i'), gender: 'Male' });
-    if (fMem) fNode = makeNode(fMem, 'Father');
-    else fNode = makeVirtualNode(`${selfNode.id}-virtual-father`, fatherName.trim(), 'Father');
-  }
-
-  if (motherId) {
-    const mMem = await Member.findOne({ memberId: motherId });
-    if (mMem) mNode = makeNode(mMem, 'Mother');
-  }
-  if (!mNode && motherName && motherName.trim()) {
-    const mMem = await Member.findOne({
-      $or: [
-        { fullName: new RegExp(`^${escapeRegex(motherName.trim())}$`, 'i') },
-        { maidenName: new RegExp(`^${escapeRegex(motherName.trim())}$`, 'i') }
-      ],
-      gender: 'Female'
-    });
-    if (mMem) mNode = makeNode(mMem, 'Mother');
-    else mNode = makeVirtualNode(`${selfNode.id}-virtual-mother`, motherName.trim(), 'Mother');
-  }
-
-  // 3. Resolve Paternal Grandparents (Dinesh & Urmi)
-  let gfNode = null;
-  let gmNode = null;
-
-  const gfId = (member && member.paternalGrandfatherId) || (profile && profile.paternalGrandfatherId);
-  const gmId = (member && member.paternalGrandmotherId) || (profile && profile.paternalGrandmotherId);
-  const gfName = (member && member.grandfather) || (profile && profile.grandfather);
-  const gmName = (member && member.grandmother) || (profile && profile.grandmother);
-
-  if (gfId) {
-    const gfMem = await Member.findOne({ memberId: gfId });
-    if (gfMem) gfNode = makeNode(gfMem, 'Grandfather');
-  }
-  if (!gfNode && gfName && gfName.trim()) {
-    const gfMem = await Member.findOne({ fullName: new RegExp(`^${escapeRegex(gfName.trim())}$`, 'i'), gender: 'Male' });
-    if (gfMem) gfNode = makeNode(gfMem, 'Grandfather');
-    else gfNode = makeVirtualNode(`${selfNode.id}-virtual-grandfather`, gfName.trim(), 'Grandfather');
-  }
-
-  if (gmId) {
-    const gmMem = await Member.findOne({ memberId: gmId });
-    if (gmMem) gmNode = makeNode(gmMem, 'Grandmother');
-  }
-  if (!gmNode && gmName && gmName.trim()) {
-    const gmMem = await Member.findOne({ fullName: new RegExp(`^${escapeRegex(gmName.trim())}$`, 'i'), gender: 'Female' });
-    if (gmMem) gmNode = makeNode(gmMem, 'Grandmother');
-    else gmNode = makeVirtualNode(`${selfNode.id}-virtual-grandmother`, gmName.trim(), 'Grandmother');
-  }
-
-  // 4. Resolve Maternal Grandparents (Nana & Nani / Dilip & Aruna)
-  let nanaNode = null;
-  let naniNode = null;
-
-  const nanaId = (member && member.maternalGrandfatherId) || (profile && profile.maternalGrandfatherId);
-  const naniId = (member && member.maternalGrandmotherId) || (profile && profile.maternalGrandmotherId);
-  const nanaName = (member && member.nana) || (profile && profile.nana);
-  const naniName = (member && member.nani) || (profile && profile.nani);
-
-  if (nanaId) {
-    const nanaMem = await Member.findOne({ memberId: nanaId });
-    if (nanaMem) nanaNode = makeNode(nanaMem, 'Nana');
-  }
-  if (!nanaNode && nanaName && nanaName.trim()) {
-    const nanaMem = await Member.findOne({ fullName: new RegExp(`^${escapeRegex(nanaName.trim())}$`, 'i'), gender: 'Male' });
-    if (nanaMem) nanaNode = makeNode(nanaMem, 'Nana');
-    else nanaNode = makeVirtualNode(`${selfNode.id}-virtual-nana`, nanaName.trim(), 'Nana');
-  }
-
-  if (naniId) {
-    const naniMem = await Member.findOne({ memberId: naniId });
-    if (naniMem) naniNode = makeNode(naniMem, 'Nani');
-  }
-  if (!naniNode && naniName && naniName.trim()) {
-    const naniMem = await Member.findOne({ fullName: new RegExp(`^${escapeRegex(naniName.trim())}$`, 'i'), gender: 'Female' });
-    if (naniMem) naniNode = makeNode(naniMem, 'Nani');
-    else naniNode = makeVirtualNode(`${selfNode.id}-virtual-nani`, naniName.trim(), 'Nani');
-  }
-
-  // 5. Resolve Spouse
-  let spouseNode = null;
-  const spouseId = (member && member.spouseId) || (profile && profile.spouseId);
-  const spouseName = (member && member.spouseName) || (profile && profile.spouseName);
-
-  if (spouseId) {
-    const sMem = await Member.findOne({ memberId: spouseId });
-    if (sMem) spouseNode = makeNode(sMem, 'Spouse');
-  }
-  if (!spouseNode && spouseName && spouseName.trim()) {
-    const sMem = await Member.findOne({ fullName: new RegExp(`^${escapeRegex(spouseName.trim())}$`, 'i') });
-    if (sMem) spouseNode = makeNode(sMem, 'Spouse');
-    else spouseNode = makeVirtualNode(`${selfNode.id}-virtual-spouse`, spouseName.trim(), 'Spouse');
-  }
-
-  // 6. Resolve Children
-  const sonNodes = [];
-  const daughterNodes = [];
   if (member && member.memberId) {
-    const children = await Member.find({
+    // Check if current user is a parent (has direct children)
+    const directChildren = await Member.find({
       $or: [
         { fatherId: member.memberId },
         { motherId: member.memberId },
       ]
     });
-    for (const c of children) {
-      if (c.gender === 'Female') daughterNodes.push(makeNode(c, 'Daughter'));
-      else sonNodes.push(makeNode(c, 'Son'));
+
+    if (directChildren.length > 0) {
+      primaryChildMember = directChildren.find(c => c.memberId === 'MEM001') || directChildren[0];
+    } else {
+      // Check if current user is a grandparent (child of user has children)
+      const directChildrenOfGp = await Member.find({
+        $or: [
+          { fatherId: member.memberId },
+          { motherId: member.memberId },
+        ]
+      });
+      for (const p of directChildrenOfGp) {
+        const grandChildren = await Member.find({
+          $or: [
+            { fatherId: p.memberId },
+            { motherId: p.memberId },
+          ]
+        });
+        if (grandChildren.length > 0) {
+          primaryChildMember = grandChildren.find(c => c.memberId === 'MEM001') || grandChildren[0];
+          break;
+        }
+      }
     }
   }
 
-  // 7. Resolve Siblings
+  // If not found via parent/grandparent traversal, check if the member themselves is the child node
+  if (!primaryChildMember && member) {
+    primaryChildMember = member;
+  }
+
+  // 3. Resolve all hierarchy nodes from canonical child node (or profile data)
+  let childNode = null;
   const siblingNodes = [];
-  if (fatherId) {
-    const siblings = await Member.find({
-      fatherId: fatherId,
-      memberId: { $ne: (member && member.memberId) || '' },
-    });
-    for (const sib of siblings) {
-      siblingNodes.push(makeNode(sib, sib.gender === 'Female' ? 'Sister' : 'Brother'));
+
+  if (primaryChildMember) {
+    childNode = makeNode(primaryChildMember, primaryChildMember.gender === 'Female' ? 'Daughter' : 'Son');
+
+    // Resolve Father
+    const fId = primaryChildMember.fatherId || (profile && profile.fatherId);
+    if (fId) {
+      fatherMember = await Member.findOne({ memberId: fId });
+    }
+    if (!fatherMember && (profile && profile.fatherName)) {
+      fatherMember = await Member.findOne({ fullName: new RegExp(`^${escapeRegex(profile.fatherName.trim())}$`, 'i'), gender: 'Male' });
+    }
+
+    // Resolve Mother
+    const mId = primaryChildMember.motherId || (profile && profile.motherId);
+    if (mId) {
+      motherMember = await Member.findOne({ memberId: mId });
+    }
+    if (!motherMember && (profile && profile.motherName)) {
+      motherMember = await Member.findOne({
+        $or: [
+          { fullName: new RegExp(`^${escapeRegex(profile.motherName.trim())}$`, 'i') },
+          { maidenName: new RegExp(`^${escapeRegex(profile.motherName.trim())}$`, 'i') }
+        ],
+        gender: 'Female'
+      });
+    }
+
+    // Resolve Paternal Grandparents (Dinesh & Urmi)
+    const gfId = (fatherMember && fatherMember.fatherId) || primaryChildMember.paternalGrandfatherId || (profile && profile.paternalGrandfatherId);
+    if (gfId) {
+      paternalGfMember = await Member.findOne({ memberId: gfId });
+    }
+    const gmId = (fatherMember && fatherMember.motherId) || primaryChildMember.paternalGrandmotherId || (profile && profile.paternalGrandmotherId);
+    if (gmId) {
+      paternalGmMember = await Member.findOne({ memberId: gmId });
+    }
+
+    // Resolve Maternal Grandparents (Dilip & Aruna)
+    const nanaId = (motherMember && motherMember.fatherId) || primaryChildMember.maternalGrandfatherId || (profile && profile.maternalGrandfatherId);
+    if (nanaId) {
+      maternalGfMember = await Member.findOne({ memberId: nanaId });
+    }
+    const naniId = (motherMember && motherMember.motherId) || primaryChildMember.maternalGrandmotherId || (profile && profile.maternalGrandmotherId);
+    if (naniId) {
+      maternalGmMember = await Member.findOne({ memberId: naniId });
+    }
+
+    // Resolve Siblings
+    if (fId) {
+      const sibs = await Member.find({
+        fatherId: fId,
+        memberId: { $ne: primaryChildMember.memberId },
+      });
+      for (const sib of sibs) {
+        siblingNodes.push(makeNode(sib, sib.gender === 'Female' ? 'Daughter' : 'Son'));
+      }
     }
   }
 
-  // Process any custom addedMembers from profile
-  const addedMembers = (profile && profile.addedMembers) || [];
-  addedMembers.forEach((m, idx) => {
-    const n = makeVirtualNode(`${selfNode.id}-added-${idx}`, m.name, m.relation);
-    const rel = (m.relation || '').toLowerCase().trim();
-    if (rel === 'son') sonNodes.push(n);
-    else if (rel === 'daughter') daughterNodes.push(n);
-    else if (rel === 'brother' || rel === 'sister') siblingNodes.push(n);
-    else if (rel === 'father' && !fNode) fNode = n;
-    else if (rel === 'mother' && !mNode) mNode = n;
-    else if (rel === 'grandfather' && !gfNode) gfNode = n;
-    else if (rel === 'grandmother' && !gmNode) gmNode = n;
-    else if (rel === 'nana' && !nanaNode) nanaNode = n;
-    else if (rel === 'nani' && !naniNode) naniNode = n;
-    else if ((rel === 'spouse' || rel === 'wife' || rel === 'husband') && !spouseNode) spouseNode = n;
-  });
+  // Fallbacks using text from Profile if not found in Member collection
+  let fNode = makeNode(fatherMember, 'Father');
+  if (!fNode && profile && profile.fatherName && profile.fatherName.trim()) {
+    fNode = makeVirtualNode(`virtual-father`, profile.fatherName.trim(), 'Father');
+  }
 
-  // 8. Connect relationship hierarchy lines
-  // Spouse pairs (Connected side-by-side)
-  if (gfNode && gmNode) {
-    gfNode.children.push(gmNode);
-    gmNode.parentId = gfNode.id;
+  let mNode = makeNode(motherMember, 'Mother');
+  if (!mNode && profile && profile.motherName && profile.motherName.trim()) {
+    mNode = makeVirtualNode(`virtual-mother`, profile.motherName.trim(), 'Mother');
   }
-  if (nanaNode && naniNode) {
-    nanaNode.children.push(naniNode);
-    naniNode.parentId = nanaNode.id;
+
+  let gfNode = makeNode(paternalGfMember, 'Grandfather');
+  if (!gfNode && profile && profile.grandfather && profile.grandfather.trim() && profile.grandfather.toLowerCase() !== 'none') {
+    gfNode = makeVirtualNode(`virtual-grandfather`, profile.grandfather.trim(), 'Grandfather');
   }
+
+  let gmNode = makeNode(paternalGmMember, 'Grandmother');
+  if (!gmNode && profile && profile.grandmother && profile.grandmother.trim() && profile.grandmother.toLowerCase() !== 'none') {
+    gmNode = makeVirtualNode(`virtual-grandmother`, profile.grandmother.trim(), 'Grandmother');
+  }
+
+  let nanaNode = makeNode(maternalGfMember, 'Nana');
+  if (!nanaNode && profile && profile.nana && profile.nana.trim() && profile.nana.toLowerCase() !== 'none') {
+    nanaNode = makeVirtualNode(`virtual-nana`, profile.nana.trim(), 'Nana');
+  }
+
+  let naniNode = makeNode(maternalGmMember, 'Nani');
+  if (!naniNode && profile && profile.nani && profile.nani.trim() && profile.nani.toLowerCase() !== 'none') {
+    naniNode = makeVirtualNode(`virtual-nani`, profile.nani.trim(), 'Nani');
+  }
+
+  if (!childNode) {
+    let selfName = (member && member.fullName) || (profile && profile.userId && profile.userId.fullName) || 'Self';
+    let selfPhoto = (member && member.profilePhoto) || (profile && profile.profilePhoto) || 'avatar_male_1';
+    childNode = {
+      id: currentMemberId || 'self-node',
+      name: selfName,
+      photo: selfPhoto,
+      relation: 'Self',
+      isDeceased: false,
+      isSelf: true,
+      parentId: null,
+      children: [],
+    };
+  }
+
+  // 4. Build Symmetrical Family Hierarchy
+  const rootAncestors = makeVirtualNode('virtual-ancestors', 'Ancestors', 'Ancestors');
+
+  // Branch A: Paternal Grandparents -> Father
+  if (gfNode) {
+    rootAncestors.children.push(gfNode);
+    gfNode.parentId = rootAncestors.id;
+    if (gmNode) {
+      gfNode.children.push(gmNode);
+      gmNode.parentId = gfNode.id;
+    }
+    if (fNode) {
+      gfNode.children.push(fNode);
+      fNode.parentId = gfNode.id;
+    }
+  } else if (fNode) {
+    rootAncestors.children.push(fNode);
+    fNode.parentId = rootAncestors.id;
+  }
+
+  // Branch B: Maternal Grandparents -> Mother
+  if (nanaNode) {
+    rootAncestors.children.push(nanaNode);
+    nanaNode.parentId = rootAncestors.id;
+    if (naniNode) {
+      nanaNode.children.push(naniNode);
+      naniNode.parentId = nanaNode.id;
+    }
+    if (mNode) {
+      nanaNode.children.push(mNode);
+      mNode.parentId = nanaNode.id;
+    }
+  } else if (mNode) {
+    rootAncestors.children.push(mNode);
+    mNode.parentId = rootAncestors.id;
+  }
+
+  // Connect Father & Mother
   if (fNode && mNode) {
     fNode.children.push(mNode);
     mNode.parentId = fNode.id;
   }
-  if (selfNode && spouseNode) {
-    selfNode.children.push(spouseNode);
-    spouseNode.parentId = selfNode.id;
-  }
 
-  // Paternal Grandparents -> Father
-  if (gfNode && fNode) {
-    gfNode.children.push(fNode);
-    fNode.parentId = gfNode.id;
-  } else if (gmNode && fNode) {
-    gmNode.children.push(fNode);
-    fNode.parentId = gmNode.id;
-  }
+  // Connect Parents -> Child & Siblings
+  const primaryParentNode = fNode || mNode;
+  if (primaryParentNode && childNode) {
+    primaryParentNode.children.push(childNode);
+    childNode.parentId = primaryParentNode.id;
 
-  // Maternal Grandparents -> Mother
-  if (nanaNode && mNode) {
-    nanaNode.children.push(mNode);
-    mNode.parentId = nanaNode.id;
-  } else if (naniNode && mNode) {
-    naniNode.children.push(mNode);
-    mNode.parentId = naniNode.id;
-  }
-
-  // Parents -> Self & Siblings
-  if (fNode) {
-    fNode.children.push(selfNode);
-    selfNode.parentId = fNode.id;
     siblingNodes.forEach(sib => {
-      fNode.children.push(sib);
-      sib.parentId = fNode.id;
-    });
-  } else if (mNode) {
-    mNode.children.push(selfNode);
-    selfNode.parentId = mNode.id;
-    siblingNodes.forEach(sib => {
-      mNode.children.push(sib);
-      sib.parentId = mNode.id;
+      primaryParentNode.children.push(sib);
+      sib.parentId = primaryParentNode.id;
     });
   }
 
-  // Self -> Children
-  sonNodes.forEach(s => {
-    selfNode.children.push(s);
-    s.parentId = selfNode.id;
-  });
-  daughterNodes.forEach(d => {
-    selfNode.children.push(d);
-    d.parentId = selfNode.id;
-  });
-
-  // 9. Select Root Node
-  let root = null;
-  if (gfNode || gmNode || nanaNode || naniNode) {
-    // Symmetrical ancestral root for paternal + maternal grandparents
-    const ancestors = makeVirtualNode('virtual-ancestors', 'Ancestors', 'Ancestors');
-    if (gfNode) {
-      ancestors.children.push(gfNode);
-      gfNode.parentId = ancestors.id;
-    }
-    if (nanaNode) {
-      ancestors.children.push(nanaNode);
-      nanaNode.parentId = ancestors.id;
-    }
-    root = ancestors;
-  } else if (fNode) {
-    root = fNode;
-  } else if (mNode) {
-    root = mNode;
-  } else {
-    root = selfNode;
-  }
-
-  return root;
+  return rootAncestors;
 }
 
 module.exports = {

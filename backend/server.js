@@ -1605,19 +1605,41 @@ app.get('/api/matrimonial/profiles', async (req, res) => {
     if (occupation) query.occupation = new RegExp(occupation, 'i');
     if (education) query.education = new RegExp(education, 'i');
 
-    if (search) {
-      const searchRegex = new RegExp(search, 'i');
-      query.$or = [
+    if (search && search.trim()) {
+      const cleanSearch = search.trim();
+      const searchRegex = new RegExp(escapeRegex(cleanSearch), 'i');
+      
+      const matchingUsers = await User.find({
+        $or: [
+          { email: searchRegex },
+          { fullName: searchRegex },
+          { phoneNumber: searchRegex }
+        ]
+      }).select('_id');
+      const userIds = matchingUsers.map(u => u._id);
+
+      const orConditions = [
         { name: searchRegex },
         { village: searchRegex },
         { city: searchRegex },
         { education: searchRegex },
-        { occupation: searchRegex }
+        { occupation: searchRegex },
+        { company: searchRegex },
       ];
+      if (userIds.length > 0) {
+        orConditions.push({ userId: { $in: userIds } });
+      }
+      query.$or = orConditions;
+
+      // If user searched for a specific query text (like email or name), don't restrict by default opposite gender unless explicit
+      if (!req.query.explicitGender) {
+        delete query.gender;
+      }
     }
 
     const skipIndex = (parseInt(page) - 1) * parseInt(limit);
     const profiles = await MatrimonialProfile.find(query)
+      .populate('userId')
       .skip(skipIndex)
       .limit(parseInt(limit))
       .sort({ createdDate: -1 });
@@ -1693,44 +1715,25 @@ app.get('/api/matrimonial/profiles', async (req, res) => {
       }
       doc.match = Math.min(Math.max(matchScore, 50), 98); // clamp between 50 and 98
 
-      // Apply Request-based detail masking
-      const uIdStr = doc.userId ? doc.userId.toString() : '';
+      // Resolve User ID & contact info from populated userId
+      const uIdObj = doc.userId;
+      const uIdStr = uIdObj ? (uIdObj._id ? uIdObj._id.toString() : uIdObj.toString()) : '';
+      const uEmail = (uIdObj && typeof uIdObj === 'object') ? (uIdObj.email || '') : '';
+      const uPhone = (uIdObj && typeof uIdObj === 'object') ? (uIdObj.phoneNumber || '') : '';
+      doc.userId = uIdStr;
+
       const isOwnProfile = requesterId && requesterId.toString() === uIdStr;
       const isAccepted = isOwnProfile || (requesterId && acceptedUserIds.has(uIdStr));
       doc.connectionStatus = sentReqMap[uIdStr] || 'None';
 
-      if (!isOwnProfile && !isAccepted) {
-        doc.gender = '';
-        doc.dateOfBirth = '';
-        doc.dob = '';
-        doc.heightCm = 0;
-        doc.weightKg = 0;
-        doc.maritalStatus = '';
-        doc.religion = '';
-        doc.caste = '';
-        doc.subCaste = '';
-        doc.gothra = '';
-        doc.motherTongue = '';
-        doc.education = '';
-        doc.occupation = '';
-        doc.company = '';
-        doc.annualIncome = 0;
-        doc.village = '';
-        doc.city = '';
-        doc.workingCountry = '';
-        doc.description = '';
-        doc.partnerExpectations = '';
-        doc.partnerExpectationsHobbies = [];
-        doc.additionalPhotos = [];
-        doc.socialLinks = { showSocialLinks: false, instagramUrl: '', facebookUrl: '' };
-        doc.mobileNumber = '';
-        doc.emailAddress = '';
-        doc.fullAddressText = '';
-        doc.profilePhoto = '';
-        doc.introductionVideo = '';
-        doc.lifestyle = {};
-        doc.partnerPreferences = {};
-        doc.familyInformation = {};
+      if (isAccepted) {
+        doc.mobileNumber = uPhone;
+        doc.emailAddress = uEmail;
+        doc.fullAddressText = `${doc.village || ''}, ${doc.city || ''}`.trim();
+      } else {
+        doc.mobileNumber = uPhone ? `${uPhone.slice(0, 3)}••••••${uPhone.slice(-2)}` : '';
+        doc.emailAddress = uEmail ? `${uEmail.slice(0, 2)}••••@•••` : '';
+        doc.fullAddressText = 'Locked until connection accepted';
       }
 
       return doc;

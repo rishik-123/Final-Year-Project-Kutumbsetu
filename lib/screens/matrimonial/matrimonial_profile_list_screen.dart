@@ -32,6 +32,7 @@ class _MatrimonialProfileListScreenState extends ConsumerState<MatrimonialProfil
   RangeValues _weightRange = const RangeValues(40, 120);
   RangeValues _incomeRange = const RangeValues(0, 50); // in lakhs
   String _selectedMaritalStatus = 'Any';
+  String _selectedGender = 'Any';
   String _filterCity = '';
   String _filterVillage = '';
   String _filterEducation = '';
@@ -62,9 +63,14 @@ class _MatrimonialProfileListScreenState extends ConsumerState<MatrimonialProfil
 
     // Default filters
     final oppositeGender = (user?.gender == 'Male') ? 'Female' : 'Male';
+    final hasSearch = _searchController.text.trim().isNotEmpty;
+    final String? queryGender = _selectedGender != 'Any'
+        ? _selectedGender
+        : (hasSearch ? null : oppositeGender);
+
     final res = await service.fetchProfiles(
-      search: _searchController.text,
-      gender: oppositeGender,
+      search: _searchController.text.trim(),
+      gender: queryGender,
       requesterId: user?.id,
       maritalStatus: _selectedMaritalStatus == 'Any' ? null : _selectedMaritalStatus,
       city: _filterCity.isEmpty ? null : _filterCity,
@@ -381,6 +387,22 @@ class _MatrimonialProfileListScreenState extends ConsumerState<MatrimonialProfil
                     const Divider(),
                     const SizedBox(height: 12),
 
+                    // Gender dropdown
+                    Text('Gender', style: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 13)),
+                    DropdownButton<String>(
+                      value: _selectedGender,
+                      isExpanded: true,
+                      items: ['Any', 'Female', 'Male']
+                          .map((val) => DropdownMenuItem(value: val, child: Text(val)))
+                          .toList(),
+                      onChanged: (val) {
+                        if (val != null) {
+                          setModalState(() => _selectedGender = val);
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 16),
+
                     // Marital Status dropdown
                     Text('Marital Status', style: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 13)),
                     DropdownButton<String>(
@@ -603,10 +625,11 @@ class _MatrimonialProfileListScreenState extends ConsumerState<MatrimonialProfil
                           controller: _searchController,
                           style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                           decoration: InputDecoration(
-                            hintText: 'Search by name, education, occupation...',
+                            hintText: 'Search by name, email, education, occupation...',
                             hintStyle: TextStyle(color: isDark ? Colors.grey : Colors.grey.shade600),
                             border: InputBorder.none,
                           ),
+                          onChanged: (_) => _loadProfiles(),
                           onSubmitted: (_) => _loadProfiles(),
                         ),
                       ),

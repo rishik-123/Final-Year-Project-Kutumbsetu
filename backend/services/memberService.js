@@ -477,50 +477,52 @@ async function syncMembersAndBackfill() {
     }
 
     // Sync Payal's User and Profile documents
+    // Sync Payal / Mr A's User and Profile documents
     const allPayalUsers = await User.find({
       $or: [
         { email: '23rishikjariwala7b@gmail.com' },
         { email: '23rishikjariwala54@gmail.com' },
-        { fullName: /payal(\s+jariwala)?/i }
+        { fullName: /payal(\s+jariwala)?/i },
+        { fullName: /^mr\s+a$/i }
       ]
     });
 
     for (const u of allPayalUsers) {
-      u.fullName = 'Payal Jariwala';
+      u.fullName = 'Mr A';
       await u.save();
 
       payalMember.userId = u._id;
       payalMember.email = u.email;
-      payalMember.fullName = 'Payal Jariwala';
-      payalMember.gender = 'Female';
-      payalMember.profilePhoto = 'avatar_female_1';
+      payalMember.fullName = 'Mr A';
+      payalMember.gender = 'Male';
+      payalMember.profilePhoto = 'avatar_male_1';
       await payalMember.save();
 
       const prof = await Profile.findOne({ userId: u._id });
       if (prof) {
         prof.memberId = payalMember.memberId;
-        prof.gender = 'Female';
-        prof.maidenName = 'Gandhi';
+        prof.gender = 'Male';
+        prof.maidenName = '';
         prof.fatherId = dilipMember.memberId;
         prof.fatherName = dilipMember.fullName;
         prof.motherId = arunaMember.memberId;
         prof.motherName = arunaMember.fullName;
         prof.spouseId = alakMember.memberId;
         prof.spouseName = alakMember.fullName;
-        if (!prof.profilePhoto) prof.profilePhoto = 'avatar_female_1';
+        if (!prof.profilePhoto) prof.profilePhoto = 'avatar_male_1';
         await prof.save();
       }
 
-      // Upsert Matrimonial Profile for Payal Jariwala
+      // Upsert Matrimonial Profile for Mr A
       let payalMat = await MatrimonialProfile.findOne({ userId: u._id });
       if (!payalMat) {
         payalMat = new MatrimonialProfile({
           userId: u._id,
-          name: 'Payal Jariwala',
-          gender: 'Female',
+          name: 'Mr A',
+          gender: 'Male',
           dob: new Date('1998-05-15'),
-          heightCm: 162,
-          weightKg: 54,
+          heightCm: 172,
+          weightKg: 64,
           bloodGroup: 'B+',
           maritalStatus: 'Never Married',
           education: 'M.Com, Chartered Accountancy (CA)',
@@ -532,7 +534,7 @@ async function syncMembersAndBackfill() {
           workingCountry: 'India',
           description: 'Enthusiastic finance professional from a respected Kutumb family. Values cultural roots, open-minded conversations, and family bonding.',
           partnerExpectations: 'Looking for an educated, understanding, and culturally grounded partner from our community.',
-          profilePhoto: 'avatar_female_1',
+          profilePhoto: 'avatar_male_1',
           profileStatus: 'Approved',
           familyInformation: {
             fatherName: 'Dilip Gandhi',
@@ -547,19 +549,19 @@ async function syncMembersAndBackfill() {
             drinking: 'No'
           },
           partnerPreferences: {
-            ageMin: 24,
-            ageMax: 32,
-            heightMin: 165,
-            heightMax: 188,
+            ageMin: 22,
+            ageMax: 30,
+            heightMin: 155,
+            heightMax: 175,
             education: 'Graduate / Post Graduate',
             maritalStatus: 'Never Married'
           }
         });
       } else {
-        payalMat.name = 'Payal Jariwala';
-        payalMat.gender = 'Female';
+        payalMat.name = 'Mr A';
+        payalMat.gender = 'Male';
         payalMat.profileStatus = 'Approved';
-        if (!payalMat.profilePhoto) payalMat.profilePhoto = 'avatar_female_1';
+        payalMat.profilePhoto = 'avatar_male_1';
       }
       await payalMat.save();
     }

@@ -9,7 +9,6 @@ import '../api_config.dart';
 import '../constants/app_colors.dart';
 import '../models/member_model.dart';
 import '../providers/member_providers.dart';
-import '../widgets/profile_action_button.dart';
 import '../community/community_feed.dart';
 
 class MemberProfileScreen extends ConsumerStatefulWidget {
@@ -28,7 +27,6 @@ class MemberProfileScreen extends ConsumerStatefulWidget {
 
 class _MemberProfileScreenState extends ConsumerState<MemberProfileScreen> {
   List<dynamic> _posts = [];
-  List<dynamic> _reels = [];
   bool _isLoadingContent = true;
 
   @override
@@ -42,15 +40,12 @@ class _MemberProfileScreenState extends ConsumerState<MemberProfileScreen> {
     setState(() => _isLoadingContent = true);
     try {
       final postsRes = await http.get(Uri.parse('${ApiConfig.baseUrl}/community/posts/user/${widget.memberId}'));
-      final reelsRes = await http.get(Uri.parse('${ApiConfig.baseUrl}/community/reels/user/${widget.memberId}'));
       
-      if (postsRes.statusCode == 200 && reelsRes.statusCode == 200) {
+      if (postsRes.statusCode == 200) {
         final postsData = jsonDecode(postsRes.body);
-        final reelsData = jsonDecode(reelsRes.body);
         if (mounted) {
           setState(() {
             _posts = postsData['posts'] ?? [];
-            _reels = reelsData['reels'] ?? [];
             _isLoadingContent = false;
           });
         }
@@ -432,11 +427,11 @@ Contact: ${member.mobileNumber}
                     const SizedBox(height: 16),
                   ],
 
-                  // 6. User's Posts and Reels Section
+                  // 6. User's Posts Section
                   _buildSectionCard(
                     context,
-                    title: 'Uploaded Content',
-                    icon: Icons.photo_library_rounded,
+                    title: 'Uploaded Posts (${_posts.length})',
+                    icon: Icons.grid_on_rounded,
                     children: [
                       if (_isLoadingContent)
                         const Center(
@@ -445,12 +440,12 @@ Contact: ${member.mobileNumber}
                             child: CircularProgressIndicator(),
                           ),
                         )
-                      else if (_posts.isEmpty && _reels.isEmpty)
+                      else if (_posts.isEmpty)
                         Center(
                           child: Padding(
                             padding: const EdgeInsets.all(12.0),
                             child: Text(
-                              'No posts or reels uploaded yet.',
+                              'No posts uploaded yet.',
                               style: TextStyle(
                                 color: isDark ? Colors.grey : Colors.grey.shade600,
                                 fontSize: 14,
@@ -459,87 +454,20 @@ Contact: ${member.mobileNumber}
                           ),
                         )
                       else
-                        DefaultTabController(
-                          length: 2,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              TabBar(
-                                labelColor: isDark ? Colors.orangeAccent : Colors.orange.shade800,
-                                unselectedLabelColor: isDark ? Colors.grey : Colors.grey.shade600,
-                                indicatorColor: Colors.orange,
-                                labelStyle: const TextStyle(fontWeight: FontWeight.bold),
-                                tabs: [
-                                  Tab(
-                                    child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        const Icon(Icons.grid_on_rounded, size: 18),
-                                        const SizedBox(width: 6),
-                                        Text('Posts (${_posts.length})'),
-                                      ],
-                                    ),
-                                  ),
-                                  Tab(
-                                    child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        const Icon(Icons.play_circle_outline_rounded, size: 18),
-                                        const SizedBox(width: 6),
-                                        Text('Reels (${_reels.length})'),
-                                      ],
-                                    ),
-                                  ),
-                                ],
+                        ListView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          padding: const EdgeInsets.only(bottom: 12),
+                          itemCount: _posts.length,
+                          itemBuilder: (context, index) {
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 8.0),
+                              child: PostCard(
+                                post: _posts[index],
+                                onRefresh: _fetchUserContent,
                               ),
-                              const SizedBox(height: 16),
-                              SizedBox(
-                                height: 420,
-                                child: TabBarView(
-                                  children: [
-                                    // Posts tab list
-                                    _posts.isEmpty
-                                        ? const Center(child: Text('No posts yet.'))
-                                        : ListView.builder(
-                                            padding: const EdgeInsets.only(bottom: 24),
-                                            itemCount: _posts.length,
-                                            itemBuilder: (context, index) {
-                                              return Padding(
-                                                padding: const EdgeInsets.symmetric(vertical: 8.0),
-                                                child: PostCard(
-                                                  post: _posts[index],
-                                                  onRefresh: _fetchUserContent,
-                                                ),
-                                              );
-                                            },
-                                          ),
-                                    // Reels tab list
-                                    _reels.isEmpty
-                                        ? const Center(child: Text('No reels yet.'))
-                                        : ListView.builder(
-                                            padding: const EdgeInsets.only(bottom: 24),
-                                            itemCount: _reels.length,
-                                            itemBuilder: (context, index) {
-                                              return Padding(
-                                                padding: const EdgeInsets.symmetric(vertical: 8.0),
-                                                child: SizedBox(
-                                                  height: 380,
-                                                  child: ClipRRect(
-                                                    borderRadius: BorderRadius.circular(16),
-                                                    child: InstagramStyleReel(
-                                                      reel: _reels[index],
-                                                      onRefresh: _fetchUserContent,
-                                                    ),
-                                                  ),
-                                                ),
-                                              );
-                                            },
-                                          ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
+                            );
+                          },
                         ),
                     ],
                   ),

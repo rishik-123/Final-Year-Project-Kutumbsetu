@@ -470,6 +470,43 @@ async function syncMembersAndBackfill() {
         prof.nana = dilipMember.fullName;
         prof.maternalGrandmotherId = arunaMember.memberId;
         prof.nani = arunaMember.fullName;
+        if (!prof.profilePhoto) prof.profilePhoto = 'avatar_male_1';
+        await prof.save();
+      }
+    }
+
+    // Sync Payal's User and Profile documents
+    const allPayalUsers = await User.find({
+      $or: [
+        { email: '23rishikjariwala7b@gmail.com' },
+        { email: '23rishikjariwala54@gmail.com' },
+        { fullName: /payal(\s+jariwala)?/i }
+      ]
+    });
+
+    for (const u of allPayalUsers) {
+      u.fullName = 'Payal Jariwala';
+      await u.save();
+
+      payalMember.userId = u._id;
+      payalMember.email = u.email;
+      payalMember.fullName = 'Payal Jariwala';
+      payalMember.gender = 'Female';
+      payalMember.profilePhoto = 'avatar_female_1';
+      await payalMember.save();
+
+      const prof = await Profile.findOne({ userId: u._id });
+      if (prof) {
+        prof.memberId = payalMember.memberId;
+        prof.gender = 'Female';
+        prof.maidenName = 'Gandhi';
+        prof.fatherId = dilipMember.memberId;
+        prof.fatherName = dilipMember.fullName;
+        prof.motherId = arunaMember.memberId;
+        prof.motherName = arunaMember.fullName;
+        prof.spouseId = alakMember.memberId;
+        prof.spouseName = alakMember.fullName;
+        if (!prof.profilePhoto) prof.profilePhoto = 'avatar_female_1';
         await prof.save();
       }
     }
@@ -482,9 +519,26 @@ async function syncMembersAndBackfill() {
 }
 
 /**
+ * Check if the user has filled in essential build profile fields
+ */
+function isProfileComplete(profile) {
+  if (!profile) return false;
+  const fn = (profile.fatherName || '').trim();
+  const mn = (profile.motherName || '').trim();
+  const dob = (profile.dateOfBirth || '').trim();
+  const city = (profile.city || profile.village || '').trim();
+  return Boolean(fn && mn && dob && city);
+}
+
+/**
  * Builds the Family Tree data structure for any user based on their ID-linked relationships
  */
 async function buildFamilyTree(profile, userEmail, userPhone) {
+  // Check if profile is complete
+  if (!isProfileComplete(profile)) {
+    return { incomplete: true };
+  }
+
   // 1. Resolve user's Member record
   let member = null;
   if (profile && profile.memberId) {
@@ -504,10 +558,14 @@ async function buildFamilyTree(profile, userEmail, userPhone) {
   // Helper to make standard FamilyTreeNode
   const makeNode = (m, relation) => {
     if (!m) return null;
+    let photo = m.profilePhoto || '';
+    if (!photo) {
+      photo = m.gender === 'Female' ? 'avatar_female_1' : 'avatar_male_1';
+    }
     return {
       id: m.memberId || (m._id ? m._id.toString() : `node-${Math.random()}`),
       name: m.fullName || '',
-      photo: m.profilePhoto || '',
+      photo: photo,
       relation: relation || m.relationshipToHead || 'Self',
       isDeceased: m.isDeceased || false,
       parentId: null,
@@ -515,25 +573,38 @@ async function buildFamilyTree(profile, userEmail, userPhone) {
     };
   };
 
-  const makeVirtualNode = (id, name, relation) => ({
-    id,
-    name,
-    photo: '',
-    relation,
-    isDeceased: false,
+  const makeVirtualNode = (id, name, relation) => {
+    const isFemale = ['mother', 'grandmother', 'nani', 'wife', 'daughter', 'sister'].includes((relation || '').toLowerCase());
+    return {
+      id,
+      name,
+      photo: isFemale ? 'avatar_female_1' : 'avatar_male_1',
+      relation,
+      isDeceased: false,
+      parentId: null,
+      children: [],
+    };
+  };
+
+  let selfName = (member && member.fullName) || (profile && profile.userId && profile.userId.fullName) || '';
+  if (!selfName && userEmail) {
+    const u = await User.findOne({ email: userEmail.toLowerCase().trim() });
+    if (u) selfName = u.fullName;
+  }
+  let selfPhoto = (member && member.profilePhoto) || (profile && profile.profilePhoto) || '';
+  if (!selfPhoto) {
+    selfPhoto = (member && member.gender === 'Female') || (profile && profile.gender === 'Female') ? 'avatar_female_1' : 'avatar_male_1';
+  }
+
+  const selfNode = {
+    id: (member && member.memberId) || (profile && profile.memberId) || (profile && profile.userId ? (profile.userId._id ? profile.userId._id.toString() : profile.userId.toString()) : 'self-id'),
+    name: selfName || 'Self',
+    photo: selfPhoto,
+    relation: 'Self',
+    isDeceased: (member && member.isDeceased) || (profile && profile.isDeceased) || false,
     parentId: null,
     children: [],
-  });
-
-  const selfNode = makeNode(
-    member || {
-      memberId: (profile && profile.memberId) || (profile && profile.userId ? profile.userId.toString() : 'self-id'),
-      fullName: (profile && profile.userId && profile.userId.fullName) || 'Self',
-      profilePhoto: (profile && profile.profilePhoto) || '',
-      isDeceased: (profile && profile.isDeceased) || false,
-    },
-    'Self'
-  );
+  };
 
   if (!selfNode) return null;
 
@@ -785,5 +856,6 @@ module.exports = {
   resolveOrCreateMember,
   searchMembers,
   syncMembersAndBackfill,
+  isProfileComplete,
   buildFamilyTree,
 };

@@ -4,10 +4,10 @@ import 'package:flutter/foundation.dart';
 class ApiConfig {
   /// Toggle this to [true] only if testing with USB cable ADB reverse.
   /// When using the deployed cloud backend, keep this [false].
-  static const bool useAdbReverseForPhysicalAndroid = false;
+  static const bool useAdbReverseForPhysicalAndroid = true;
 
   /// Deployed cloud backend URL (Render.com)
-  static const String publicTunnelUrl = 'https://final-year-project-kutumbsetu-backned.onrender.com';
+  static const String publicTunnelUrl = '';
 
   /// Alternatively, enter your computer's local Wi-Fi IP address here (e.g., '192.168.1.15')
   static const String localWifiIp = '';

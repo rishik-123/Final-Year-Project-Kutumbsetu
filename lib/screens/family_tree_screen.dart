@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import '../api_config.dart';
 import '../providers/auth_provider.dart';
+import 'profile_completion_screen.dart';
 
 class FamilyTreeNode {
   final String id;
@@ -51,6 +52,7 @@ class FamilyTreeScreen extends ConsumerStatefulWidget {
 
 class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
   bool _isLoading = false;
+  bool _isProfileIncomplete = false;
   String? _errorMessage;
   FamilyTreeNode? _rootNode;
   FamilyTreeNode? _focalNode;
@@ -104,6 +106,7 @@ class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
           if (data['tree'] != null) {
             final root = FamilyTreeNode.fromJson(data['tree']);
             setState(() {
+              _isProfileIncomplete = false;
               _rootNode = root;
               _nodesMap.clear();
               _parentMap.clear();
@@ -146,15 +149,25 @@ class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
           }
         } else {
           setState(() {
+            _isProfileIncomplete = data['profileIncomplete'] == true;
             _errorMessage = data['message'] ?? 'Failed to load family tree.';
             _isLoading = false;
           });
         }
       } else {
-        setState(() {
-          _errorMessage = 'Server returned status code ${response.statusCode}';
-          _isLoading = false;
-        });
+        try {
+          final data = jsonDecode(response.body);
+          setState(() {
+            _isProfileIncomplete = data['profileIncomplete'] == true;
+            _errorMessage = data['message'] ?? 'Server returned status code ${response.statusCode}';
+            _isLoading = false;
+          });
+        } catch (_) {
+          setState(() {
+            _errorMessage = 'Server returned status code ${response.statusCode}';
+            _isLoading = false;
+          });
+        }
       }
     } catch (e) {
       setState(() {
@@ -363,23 +376,7 @@ class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              if (node.photo.startsWith('data:image') || node.photo.length > 100)
-                CircleAvatar(
-                  radius: 46,
-                  backgroundImage: MemoryImage(base64Decode(node.photo.split(',').last)),
-                )
-              else
-                CircleAvatar(
-                  radius: 46,
-                  backgroundColor: relColor.withValues(alpha: 0.12),
-                  child: Icon(
-                    node.relation.toLowerCase() == 'mother' || node.relation.toLowerCase() == 'grandmother' || node.relation.toLowerCase() == 'wife' || node.relation.toLowerCase() == 'daughter'
-                        ? Icons.face_3_rounded
-                        : Icons.face_rounded,
-                    size: 48,
-                    color: relColor,
-                  ),
-                ),
+              _buildAvatarWidget(node, 46),
               const SizedBox(height: 16),
               Text(
                 node.name,
@@ -572,27 +569,47 @@ class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
     );
   }
 
+  Widget _buildAvatarWidget(FamilyTreeNode node, double radius) {
+    final relColor = _getRelationColor(node.relation);
+    final photo = node.photo.trim();
+    final isFemale = ['mother', 'grandmother', 'nani', 'wife', 'daughter', 'sister'].contains(node.relation.toLowerCase().trim()) ||
+        photo.contains('female');
+
+    if (photo.startsWith('data:image') || photo.length > 200) {
+      try {
+        return CircleAvatar(
+          radius: radius,
+          backgroundImage: MemoryImage(base64Decode(photo.split(',').last)),
+        );
+      } catch (_) {}
+    } else if (photo.startsWith('http') || photo.startsWith('/uploads')) {
+      final imgUrl = photo.startsWith('/uploads')
+          ? '${ApiConfig.baseUrl.replaceAll('/api', '')}$photo'
+          : photo;
+      return CircleAvatar(
+        radius: radius,
+        backgroundImage: NetworkImage(imgUrl),
+        backgroundColor: relColor.withValues(alpha: 0.15),
+      );
+    }
+
+    // Default icon/initial styling
+    return CircleAvatar(
+      radius: radius,
+      backgroundColor: isFemale ? const Color(0xFFFCE4EC) : const Color(0xFFE1F5FE),
+      child: Icon(
+        isFemale ? Icons.face_3_rounded : Icons.face_rounded,
+        size: radius * 1.15,
+        color: isFemale ? const Color(0xFFE91E63) : const Color(0xFF0288D1),
+      ),
+    );
+  }
+
   Widget _buildFocalNodeCard(FamilyTreeNode node, Offset pos, {required bool isFocal}) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final relColor = _getRelationColor(node.relation);
 
-    Widget avatarWidget;
-    if (node.photo.startsWith('data:image') || node.photo.length > 100) {
-      avatarWidget = CircleAvatar(
-        radius: 22,
-        backgroundImage: MemoryImage(base64Decode(node.photo.split(',').last)),
-      );
-    } else {
-      IconData avatarIcon = Icons.face_rounded;
-      if (node.relation.toLowerCase() == 'mother' || node.relation.toLowerCase() == 'grandmother' || node.relation.toLowerCase() == 'wife' || node.relation.toLowerCase() == 'daughter') {
-        avatarIcon = Icons.face_3_rounded;
-      }
-      avatarWidget = CircleAvatar(
-        radius: 22,
-        backgroundColor: relColor.withValues(alpha: 0.15),
-        child: Icon(avatarIcon, size: 24, color: relColor),
-      );
-    }
+    final avatarWidget = _buildAvatarWidget(node, 22);
 
     return Positioned(
       left: pos.dx - 110, // Center card on pos.dx (card width is 220)
@@ -892,6 +909,117 @@ class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
                 style: GoogleFonts.poppins(fontSize: 14, color: Colors.grey),
               ),
             ],
+          ),
+        ),
+      );
+    }
+
+    if (_isProfileIncomplete) {
+      return Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          title: Text(
+            'My Family Tree',
+            style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 20),
+          ),
+          backgroundColor: const Color(0xFFD35400),
+          elevation: 0,
+        ),
+        body: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24.0),
+            child: Container(
+              padding: const EdgeInsets.all(28.0),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.08),
+                    blurRadius: 16,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+                border: Border.all(
+                  color: const Color(0xFFD35400).withValues(alpha: 0.3),
+                  width: 1.5,
+                ),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 76,
+                    height: 76,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: const Color(0xFFD35400).withValues(alpha: 0.12),
+                    ),
+                    child: const Icon(
+                      Icons.account_tree_outlined,
+                      size: 40,
+                      color: Color(0xFFD35400),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    'Profile Incomplete',
+                    style: GoogleFonts.poppins(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? Colors.white : const Color(0xFF1E293B),
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Please fill all fields present in the build profile section only then family tree will be displayed.\n\nકૃપા કરીને બિલ્ડ પ્રોફાઇલ વિભાગમાં આપેલી તમામ વિગતો ભરો, ત્યાર બાદ જ ફેમિલી ટ્રી જોવા મળશે.',
+                    style: GoogleFonts.inter(
+                      fontSize: 14,
+                      color: isDark ? Colors.white70 : Colors.black87,
+                      height: 1.5,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const ProfileCompletionScreen()),
+                        ).then((_) => _fetchFamilyTree());
+                      },
+                      icon: const Icon(Icons.edit_note_rounded, color: Colors.white),
+                      label: Text(
+                        'Go to Build Profile',
+                        style: GoogleFonts.poppins(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                          fontSize: 15,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFD35400),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        elevation: 2,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextButton.icon(
+                    onPressed: _fetchFamilyTree,
+                    icon: const Icon(Icons.refresh_rounded, size: 18),
+                    label: const Text('Refresh Tree'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: Colors.grey,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
       );

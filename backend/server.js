@@ -22,6 +22,7 @@ const {
   resolveOrCreateMember,
   searchMembers,
   syncMembersAndBackfill,
+  isProfileComplete,
   buildFamilyTree,
 } = require('./services/memberService');
 const nodemailer = require('nodemailer');
@@ -1318,14 +1319,22 @@ app.get('/api/family/my-tree', async (req, res) => {
       profile = await Profile.findOne({ phoneNumber: userPhone.replace(/\s+/g, '').trim() }).populate('userId');
     }
 
-    if (!profile) {
-      return res.status(404).json({ success: false, message: 'User profile not found. Please complete profile details first.' });
+    if (!profile || !isProfileComplete(profile)) {
+      return res.status(400).json({
+        success: false,
+        profileIncomplete: true,
+        message: 'Please fill all fields present in the build profile section only then family tree will be displayed.',
+      });
     }
 
     const tree = await buildFamilyTree(profile, userEmail, userPhone);
 
-    if (!tree) {
-      return res.status(404).json({ success: false, message: 'Could not construct family tree.' });
+    if (!tree || tree.incomplete) {
+      return res.status(400).json({
+        success: false,
+        profileIncomplete: true,
+        message: 'Please fill all fields present in the build profile section only then family tree will be displayed.',
+      });
     }
 
     return res.status(200).json({

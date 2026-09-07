@@ -30,25 +30,14 @@ class CommunityFeedScreen extends ConsumerStatefulWidget {
   ConsumerState<CommunityFeedScreen> createState() => _CommunityFeedScreenState();
 }
 
-class _CommunityFeedScreenState extends ConsumerState<CommunityFeedScreen> with SingleTickerProviderStateMixin {
-  late TabController _tabController;
+class _CommunityFeedScreenState extends ConsumerState<CommunityFeedScreen> {
   List<dynamic> _posts = [];
-  List<dynamic> _reels = [];
   bool _isLoadingPosts = false;
-  bool _isLoadingReels = false;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
     _fetchPosts();
-    _fetchReels();
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
   }
 
   Future<void> _fetchPosts() async {
@@ -67,25 +56,6 @@ class _CommunityFeedScreenState extends ConsumerState<CommunityFeedScreen> with 
       print('Error fetching posts: $e');
     } finally {
       setState(() => _isLoadingPosts = false);
-    }
-  }
-
-  Future<void> _fetchReels() async {
-    setState(() => _isLoadingReels = true);
-    try {
-      final response = await http.get(Uri.parse('${ApiConfig.baseUrl}/community/reels'));
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        if (data['success'] == true) {
-          setState(() {
-            _reels = data['reels'];
-          });
-        }
-      }
-    } catch (e) {
-      print('Error fetching reels: $e');
-    } finally {
-      setState(() => _isLoadingReels = false);
     }
   }
 
@@ -387,110 +357,58 @@ class _CommunityFeedScreenState extends ConsumerState<CommunityFeedScreen> with 
         backgroundColor: isDark ? const Color(0xFF1E293B) : kCardColor,
         elevation: 1,
         title: Text(
-          "Community Hub",
+          "Community Posts & News",
           style: GoogleFonts.poppins(
             color: isDark ? Colors.white : kTextColor,
             fontWeight: FontWeight.bold,
             fontSize: 18,
           ),
         ),
-        bottom: TabBar(
-          controller: _tabController,
-          labelColor: kSaffron,
-          unselectedLabelColor: isDark ? Colors.grey : kTextSoft,
-          indicatorColor: kSaffron,
-          indicatorWeight: 3,
-          tabs: const [
-            Tab(text: "Posts & News"),
-            Tab(text: "Reels"),
-          ],
+      ),
+      body: RefreshIndicator(
+        onRefresh: _fetchPosts,
+        color: kSaffron,
+        child: _isLoadingPosts && _posts.isEmpty
+            ? const Center(child: CircularProgressIndicator(color: kSaffron))
+            : _posts.isEmpty
+                ? ListView(
+                    children: [
+                      const SizedBox(height: 100),
+                      Center(
+                        child: Column(
+                          children: [
+                            const Icon(Icons.newspaper_rounded, size: 64, color: Colors.grey),
+                            const SizedBox(height: 12),
+                            Text(
+                              "No community posts yet",
+                              style: GoogleFonts.poppins(color: Colors.grey, fontSize: 16),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  )
+                : ListView.builder(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    itemCount: _posts.length,
+                    itemBuilder: (context, index) {
+                      final post = _posts[index];
+                      return PostCard(
+                        post: post,
+                        onRefresh: _fetchPosts,
+                      );
+                    },
+                  ),
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => _showCreatePostBottomSheet(context),
+        backgroundColor: kSaffron,
+        icon: const Icon(Icons.post_add_rounded, color: Colors.white),
+        label: Text(
+          ref.watch(currentUserProvider)?.role == 'admin' ? 'Create Post' : 'Submit Post',
+          style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold),
         ),
       ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          // 1. Posts Tab
-          RefreshIndicator(
-            onRefresh: _fetchPosts,
-            color: kSaffron,
-            child: _isLoadingPosts && _posts.isEmpty
-                ? const Center(child: CircularProgressIndicator(color: kSaffron))
-                : _posts.isEmpty
-                    ? ListView(
-                        children: [
-                          const SizedBox(height: 100),
-                          Center(
-                            child: Column(
-                              children: [
-                                const Icon(Icons.newspaper_rounded, size: 64, color: Colors.grey),
-                                const SizedBox(height: 12),
-                                Text(
-                                  "No community posts yet",
-                                  style: GoogleFonts.poppins(color: Colors.grey, fontSize: 16),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      )
-                    : ListView.builder(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        itemCount: _posts.length,
-                        itemBuilder: (context, index) {
-                          final post = _posts[index];
-                          return PostCard(
-                            post: post,
-                            onRefresh: _fetchPosts,
-                          );
-                        },
-                      ),
-          ),
-
-          // 2. Reels Tab
-          RefreshIndicator(
-            onRefresh: _fetchReels,
-            color: kSaffron,
-            child: _isLoadingReels && _reels.isEmpty
-                ? const Center(child: CircularProgressIndicator(color: kSaffron))
-                : _reels.isEmpty
-                    ? ListView(
-                        children: [
-                          const SizedBox(height: 100),
-                          Center(
-                            child: Column(
-                              children: [
-                                const Icon(Icons.video_library_rounded, size: 64, color: Colors.grey),
-                                const SizedBox(height: 12),
-                                Text(
-                                  "No reels yet",
-                                  style: GoogleFonts.poppins(color: Colors.grey, fontSize: 16),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      )
-                    : PageView.builder(
-                        scrollDirection: Axis.vertical,
-                        itemCount: _reels.length,
-                        itemBuilder: (context, index) {
-                          final reel = _reels[index];
-                          return InstagramStyleReel(
-                            reel: reel,
-                            onRefresh: _fetchReels,
-                          );
-                        },
-                      ),
-          ),
-        ],
-      ),
-      floatingActionButton: ref.watch(currentUserProvider)?.role == 'admin'
-          ? FloatingActionButton(
-              onPressed: () => _showCreatePostBottomSheet(context),
-              backgroundColor: kSaffron,
-              child: const Icon(Icons.add, color: Colors.white),
-            )
-          : null,
     );
   }
 }

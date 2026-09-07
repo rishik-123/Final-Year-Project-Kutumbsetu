@@ -29,6 +29,11 @@ const nodemailer = require('nodemailer');
 const MatrimonialProfile = require('./models/MatrimonialProfile');
 const { MatrimonialRequest, MatrimonialShortlist, MatrimonialEvent, SuccessStory } = require('./models/MatrimonialCollections');
 
+function escapeRegex(text) {
+  if (!text) return '';
+  return text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
+}
+
 // Self-healing database sync to copy users between 'users' and 'directory' collections (using email)
 const syncCollections = async () => {
   try {

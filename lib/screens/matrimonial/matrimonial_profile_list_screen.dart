@@ -89,7 +89,7 @@ class _MatrimonialProfileListScreenState extends ConsumerState<MatrimonialProfil
     );
 
     setState(() {
-      if (res.isNotEmpty) {
+      if (res.isNotEmpty || _searchController.text.trim().isNotEmpty) {
         _profiles = res;
       } else {
         // High quality default profiles if DB has no profiles matching opposite gender

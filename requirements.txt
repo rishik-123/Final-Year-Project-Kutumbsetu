@@ -1,0 +1,85 @@
+# ==============================================================================
+# KUTUMBSETU PROJECT REQUIREMENTS & MIGRATION MANIFEST
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# 1. SYSTEM PREREQUISITES & TOOLS (Install these on College Laptop)
+# ------------------------------------------------------------------------------
+# - Git: https://git-scm.com/downloads
+# - Flutter SDK (v3.19+ / Dart v3.3+): https://docs.flutter.dev/get-started/install
+# - Node.js (v18 LTS or v20 LTS) & npm: https://nodejs.org/
+# - Python 3.8+ (for OTP / helper scripts): https://www.python.org/downloads/
+# - Android Studio & Android SDK (Platform-tools / ADB): https://developer.android.com/studio
+# - VS Code / Android Studio (Extensions: Flutter, Dart, Prettier, Node.js)
+
+# ------------------------------------------------------------------------------
+# 2. PYTHON PACKAGES (For Python scripts e.g. backend/send_otp.py)
+#    Run: pip install -r requirements.txt
+# ------------------------------------------------------------------------------
+python-dotenv>=1.0.0
+requests>=2.31.0
+
+# ------------------------------------------------------------------------------
+# 3. BACKEND (Node.js & Express) - backend/package.json
+#    To install: cd backend && npm install
+# ------------------------------------------------------------------------------
+# Dependencies:
+#   express: ^4.19.2
+#   mongoose: ^8.3.1
+#   dotenv: ^16.4.5
+#   cors: ^2.8.5
+#   nodemailer: ^9.0.3
+#   multer: ^1.4.5-lts.1
+# DevDependencies:
+#   nodemon: ^3.1.0
+#   mongodb-memory-server: ^11.2.0
+
+# ------------------------------------------------------------------------------
+# 4. MOBILE APP (Flutter) - pubspec.yaml
+#    To install: flutter pub get
+# ------------------------------------------------------------------------------
+# Dependencies:
+#   cupertino_icons: ^1.0.8
+#   google_fonts: ^8.1.0
+#   firebase_core: ^4.12.1
+#   firebase_auth: ^6.5.6
+#   http: ^1.2.0
+#   flutter_riverpod: ^2.5.1
+#   go_router: ^14.2.0
+#   image_picker: ^1.2.3
+#   url_launcher: ^6.2.0
+#   share_plus: ^13.3.0
+#   video_player: ^2.8.2
+#   intl: ^0.19.0
+
+# ------------------------------------------------------------------------------
+# 5. TEST AUTOMATION SUITE (Appium / WebdriverIO) - automation/package.json
+#    To install: cd automation && npm install
+# ------------------------------------------------------------------------------
+# Dependencies:
+#   webdriverio: ^9.31.5
+#   @wdio/cli: ^9.31.5
+#   @wdio/local-runner: ^9.31.5
+#   @wdio/mocha-framework: ^9.31.5
+#   @wdio/spec-reporter: ^9.31.2
+
+# ------------------------------------------------------------------------------
+# 6. QUICK SETUP COMMANDS ON COLLEGE LAPTOP
+# ------------------------------------------------------------------------------
+# Step 1: Clone/Copy project folder to college laptop
+# Step 2: Install Flutter packages:
+#         flutter pub get
+# Step 3: Install Backend packages:
+#         cd backend
+#         npm install
+#         cd ..
+# Step 4: Ensure backend/.env exists with PORT, MONGODB_URI, and SMTP credentials
+# Step 5: (Optional) Install Python packages:
+#         pip install -r requirements.txt
+# Step 6: Start the Backend server:
+#         cd backend
+#         npm run dev
+# Step 7: Connect Android Device via USB (with USB Debugging ON) and forward port:
+#         adb reverse tcp:5000 tcp:5000
+# Step 8: Run Flutter App:
+#         flutter run

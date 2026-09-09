@@ -1566,8 +1566,8 @@ app.get('/api/matrimonial/profiles', async (req, res) => {
     // Apply filters
     if (gender) query.gender = gender;
     
-    // Requester check: hide own profile from lists
-    if (requesterId) {
+    // Requester check: hide own profile from default lists unless explicitly searching
+    if (requesterId && (!search || !search.trim())) {
       query.userId = { $ne: requesterId };
     }
 

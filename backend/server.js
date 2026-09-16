@@ -877,6 +877,8 @@ app.get('/api/users/profile/:identifier', async (req, res) => {
       bio: profile.bio || '',
       isDeceased: profile.isDeceased || false,
       willingToDonateBlood: profile.willingToDonateBlood || false,
+      hasMatrimonialProfile: profile.hasMatrimonialProfile === true,
+      matrimonialVisibility: profile.matrimonialVisibility !== false,
       role: user.role || 'user',
       isApproved: user.isApproved || false,
     };
@@ -931,7 +933,9 @@ app.post('/api/users/profile', async (req, res) => {
       relationshipToHead,
       familyHeadPhone,
       isDeceased,
-      willingToDonateBlood
+      willingToDonateBlood,
+      hasMatrimonialProfile,
+      matrimonialVisibility
     } = req.body;
 
     if (!userId || !gender || !dateOfBirth || !phoneNumber || !city) {
@@ -1139,10 +1143,14 @@ app.post('/api/users/profile', async (req, res) => {
       userMember.spouseName = finalSpouseName;
       userMember.familyId = finalFamilyId;
       userMember.isDeceased = isDeceased || false;
+      userMember.hasMatrimonialProfile = hasMatrimonialProfile === true || hasMatrimonialProfile === 'true';
+      userMember.matrimonialVisibility = matrimonialVisibility !== false && matrimonialVisibility !== 'false';
       await userMember.save();
     }
 
     const finalMemberId = (userMember && userMember.memberId) || (profile && profile.memberId) || '';
+    const isOptedInMatrimonial = hasMatrimonialProfile === true || hasMatrimonialProfile === 'true';
+    const isMatrimonialVisible = matrimonialVisibility !== false && matrimonialVisibility !== 'false';
 
     const profileData = {
       userId: validUserId,
@@ -1180,6 +1188,8 @@ app.post('/api/users/profile', async (req, res) => {
       familyHeadPhone: familyHeadPhone || '',
       isDeceased: isDeceased || false,
       willingToDonateBlood: willingToDonateBlood === true || willingToDonateBlood === 'true',
+      hasMatrimonialProfile: isOptedInMatrimonial,
+      matrimonialVisibility: isMatrimonialVisible,
     };
 
     if (profile) {
@@ -1189,6 +1199,62 @@ app.post('/api/users/profile', async (req, res) => {
       profile = new Profile(profileData);
       await profile.save();
       console.log(`Created profile for userId: ${validUserId} (Member ID: ${finalMemberId})`);
+    }
+
+    // Smart sync with MatrimonialProfile document
+    try {
+      if (isOptedInMatrimonial) {
+        let matProf = await MatrimonialProfile.findOne({ userId: validUserId });
+        const userObj = await User.findById(validUserId);
+        const nameToUse = userObj ? userObj.fullName : (selfName || 'Samaj Member');
+        const dobDate = dateOfBirth ? new Date(dateOfBirth) : new Date(1998, 0, 1);
+
+        if (!matProf) {
+          matProf = new MatrimonialProfile({
+            userId: validUserId,
+            memberId: finalMemberId,
+            name: nameToUse,
+            gender: gender || 'Male',
+            dob: isNaN(dobDate.getTime()) ? new Date(1998, 0, 1) : dobDate,
+            heightCm: 165,
+            weightKg: 60,
+            bloodGroup: bloodGroup || '',
+            village: village || '',
+            city: city || '',
+            education: qualification || '',
+            occupation: profession || '',
+            profilePhoto: finalProfilePhoto || '',
+            hasMatrimonialProfile: true,
+            visibility: isMatrimonialVisible,
+            profileStatus: 'Approved',
+          });
+          await matProf.save();
+          console.log(`[Opt-in] Created new MatrimonialProfile for ${nameToUse} (${finalMemberId})`);
+        } else {
+          matProf.memberId = finalMemberId;
+          matProf.name = nameToUse;
+          matProf.gender = gender || matProf.gender;
+          if (!isNaN(dobDate.getTime())) matProf.dob = dobDate;
+          if (finalProfilePhoto) matProf.profilePhoto = finalProfilePhoto;
+          if (village) matProf.village = village;
+          if (city) matProf.city = city;
+          if (qualification) matProf.education = qualification;
+          if (profession) matProf.occupation = profession;
+          matProf.hasMatrimonialProfile = true;
+          matProf.visibility = isMatrimonialVisible;
+          await matProf.save();
+          console.log(`[Opt-in] Updated MatrimonialProfile for ${nameToUse} (${finalMemberId})`);
+        }
+      } else {
+        // User unchecked matrimonial opt-in -> mark hidden
+        await MatrimonialProfile.findOneAndUpdate(
+          { userId: validUserId },
+          { hasMatrimonialProfile: false, visibility: false }
+        );
+        console.log(`[Opt-out] Marked MatrimonialProfile hidden for userId: ${validUserId}`);
+      }
+    } catch (matErr) {
+      console.error('Non-fatal error syncing MatrimonialProfile on profile save:', matErr);
     }
 
     return res.status(200).json({

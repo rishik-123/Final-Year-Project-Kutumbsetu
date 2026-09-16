@@ -17,6 +17,14 @@ const matrimonialRequestSchema = new mongoose.Schema({
     enum: ['Pending', 'Accepted', 'Rejected'],
     default: 'Pending'
   },
+  isPendingAlertSeenByReceiver: {
+    type: Boolean,
+    default: false,
+  },
+  isAcceptedAlertSeenBySender: {
+    type: Boolean,
+    default: false,
+  },
   createdDate: {
     type: Date,
     default: Date.now

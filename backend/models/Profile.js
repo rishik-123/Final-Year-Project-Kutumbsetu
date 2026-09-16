@@ -183,6 +183,14 @@ const profileSchema = new mongoose.Schema({
       isDeceased: { type: Boolean, default: false },
     }
   ],
+  hasMatrimonialProfile: {
+    type: Boolean,
+    default: false,
+  },
+  matrimonialVisibility: {
+    type: Boolean,
+    default: true,
+  },
   createdAt: {
     type: Date,
     default: Date.now,

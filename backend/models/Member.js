@@ -163,6 +163,14 @@ const memberSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  hasMatrimonialProfile: {
+    type: Boolean,
+    default: false,
+  },
+  matrimonialVisibility: {
+    type: Boolean,
+    default: true,
+  },
 }, {
   timestamps: true,
 });

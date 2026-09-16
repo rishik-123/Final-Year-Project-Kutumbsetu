@@ -130,6 +130,20 @@ const matrimonialProfileSchema = new mongoose.Schema({
     trim: true,
     default: ''
   },
+  memberId: {
+    type: String,
+    trim: true,
+    default: '',
+    index: true,
+  },
+  hasMatrimonialProfile: {
+    type: Boolean,
+    default: true,
+  },
+  visibility: {
+    type: Boolean,
+    default: true,
+  },
   profileStatus: {
     type: String,
     enum: ['Pending', 'Approved', 'Rejected'],

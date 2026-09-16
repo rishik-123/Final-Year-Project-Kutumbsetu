@@ -241,6 +241,7 @@ class _ProfileCompletionScreenState extends ConsumerState<ProfileCompletionScree
             .contains(user.relationshipToHead) ? user.relationshipToHead : 'Self';
         _familyHeadPhoneController.text = user.familyHeadPhone;
         _familyIdController.text = user.familyId;
+        _hasMatrimonialProfile = user.hasMatrimonialProfile;
       });
     }
   }
@@ -253,6 +254,7 @@ class _ProfileCompletionScreenState extends ConsumerState<ProfileCompletionScree
   String _profilePhoto = 'avatar_male_1';
   String _bloodGroup = 'B+';
   bool _willingToDonateBlood = false;
+  bool _hasMatrimonialProfile = false;
 
   // Address
   final _villageController = TextEditingController();
@@ -378,6 +380,8 @@ class _ProfileCompletionScreenState extends ConsumerState<ProfileCompletionScree
       'profilePhotoBase64': profilePhotoBase64,
       'bloodGroup': _bloodGroup,
       'willingToDonateBlood': _willingToDonateBlood,
+      'hasMatrimonialProfile': _hasMatrimonialProfile,
+      'matrimonialVisibility': _hasMatrimonialProfile,
       'village': _villageController.text.trim(),
       'city': _cityController.text.trim(),
       'state': _stateController.text.trim(),

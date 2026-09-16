@@ -40,6 +40,7 @@ class UserModel {
   final String role; // 'user', 'admin', 'organizer'
   final bool isApproved;
   final bool willingToDonateBlood;
+  final bool hasMatrimonialProfile;
   final DateTime? createdAt;
 
   const UserModel({
@@ -82,6 +83,7 @@ class UserModel {
     this.role = 'user',
     this.isApproved = false,
     this.willingToDonateBlood = false,
+    this.hasMatrimonialProfile = false,
     this.createdAt,
   });
 
@@ -140,6 +142,7 @@ class UserModel {
       role: json['role'] as String? ?? 'user',
       isApproved: json['isApproved'] as bool? ?? false,
       willingToDonateBlood: json['willingToDonateBlood'] as bool? ?? false,
+      hasMatrimonialProfile: json['hasMatrimonialProfile'] as bool? ?? false,
       createdAt: parseDate(json['createdAt']),
     );
   }
@@ -185,6 +188,7 @@ class UserModel {
       'role': role,
       'isApproved': isApproved,
       'willingToDonateBlood': willingToDonateBlood,
+      'hasMatrimonialProfile': hasMatrimonialProfile,
       'createdAt': createdAt?.toIso8601String(),
     };
   }
@@ -229,6 +233,7 @@ class UserModel {
     String? role,
     bool? isApproved,
     bool? willingToDonateBlood,
+    bool? hasMatrimonialProfile,
     DateTime? createdAt,
   }) {
     return UserModel(
@@ -271,6 +276,7 @@ class UserModel {
       role: role ?? this.role,
       isApproved: isApproved ?? this.isApproved,
       willingToDonateBlood: willingToDonateBlood ?? this.willingToDonateBlood,
+      hasMatrimonialProfile: hasMatrimonialProfile ?? this.hasMatrimonialProfile,
       createdAt: createdAt ?? this.createdAt,
     );
   }

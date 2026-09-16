@@ -1563,9 +1563,12 @@ app.get('/api/matrimonial/profile/:userId', async (req, res) => {
 
     const isOwnProfile = requesterId && requesterId.toString() === userId.toString();
     
+    // Calculate age
+    doc.age = calculateAge(doc.dob);
+
     if (!isOwnProfile && connectionStatus !== 'Accepted') {
-      // Clear/Mask all fields except name and basic ids
-      doc.gender = '';
+      // Privacy rule: Only Name, Age, Gender, and Profile Photo visible before connection accepted
+      doc.isDetailsLocked = true;
       doc.dateOfBirth = '';
       doc.dob = '';
       doc.heightCm = 0;
@@ -1591,12 +1594,12 @@ app.get('/api/matrimonial/profile/:userId', async (req, res) => {
       doc.mobileNumber = '';
       doc.emailAddress = '';
       doc.fullAddressText = '';
-      doc.profilePhoto = '';
       doc.introductionVideo = '';
       doc.lifestyle = {};
       doc.partnerPreferences = {};
       doc.familyInformation = {};
     } else {
+      doc.isDetailsLocked = false;
       // Mask fields based on visibility settings
       if (!isOwnProfile) {
         if (!doc.visibilitySettings || !doc.visibilitySettings.showPhone) {
@@ -1627,7 +1630,12 @@ app.get('/api/matrimonial/profiles', async (req, res) => {
       requesterId, page = 1, limit = 10, weightMin, weightMax, workLocation
     } = req.query;
 
-    const query = { profileStatus: 'Approved' };
+    // Filter only opted-in and visible profiles
+    const query = {
+      profileStatus: 'Approved',
+      hasMatrimonialProfile: { $ne: false },
+      visibility: { $ne: false }
+    };
 
     // Apply filters
     if (gender) query.gender = gender;
@@ -1865,12 +1873,61 @@ app.post('/api/matrimonial/request/respond', async (req, res) => {
     }
 
     request.status = status;
+    if (status === 'Accepted') {
+      request.isAcceptedAlertSeenBySender = false;
+    }
     await request.save();
 
     return res.status(200).json({ success: true, message: `Request successfully ${status.toLowerCase()}.`, request });
   } catch (error) {
     console.error('Error responding to request:', error);
     return res.status(500).json({ success: false, message: 'Server error responding to request.' });
+  }
+});
+
+// Accepted alerts for sender (when receiver accepts connect request)
+app.get('/api/matrimonial/accepted-alerts/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const acceptedRequests = await MatrimonialRequest.find({
+      senderId: userId,
+      status: 'Accepted',
+      isAcceptedAlertSeenBySender: { $ne: true }
+    }).sort({ createdDate: -1 });
+
+    const alerts = [];
+    for (const r of acceptedRequests) {
+      const receiverProfile = await MatrimonialProfile.findOne({ userId: r.receiverId }) || {};
+      const receiverUser = await User.findById(r.receiverId) || {};
+      alerts.push({
+        requestId: r._id,
+        receiverId: r.receiverId,
+        receiverName: receiverProfile.name || receiverUser.fullName || 'Samaj Member',
+        receiverPhoto: receiverProfile.profilePhoto || '',
+        receiverOccupation: receiverProfile.occupation || '',
+        receiverCity: receiverProfile.city || '',
+        acceptedDate: r.createdDate,
+      });
+    }
+
+    return res.status(200).json({ success: true, count: alerts.length, alerts });
+  } catch (error) {
+    console.error('Error fetching matrimonial accepted alerts:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// Acknowledge accepted alert
+app.post('/api/matrimonial/acknowledge-accepted', async (req, res) => {
+  try {
+    const { requestId } = req.body;
+    if (!requestId) {
+      return res.status(400).json({ success: false, message: 'Request ID is required.' });
+    }
+    await MatrimonialRequest.findByIdAndUpdate(requestId, { isAcceptedAlertSeenBySender: true });
+    return res.status(200).json({ success: true, message: 'Alert acknowledged.' });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
   }
 });
 

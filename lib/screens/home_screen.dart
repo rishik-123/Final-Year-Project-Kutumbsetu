@@ -41,6 +41,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   bool _checkedMatrimonialAlerts = false;
   bool _checkedDirectoryAlerts = false;
   bool _checkedAcceptedAlerts = false;
+  bool _checkedAcceptedMatrimonialAlerts = false;
 
   @override
   void initState() {
@@ -69,6 +70,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         if (!_checkedMatrimonialAlerts) {
           _checkedMatrimonialAlerts = true;
           _checkIncomingMatrimonialAlerts(user);
+        }
+
+        // Check for accepted matrimonial alerts on login
+        if (!_checkedAcceptedMatrimonialAlerts) {
+          _checkedAcceptedMatrimonialAlerts = true;
+          _checkAcceptedMatrimonialAlerts(user);
         }
 
         // Check for incoming connect / follow requests on login (Approval Dialog)
@@ -447,6 +454,100 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
+  Future<void> _checkAcceptedMatrimonialAlerts(UserModel user) async {
+    try {
+      final res = await http.get(Uri.parse('${ApiConfig.baseUrl}/matrimonial/accepted-alerts/${user.id}'));
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        if (data['success'] == true && data['alerts'] != null) {
+          final List alerts = data['alerts'];
+          if (alerts.isNotEmpty && mounted) {
+            final first = alerts.first;
+            _showAcceptedMatrimonialDialog(first, user);
+          }
+        }
+      }
+    } catch (_) {}
+  }
+
+  void _showAcceptedMatrimonialDialog(Map<String, dynamic> alert, UserModel user) {
+    final reqId = alert['requestId'] ?? '';
+    final receiverName = alert['receiverName'] ?? 'A member';
+    final receiverId = alert['receiverId'] ?? '';
+
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            const Icon(Icons.favorite_rounded, color: Color(0xFFE67E22), size: 28),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Match Request Accepted! 💖',
+                style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 16),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '$receiverName has accepted your matrimonial connect request!',
+              style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 10),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFE67E22).withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFE67E22).withValues(alpha: 0.3)),
+              ),
+              child: Text(
+                'Full biodata, contact number, horoscope, and chat details are now unlocked for both of you.',
+                style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFFD35400)),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              try {
+                await http.post(
+                  Uri.parse('${ApiConfig.baseUrl}/matrimonial/acknowledge-accepted'),
+                  headers: {'Content-Type': 'application/json'},
+                  body: jsonEncode({'requestId': reqId}),
+                );
+              } catch (_) {}
+              if (receiverId.isNotEmpty) {
+                context.push('/matrimonial/profile/$receiverId');
+              } else {
+                setState(() {
+                  _currentIndex = 2; // Matrimonial Hub
+                });
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFE67E22),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: const Text('View Match Profile'),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _startApprovalPollingIfNeeded(UserModel? user) {
     if (user == null || user.role == 'admin' || user.isApproved) {
       _approvalPollTimer?.cancel();
@@ -493,7 +594,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     super.dispose();
   }
 
-  bool _showLanguageToggle = false;
   bool _isGujarati = false;
 
   final Map<String, String> _translations = {
@@ -994,6 +1094,8 @@ Contact: ${user.phoneNumber}
         ref.read(directoryConnectionProvider.notifier).loadUserConnections(uid);
         _checkIncomingDirectoryRequests(next);
         _checkAcceptedDirectoryAlerts(next);
+        _checkIncomingMatrimonialAlerts(next);
+        _checkAcceptedMatrimonialAlerts(next);
       }
     });
 
@@ -1003,6 +1105,8 @@ Contact: ${user.phoneNumber}
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _checkIncomingDirectoryRequests(realUser);
         _checkAcceptedDirectoryAlerts(realUser);
+        _checkIncomingMatrimonialAlerts(realUser);
+        _checkAcceptedMatrimonialAlerts(realUser);
       });
     }
 
@@ -1175,23 +1279,15 @@ Contact: ${user.phoneNumber}
           _buildBirthdaysToday(isDark),
           const SizedBox(height: 20),
 
-          // 5. Recent Samaj News
-          _buildRecentSamajNews(isDark),
-          const SizedBox(height: 20),
-
-          // 6. Upcoming Events
-          _buildUpcomingEvents(isDark),
-          const SizedBox(height: 20),
-
-          // 7. Featured Families
+          // 5. Featured Families
           _buildFeaturedFamilies(isDark),
           const SizedBox(height: 20),
 
-          // 8. Community at a Glance
+          // 6. Community at a Glance
           _buildCommunityAtGlance(isDark),
           const SizedBox(height: 20),
 
-          // 9. Community Posts & Feed
+          // 7. Community Posts & Feed
           _buildCommunityPostsFeed(isDark),
           const SizedBox(height: 32),
         ],
@@ -1265,84 +1361,48 @@ Contact: ${user.phoneNumber}
               ),
               const SizedBox(width: 8),
               Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  if (!_showLanguageToggle)
-                    GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          _showLanguageToggle = true;
-                        });
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.white.withValues(alpha: 0.15),
+                  GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        _isGujarati = !_isGujarati;
+                      });
+                      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(_isGujarati ? 'ભાષા ગુજરાતીમાં બદલાઈ ગઈ છે' : 'Language switched to English'),
+                          duration: const Duration(seconds: 2),
+                          behavior: SnackBarBehavior.floating,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                         ),
-                        child: const Icon(Icons.language_rounded, color: Colors.cyanAccent, size: 20),
+                      );
+                    },
+                    child: Container(
+                      height: 36,
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(18),
+                        color: _isGujarati ? const Color(0xFF1B4F72) : Colors.white.withValues(alpha: 0.2),
+                        border: Border.all(color: Colors.white70, width: 1.2),
                       ),
-                    )
-                  else
-                    GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          _isGujarati = !_isGujarati;
-                        });
-                      },
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        width: 68,
-                        height: 32,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(16),
-                          color: _isGujarati ? const Color(0xFF1B4F72) : Colors.white.withValues(alpha: 0.2),
-                          border: Border.all(color: Colors.white70, width: 1.5),
-                        ),
-                        child: Stack(
-                          children: [
-                            AnimatedPositioned(
-                              duration: const Duration(milliseconds: 200),
-                              curve: Curves.easeInOut,
-                              left: _isGujarati ? 36.0 : 2.0,
-                              width: 28.0,
-                              top: 2.0,
-                              bottom: 2.0,
-                              child: Container(
-                                decoration: const BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: Colors.white,
-                                ),
-                                child: Center(
-                                  child: Text(
-                                    _isGujarati ? 'GJ' : 'EN',
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.bold,
-                                      color: _isGujarati ? const Color(0xFF1B4F72) : Colors.black87,
-                                    ),
-                                  ),
-                                ),
-                              ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.language_rounded, color: Colors.cyanAccent, size: 16),
+                          const SizedBox(width: 4),
+                          Text(
+                            _isGujarati ? 'GJ' : 'EN',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
                             ),
-                            Positioned.fill(
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                                children: [
-                                  Opacity(
-                                    opacity: _isGujarati ? 0.3 : 1.0,
-                                    child: const Text('EN', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
-                                  ),
-                                  Opacity(
-                                    opacity: _isGujarati ? 1.0 : 0.3,
-                                    child: const Text('GJ', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                     ),
+                  ),
                   const SizedBox(width: 8),
                   GestureDetector(
                     onTap: () => _showNotificationsBottomSheet(context),
@@ -1468,11 +1528,11 @@ Contact: ${user.phoneNumber}
       {'label': 'Family Tree', 'icon': Icons.account_tree_rounded, 'color': const Color(0xFFE8F8F5), 'iconColor': const Color(0xFF16A34A)},
       {'label': 'Directory', 'icon': Icons.folder_shared_rounded, 'color': const Color(0xFFEBF5FB), 'iconColor': const Color(0xFF2563EB), 'action': 'directory'},
       {'label': 'Matrimony', 'icon': Icons.favorite_rounded, 'color': const Color(0xFFFCE4D6), 'iconColor': const Color(0xFFEA4C89)},
-      {'label': 'Events', 'icon': Icons.calendar_month_rounded, 'color': const Color(0xFFFEF9E7), 'iconColor': const Color(0xFFD35400)},
-      {'label': 'Donations', 'icon': Icons.monetization_on_rounded, 'color': const Color(0xFFFCF3CF), 'iconColor': const Color(0xFFD4AC0D)},
-      {'label': 'News', 'icon': Icons.newspaper_rounded, 'color': const Color(0xFFEAECEE), 'iconColor': const Color(0xFF7F8C8D)},
-      {'label': 'Business', 'icon': Icons.storefront_rounded, 'color': const Color(0xFFF5EEF8), 'iconColor': const Color(0xFF8E44AD)},
-      {'label': 'More', 'icon': Icons.more_horiz_rounded, 'color': Colors.transparent, 'iconColor': Colors.grey, 'dashed': true},
+      {'label': 'Events', 'icon': Icons.calendar_month_rounded, 'color': const Color(0xFFFEF9E7), 'iconColor': const Color(0xFFD35400), 'action': 'events'},
+      {'label': 'News', 'icon': Icons.newspaper_rounded, 'color': const Color(0xFFEAECEE), 'iconColor': const Color(0xFF7F8C8D), 'action': 'news'},
+      {'label': 'Community Hub', 'icon': Icons.people_alt_rounded, 'color': const Color(0xFFFCF3CF), 'iconColor': const Color(0xFFD4AC0D), 'action': 'hub'},
+      {'label': 'Business', 'icon': Icons.storefront_rounded, 'color': const Color(0xFFF5EEF8), 'iconColor': const Color(0xFF8E44AD), 'action': 'directory'},
+      {'label': 'More', 'icon': Icons.more_horiz_rounded, 'color': Colors.transparent, 'iconColor': Colors.grey, 'dashed': true, 'action': 'directory'},
     ];
 
     return Padding(
@@ -1501,6 +1561,10 @@ Contact: ${user.phoneNumber}
                 });
               } else if (item['label'] == 'Matrimony') {
                 context.push('/matrimonial');
+              } else if (item['action'] == 'events' || item['action'] == 'news' || item['action'] == 'hub') {
+                setState(() {
+                  _currentIndex = 3;
+                });
               }
             },
             borderRadius: BorderRadius.circular(16),

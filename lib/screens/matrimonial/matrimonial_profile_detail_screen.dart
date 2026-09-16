@@ -1,11 +1,8 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:video_player/video_player.dart';
-import 'package:http/http.dart' as http;
-import '../../api_config.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/matrimonial_providers.dart';
 import '../../models/matrimonial_profile_model.dart';
@@ -134,13 +131,13 @@ class _MatrimonialProfileDetailScreenState extends ConsumerState<MatrimonialProf
                                 const Icon(Icons.verified, color: Colors.blue, size: 20),
                               ],
                             ),
-                            if (isUnlocked) ...[
-                              const SizedBox(height: 4),
-                              Text(
-                                '${p.age} Yrs • ${p.heightCm} cm • ${p.maritalStatus}',
-                                style: GoogleFonts.inter(color: Colors.white70, fontSize: 13),
-                              ),
-                            ],
+                            const SizedBox(height: 4),
+                            Text(
+                              isUnlocked
+                                  ? '${p.age} Yrs • ${p.gender} • ${p.heightCm} cm • ${p.maritalStatus}'
+                                  : '${p.age} Yrs • ${p.gender}',
+                              style: GoogleFonts.inter(color: Colors.white70, fontSize: 13),
+                            ),
                           ],
                         ),
                       ),

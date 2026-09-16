@@ -33,11 +33,14 @@ class CommunityFeedScreen extends ConsumerStatefulWidget {
 class _CommunityFeedScreenState extends ConsumerState<CommunityFeedScreen> {
   List<dynamic> _posts = [];
   bool _isLoadingPosts = false;
+  List<dynamic> _events = [];
+  bool _isLoadingEvents = false;
 
   @override
   void initState() {
     super.initState();
     _fetchPosts();
+    _fetchEvents();
   }
 
   Future<void> _fetchPosts() async {
@@ -56,6 +59,25 @@ class _CommunityFeedScreenState extends ConsumerState<CommunityFeedScreen> {
       print('Error fetching posts: $e');
     } finally {
       setState(() => _isLoadingPosts = false);
+    }
+  }
+
+  Future<void> _fetchEvents() async {
+    setState(() => _isLoadingEvents = true);
+    try {
+      final response = await http.get(Uri.parse('${ApiConfig.baseUrl}/community/events'));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['success'] == true && data['events'] != null) {
+          setState(() {
+            _events = data['events'];
+          });
+        }
+      }
+    } catch (e) {
+      print('Error fetching events: $e');
+    } finally {
+      setState(() => _isLoadingEvents = false);
     }
   }
 
@@ -334,30 +356,376 @@ class _CommunityFeedScreenState extends ConsumerState<CommunityFeedScreen> {
   Widget build(BuildContext context) {
     final isDark = ref.watch(themeModeProvider) == ThemeMode.dark;
 
-    return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF121212) : kBgColor,
-      appBar: AppBar(
-        backgroundColor: isDark ? const Color(0xFF1E293B) : kCardColor,
-        elevation: 1,
-        title: Text(
-          "Community Posts & News",
-          style: GoogleFonts.poppins(
-            color: isDark ? Colors.white : kTextColor,
-            fontWeight: FontWeight.bold,
-            fontSize: 18,
+    final eventsToDisplay = _events.isNotEmpty
+        ? _events
+        : [
+            {
+              'title': 'Samuh Lagna Sammelan',
+              'date': '15 Nov 2026',
+              'location': 'Community Hall, Ahmedabad',
+              'category': 'Samaj Wedding',
+              'description': 'Annual community mass wedding gathering. Registration is mandatory for participating families.',
+            },
+            {
+              'title': 'Samaj Blood Donation Camp',
+              'date': '02 Aug 2026',
+              'location': 'Darji Samaj Bhavan, Surat',
+              'category': 'Social Work',
+              'description': 'Help save lives by donating blood. Free medical checkup and refreshments provided.',
+            },
+            {
+              'title': 'Youth Sports Meet 2026',
+              'date': '28 Sep 2026',
+              'location': 'Rajkot Ground No. 3',
+              'category': 'Youth & Sports',
+              'description': 'Cricket, badminton, and track events for community youth.',
+            },
+            {
+              'title': 'Annual Samaj Sneh Milan & AGM',
+              'date': '25 Dec 2026',
+              'location': 'Community Bhavan, Vadodara',
+              'category': 'Community Gathering',
+              'description': 'Annual family gathering, cultural program, and distribution of merit awards to student achievers.',
+            },
+          ];
+
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        backgroundColor: isDark ? const Color(0xFF121212) : kBgColor,
+        appBar: AppBar(
+          backgroundColor: isDark ? const Color(0xFF1E293B) : kCardColor,
+          elevation: 1,
+          title: Text(
+            "Community Hub",
+            style: GoogleFonts.poppins(
+              color: isDark ? Colors.white : kTextColor,
+              fontWeight: FontWeight.bold,
+              fontSize: 18,
+            ),
+          ),
+          bottom: TabBar(
+            indicatorColor: kSaffron,
+            indicatorWeight: 3,
+            labelColor: kSaffron,
+            unselectedLabelColor: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+            labelStyle: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 13),
+            tabs: const [
+              Tab(
+                icon: Icon(Icons.calendar_month_rounded, size: 20),
+                text: "Samaj Events",
+              ),
+              Tab(
+                icon: Icon(Icons.newspaper_rounded, size: 20),
+                text: "News & Posts",
+              ),
+            ],
           ),
         ),
-      ),
-      body: RefreshIndicator(
-        onRefresh: _fetchPosts,
-        color: kSaffron,
-        child: _isLoadingPosts && _posts.isEmpty
-            ? const Center(child: CircularProgressIndicator(color: kSaffron))
-            : _posts.isEmpty
-                ? ListView(
-                    children: [
-                      const SizedBox(height: 100),
-                      Center(
+        body: TabBarView(
+          children: [
+            // --- TAB 1: SAMAJ EVENTS ---
+            RefreshIndicator(
+              onRefresh: _fetchEvents,
+              color: kSaffron,
+              child: _isLoadingEvents && _events.isEmpty
+                  ? const Center(child: CircularProgressIndicator(color: kSaffron))
+                  : ListView(
+                      padding: const EdgeInsets.all(16),
+                      children: [
+                        // Event Banner
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFFE67E22), Color(0xFFD35400)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.2),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(Icons.event_available_rounded, color: Colors.white, size: 28),
+                              ),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      "Samaj Events & Gatherings",
+                                      style: GoogleFonts.poppins(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 15,
+                                      ),
+                                    ),
+                                    Text(
+                                      "All community events, sammelans, and camps in one place.",
+                                      style: GoogleFonts.inter(
+                                        color: Colors.white.withValues(alpha: 0.9),
+                                        fontSize: 11.5,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Events List
+                        ...eventsToDisplay.map((ev) {
+                          final dateStr = (ev['date'] ?? '15 Nov 2026').toString();
+                          final parts = dateStr.split(' ');
+                          final day = parts.isNotEmpty ? parts[0] : '15';
+                          final month = parts.length > 1 ? parts[1].toUpperCase() : 'NOV';
+                          final year = parts.length > 2 ? parts[2] : '2026';
+                          final title = ev['title'] ?? 'Community Event';
+                          final location = ev['location'] ?? 'Gujarat';
+                          final category = ev['category'] ?? 'General Event';
+                          final description = ev['description'] ?? '';
+
+                          return Container(
+                            margin: const EdgeInsets.only(bottom: 16),
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: isDark ? Colors.grey.shade800 : Colors.grey.shade200),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.03),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Container(
+                                      width: 54,
+                                      padding: const EdgeInsets.symmetric(vertical: 8),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFE8F8F5),
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(color: const Color(0xFF16A34A).withValues(alpha: 0.3)),
+                                      ),
+                                      child: Column(
+                                        children: [
+                                          Text(
+                                            day,
+                                            style: GoogleFonts.poppins(
+                                              color: const Color(0xFF16A34A),
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.bold,
+                                              height: 1.0,
+                                            ),
+                                          ),
+                                          Text(
+                                            month,
+                                            style: GoogleFonts.inter(
+                                              color: const Color(0xFF16A34A),
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          Text(
+                                            year,
+                                            style: GoogleFonts.inter(
+                                              color: Colors.grey.shade600,
+                                              fontSize: 8,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(width: 14),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFFFEF9E7),
+                                              borderRadius: BorderRadius.circular(8),
+                                            ),
+                                            child: Text(
+                                              category,
+                                              style: GoogleFonts.inter(
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.bold,
+                                                color: const Color(0xFFD35400),
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            title,
+                                            style: GoogleFonts.poppins(
+                                              fontSize: 15,
+                                              fontWeight: FontWeight.bold,
+                                              color: isDark ? Colors.white : Colors.black87,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Row(
+                                            children: [
+                                              const Icon(Icons.location_on_rounded, size: 14, color: Colors.grey),
+                                              const SizedBox(width: 4),
+                                              Expanded(
+                                                child: Text(
+                                                  location,
+                                                  style: GoogleFonts.inter(
+                                                    fontSize: 12,
+                                                    color: Colors.grey.shade600,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                if (description.isNotEmpty) ...[
+                                  const SizedBox(height: 10),
+                                  Text(
+                                    description,
+                                    style: GoogleFonts.inter(
+                                      fontSize: 12.5,
+                                      color: isDark ? Colors.grey.shade300 : Colors.grey.shade700,
+                                    ),
+                                  ),
+                                ],
+                                const SizedBox(height: 12),
+                                const Divider(),
+                                const SizedBox(height: 4),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    OutlinedButton.icon(
+                                      icon: const Icon(Icons.share_outlined, size: 16),
+                                      label: const Text('Share Event', style: TextStyle(fontSize: 12)),
+                                      style: OutlinedButton.styleFrom(
+                                        foregroundColor: Colors.grey.shade700,
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                      ),
+                                      onPressed: () {
+                                        Share.share('$title on $dateStr at $location.\nJoin through KutumbSetu!');
+                                      },
+                                    ),
+                                    ElevatedButton.icon(
+                                      icon: const Icon(Icons.how_to_reg_rounded, size: 16),
+                                      label: const Text('Register / RSVP', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: const Color(0xFF16A34A),
+                                        foregroundColor: Colors.white,
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                      ),
+                                      onPressed: () {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(
+                                            content: Text('Registered interest for $title!'),
+                                            backgroundColor: const Color(0xFF16A34A),
+                                            behavior: SnackBarBehavior.floating,
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          );
+                        }),
+                      ],
+                    ),
+            ),
+
+            // --- TAB 2: SAMAJ NEWS & POSTS ---
+            RefreshIndicator(
+              onRefresh: () async {
+                await _fetchPosts();
+                await _fetchEvents();
+              },
+              color: kSaffron,
+              child: ListView(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                children: [
+                  // Pinned Samaj News / Official Notice
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+                    child: Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: const Color(0xFFD35400).withValues(alpha: 0.3)),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFCE4D6),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(Icons.campaign_rounded, color: Color(0xFFD35400), size: 22),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  "Samaj News: Trust Election Notice",
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.bold,
+                                    color: isDark ? Colors.white : Colors.black87,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  "Annual Trust elections and Samaj convention will be held on 29th Aug at Community Bhavan, Rajkot.",
+                                  style: GoogleFonts.inter(
+                                    fontSize: 11,
+                                    color: Colors.grey.shade600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+
+                  if (_isLoadingPosts && _posts.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.all(40.0),
+                      child: Center(child: CircularProgressIndicator(color: kSaffron)),
+                    )
+                  else if (_posts.isEmpty)
+                    Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(40.0),
                         child: Column(
                           children: [
                             const Icon(Icons.newspaper_rounded, size: 64, color: Colors.grey),
@@ -369,27 +737,28 @@ class _CommunityFeedScreenState extends ConsumerState<CommunityFeedScreen> {
                           ],
                         ),
                       ),
-                    ],
-                  )
-                : ListView.builder(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    itemCount: _posts.length,
-                    itemBuilder: (context, index) {
+                    )
+                  else
+                    ...List.generate(_posts.length, (index) {
                       final post = _posts[index];
                       return PostCard(
                         post: post,
                         onRefresh: _fetchPosts,
                       );
-                    },
-                  ),
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showCreatePostBottomSheet(context),
-        backgroundColor: kSaffron,
-        icon: const Icon(Icons.post_add_rounded, color: Colors.white),
-        label: Text(
-          ref.watch(currentUserProvider)?.role == 'admin' ? 'Create Post' : 'Submit Post',
-          style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold),
+                    }),
+                ],
+              ),
+            ),
+          ],
+        ),
+        floatingActionButton: FloatingActionButton.extended(
+          onPressed: () => _showCreatePostBottomSheet(context),
+          backgroundColor: kSaffron,
+          icon: const Icon(Icons.post_add_rounded, color: Colors.white),
+          label: Text(
+            ref.watch(currentUserProvider)?.role == 'admin' ? 'Create Post / Event' : 'Submit Post / Event',
+            style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
         ),
       ),
     );

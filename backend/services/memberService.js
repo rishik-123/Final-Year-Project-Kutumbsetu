@@ -243,7 +243,6 @@ async function syncMembersAndBackfill() {
         { fullName: /^rishik$/i },
         { email: 'rishikjariwala54@gmail.com' },
         { email: 'rishikjariwala271@gmail.com' },
-        { email: 'rishikjariwala689@gmail.com' },
       ],
       fullName: { $not: /rishi ketan soni/i }
     });

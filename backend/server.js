@@ -106,35 +106,25 @@ app.get('/api', (req, res) => {
 });
 
 // Nodemailer configuration
-const isGmail = (process.env.SMTP_HOST || '').toLowerCase().includes('gmail');
-const transportConfig = isGmail
-  ? {
-      service: 'gmail',
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      },
-      connectionTimeout: 4000,
-      greetingTimeout: 4000,
-      socketTimeout: 4000,
-    }
-  : {
-      host: process.env.SMTP_HOST || 'smtp-relay.brevo.com',
-      port: parseInt(process.env.SMTP_PORT || '587'),
-      secure: process.env.SMTP_SECURE === 'true',
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      },
-      tls: {
-        rejectUnauthorized: false,
-      },
-      connectionTimeout: 6000,
-      greetingTimeout: 6000,
-      socketTimeout: 6000,
-    };
+const smtpHost = process.env.SMTP_HOST || 'smtp.gmail.com';
+const smtpPort = parseInt(process.env.SMTP_PORT || '587');
+const smtpSecure = process.env.SMTP_SECURE === 'true' || smtpPort === 465;
 
-const transporter = nodemailer.createTransport(transportConfig);
+const transporter = nodemailer.createTransport({
+  host: smtpHost,
+  port: smtpPort,
+  secure: smtpSecure,
+  auth: {
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS,
+  },
+  tls: {
+    rejectUnauthorized: false,
+  },
+  connectionTimeout: 8000,
+  greetingTimeout: 8000,
+  socketTimeout: 8000,
+});
 
 // Helper: Send OTP Email
 const sendOtpEmail = async (email, name, otp) => {

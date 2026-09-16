@@ -1,13 +1,10 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
-import '../constants/app_colors.dart';
 import '../models/user_model.dart';
 import '../providers/auth_provider.dart';
 import '../providers/theme_provider.dart';
@@ -28,9 +25,7 @@ class HomeScreen extends ConsumerStatefulWidget {
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   int _currentIndex = 0;
-  final PageController _newsPageController = PageController();
   final ScrollController _birthdayScrollController = ScrollController();
-  int _activeNewsIndex = 0;
   Timer? _approvalPollTimer;
 
   // Dynamic Home Feed Data
@@ -589,7 +584,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   void dispose() {
     _approvalPollTimer?.cancel();
-    _newsPageController.dispose();
     _birthdayScrollController.dispose();
     super.dispose();
   }

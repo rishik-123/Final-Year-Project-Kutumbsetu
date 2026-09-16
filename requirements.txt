@@ -72,8 +72,8 @@ requests>=2.31.0
 # Step 5: (Optional) Install Python packages:
         pip install -r requirements.txt
 # Step 6: Start the Backend server:
-        cd backend
-        npm run dev
+        #cd backend
+        #npm run dev
 # Step 7: Connect Android Device via USB (with USB Debugging ON) and forward port:
         adb reverse tcp:5000 tcp:5000
 # Step 8: Run Flutter App:

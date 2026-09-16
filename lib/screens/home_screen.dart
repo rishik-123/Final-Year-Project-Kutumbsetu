@@ -1287,9 +1287,9 @@ Contact: ${user.phoneNumber}
           _buildCommunityAtGlance(isDark),
           const SizedBox(height: 20),
 
-          // 7. Community Posts & Feed
-          _buildCommunityPostsFeed(isDark),
-          const SizedBox(height: 32),
+          // 7. Community Hub Explore Card
+          _buildCommunityHubExploreCard(isDark),
+          const SizedBox(height: 28),
         ],
       ),
     );
@@ -2508,299 +2508,102 @@ Contact: ${user.phoneNumber}
     );
   }
 
-  Future<List<dynamic>> _fetchHomePosts() async {
-    try {
-      final response = await http.get(Uri.parse('${ApiConfig.baseUrl}/community/posts'));
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        if (data['success'] == true) {
-          return data['posts'] as List<dynamic>;
-        }
-      }
-    } catch (e) {
-      print('Error fetching home posts: $e');
-    }
-    return [];
-  }
-
-  // Community Posts & Feed (Image 3)
-  Widget _buildCommunityPostsFeed(bool isDark) {
-    return FutureBuilder<List<dynamic>>(
-      future: _fetchHomePosts(),
-      builder: (context, snapshot) {
-        // Fallback static posts if database is empty or loading
-        final List<Map<String, dynamic>> staticPosts = [
-          {
-            'init': 'RC',
-            'name': 'Rajeshbhai Chauhan',
-            'time': '2 hours ago • Vadodara',
-            'badge': 'Announcement',
-            'txt': 'Jay Shree Krishna to all samaj members! Welcome to our new digital platform KutumbSetu. Connect with family lineage, business directory, and upcoming events seamlessly.',
-            'likes': 42,
-            'comments': 8,
-            'media': null
-          },
-          {
-            'init': 'DC',
-            'name': 'Dineshbhai Chauhan',
-            'time': '5 hours ago • Karamsad',
-            'badge': 'Social Work',
-            'txt': 'Our Samaj Blood Donation Camp date has been confirmed for 2nd August at Surat. Requesting all youth members to register and donate blood for this noble cause. 🙏',
-            'likes': 68,
-            'comments': 14,
-            'media': null
-          }
-        ];
-
-        final List<dynamic> posts = snapshot.hasData && snapshot.data!.isNotEmpty
-            ? snapshot.data!
-            : staticPosts;
-
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+  // Community Hub Explore Card
+  Widget _buildCommunityHubExploreCard(bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF1E293B) : Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isDark ? Colors.grey.shade800 : const Color(0xFFE67E22).withValues(alpha: 0.25),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
           children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE67E22).withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: const Icon(
+                    Icons.groups_rounded,
+                    color: Color(0xFFE67E22),
+                    size: 26,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _translate('Samaj Events & Community Hub'),
+                        style: GoogleFonts.poppins(
+                          fontSize: 14.5,
+                          fontWeight: FontWeight.bold,
+                          color: isDark ? Colors.white : Colors.black87,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        _translate('View upcoming gatherings, marriage announcements & discussions in the dedicated hub.'),
+                        style: GoogleFonts.inter(
+                          fontSize: 11.5,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () {
+                setState(() {
+                  _currentIndex = 3;
+                });
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFE67E22),
+                foregroundColor: Colors.white,
+                minimumSize: const Size(double.infinity, 44),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                elevation: 0,
+              ),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    _translate('Community Posts & Feed'),
+                    _translate('Explore Community Hub'),
                     style: GoogleFonts.poppins(
-                      fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: isDark ? Colors.white : Colors.black87,
-                    ),
-                  ),
-                  Text(
-                    _translate('${posts.length} Posts'),
-                    style: GoogleFonts.poppins(
                       fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: const Color(0xFFD35400),
                     ),
                   ),
+                  const SizedBox(width: 6),
+                  const Icon(Icons.arrow_forward_rounded, size: 16),
                 ],
               ),
             ),
-            const SizedBox(height: 12),
-            ListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              itemCount: posts.length,
-              itemBuilder: (context, index) {
-                final p = posts[index];
-                
-                // Extract properties with fallbacks
-                final init = p['avatarText'] ?? p['init'] ?? 'U';
-                final author = p['authorName'] ?? p['name'] ?? 'User';
-                final content = p['content'] ?? p['txt'] ?? '';
-                final likesCount = p['likes'] is List ? (p['likes'] as List).length : int.tryParse(p['likes']?.toString() ?? '0') ?? 0;
-                final commentsCount = p['comments'] is List ? (p['comments'] as List).length : int.tryParse(p['comments']?.toString() ?? '0') ?? 0;
-                
-                String time = 'Just now';
-                if (p['createdAt'] != null) {
-                  try {
-                    final dt = DateTime.parse(p['createdAt'].toString());
-                    final diff = DateTime.now().difference(dt);
-                    if (diff.inMinutes < 60) {
-                      time = '${diff.inMinutes} mins ago';
-                    } else if (diff.inHours < 24) {
-                      time = '${diff.inHours} hours ago';
-                    } else {
-                      time = '${diff.inDays} days ago';
-                    }
-                  } catch (_) {}
-                } else if (p['time'] != null) {
-                  time = p['time'];
-                }
-
-                final avatarHex = p['avatarColor'] ?? '#D35400';
-                final Color avatarColor = Color(int.parse(avatarHex.replaceFirst('#', '0xFF')));
-
-                final mediaUrl = p['mediaUrl'] != null && p['mediaUrl'].toString().isNotEmpty
-                    ? '${ApiConfig.baseUrl.replaceAll('/api', '')}${p['mediaUrl']}'
-                    : null;
-
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 12.0),
-                  child: Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF1E293B) : Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: isDark ? Colors.grey.shade800 : Colors.grey.shade200),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Post User Info
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            CircleAvatar(
-                              radius: 20,
-                              backgroundColor: avatarColor,
-                              child: Text(
-                                init,
-                                style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    _translate(author),
-                                    style: GoogleFonts.poppins(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.bold,
-                                      color: isDark ? Colors.white : Colors.black87,
-                                    ),
-                                  ),
-                                  Text(
-                                    _translate(time),
-                                    style: GoogleFonts.inter(
-                                      fontSize: 9.5,
-                                      color: Colors.grey,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFFCE4D6),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                p['badge'] ?? 'Samaj',
-                                style: GoogleFonts.poppins(
-                                  color: const Color(0xFFD35400),
-                                  fontSize: 8.5,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-
-                        // Post Text
-                        Text(
-                          content,
-                          style: GoogleFonts.inter(
-                            fontSize: 11.5,
-                            color: isDark ? Colors.grey.shade300 : Colors.grey.shade800,
-                            height: 1.4,
-                          ),
-                        ),
-                        
-                        // Media display if present
-                        if (mediaUrl != null) ...[
-                          const SizedBox(height: 12),
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
-                            child: Image.network(
-                              mediaUrl,
-                              fit: BoxFit.cover,
-                              width: double.infinity,
-                              height: 200,
-                              errorBuilder: (context, error, stackTrace) => Container(
-                                height: 100,
-                                color: Colors.grey.shade200,
-                                child: const Icon(Icons.broken_image, color: Colors.grey),
-                              ),
-                            ),
-                          ),
-                        ],
-
-                        const SizedBox(height: 16),
-                        const Divider(height: 1),
-                        const SizedBox(height: 8),
-
-                        // Actions row
-                        Row(
-                          children: [
-                            GestureDetector(
-                              onTap: () async {
-                                if (p['_id'] != null) {
-                                  final user = ref.read(currentUserProvider);
-                                  if (user != null) {
-                                    await http.post(
-                                      Uri.parse('${ApiConfig.baseUrl}/community/posts/${p['_id']}/like'),
-                                      headers: {'Content-Type': 'application/json'},
-                                      body: jsonEncode({'userId': user.id}),
-                                    );
-                                    setState(() {});
-                                  }
-                                }
-                              },
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    p['likes'] is List && ref.watch(currentUserProvider) != null && (p['likes'] as List).contains(ref.watch(currentUserProvider)!.id)
-                                        ? Icons.favorite_rounded
-                                        : Icons.favorite_border_rounded,
-                                    color: Colors.pink,
-                                    size: 16,
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Text(likesCount.toString(), style: GoogleFonts.inter(fontSize: 11, color: Colors.grey)),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: 20),
-                            const Icon(Icons.mode_comment_outlined, color: Colors.grey, size: 16),
-                            const SizedBox(width: 4),
-                            Text(commentsCount.toString(), style: GoogleFonts.inter(fontSize: 11, color: Colors.grey)),
-                            const Spacer(),
-                            GestureDetector(
-                              onTap: () async {
-                                final shareLink = "${ApiConfig.baseUrl.replaceAll('/api', '')}/share/post/${p['_id']}";
-                                final shareText = "$content\n\nView post: $shareLink";
-                                if (mediaUrl != null) {
-                                  try {
-                                    final response = await http.get(Uri.parse(mediaUrl));
-                                    if (response.statusCode == 200) {
-                                      final tempDir = Directory.systemTemp;
-                                      final file = File('${tempDir.path}/shared_image.png');
-                                      await file.writeAsBytes(response.bodyBytes);
-                                      await Share.shareXFiles([XFile(file.path)], text: shareText);
-                                    } else {
-                                      await Share.share(shareText);
-                                    }
-                                  } catch (e) {
-                                    print("Error sharing image: $e");
-                                    await Share.share(shareText);
-                                  }
-                                } else {
-                                  await Share.share(shareText);
-                                }
-                              },
-                              child: Row(
-                                children: [
-                                  const Icon(Icons.share_outlined, color: Colors.blue, size: 16),
-                                  const SizedBox(width: 4),
-                                  Text(_translate('Share'), style: GoogleFonts.inter(fontSize: 11, color: Colors.blue)),
-                                ],
-                              ),
-                            ),
-                          ],
-                        )
-                      ],
-                    ),
-                  ),
-                );
-              },
-            )
           ],
-        );
-      },
+        ),
+      ),
     );
   }
 

@@ -1057,6 +1057,46 @@ class _ProfileCompletionScreenState extends ConsumerState<ProfileCompletionScree
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                       ),
                     ),
+                    const SizedBox(height: 24),
+
+                    // SECTION 7: Matrimonial Opt-in
+                    _buildSectionHeader('Matrimonial Preferences', Icons.favorite_rounded),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: _hasMatrimonialProfile ? const Color(0xFFFCE4D6).withValues(alpha: 0.5) : Colors.grey.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: _hasMatrimonialProfile ? const Color(0xFFE67E22) : Colors.grey.shade300,
+                          width: 1.5,
+                        ),
+                      ),
+                      child: CheckboxListTile(
+                        activeColor: const Color(0xFFE67E22),
+                        contentPadding: EdgeInsets.zero,
+                        value: _hasMatrimonialProfile,
+                        onChanged: (val) {
+                          setState(() {
+                            _hasMatrimonialProfile = val ?? false;
+                          });
+                        },
+                        title: Text(
+                          'Create Matrimonial Profile / Show my profile in Matrimonial',
+                          style: GoogleFonts.poppins(
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.bold,
+                            color: _hasMatrimonialProfile ? const Color(0xFFD35400) : null,
+                          ),
+                        ),
+                        subtitle: Padding(
+                          padding: const EdgeInsets.only(top: 4.0),
+                          child: Text(
+                            'Opt-in to allow your profile to appear in Matrimonial searches. Other users will only see your Name, Age, and Gender until they send a connection request and you accept.',
+                            style: GoogleFonts.inter(fontSize: 11.5, color: Colors.grey.shade600),
+                          ),
+                        ),
+                      ),
+                    ),
                     const SizedBox(height: 32),
 
                     // Save Button

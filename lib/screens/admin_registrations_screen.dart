@@ -13,10 +13,12 @@ import '../widgets/campaign_status_badge.dart';
 
 class AdminRegistrationsScreen extends ConsumerStatefulWidget {
   final String campaignId;
+  final bool hideAppBar;
 
   const AdminRegistrationsScreen({
     super.key,
     required this.campaignId,
+    this.hideAppBar = false,
   });
 
   @override

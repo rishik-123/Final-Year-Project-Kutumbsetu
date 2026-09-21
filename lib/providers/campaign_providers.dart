@@ -120,10 +120,10 @@ final myRegistrationsProvider = FutureProvider<List<CampaignRegistration>>((ref)
 // Admin Registrations for Campaign Provider
 final campaignRegistrationsAdminProvider =
     FutureProvider.family<List<CampaignRegistration>, String>((ref, campaignId) async {
-  if (campaignId.isEmpty) return const [];
-
   try {
-    final uri = Uri.parse('${ApiConfig.baseUrl}/campaigns/$campaignId/registrations');
+    final uri = (campaignId.isEmpty || campaignId == 'all')
+        ? Uri.parse('${ApiConfig.baseUrl}/admin/campaign-registrations/all')
+        : Uri.parse('${ApiConfig.baseUrl}/campaigns/$campaignId/registrations');
     final response = await http.get(uri).timeout(const Duration(seconds: 5));
 
     if (response.statusCode == 200) {

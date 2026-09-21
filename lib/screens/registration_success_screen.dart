@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
-import '../constants/app_colors.dart';
 import '../widgets/campaign_status_badge.dart';
 
 class RegistrationSuccessScreen extends StatelessWidget {

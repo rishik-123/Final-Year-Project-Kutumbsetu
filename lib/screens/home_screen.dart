@@ -1533,8 +1533,6 @@ Contact: ${user.phoneNumber}
       {'label': 'Events', 'icon': Icons.calendar_month_rounded, 'asset': 'assets/icons/events.png', 'color': const Color(0xFFFEF9E7), 'iconColor': const Color(0xFFD35400), 'action': 'events'},
       {'label': 'News', 'icon': Icons.newspaper_rounded, 'asset': 'assets/icons/news.png', 'color': const Color(0xFFEAECEE), 'iconColor': const Color(0xFF7F8C8D), 'action': 'news'},
       {'label': 'Community Hub', 'icon': Icons.people_alt_rounded, 'color': const Color(0xFFFCF3CF), 'iconColor': const Color(0xFFD4AC0D), 'action': 'hub'},
-      {'label': 'Business', 'icon': Icons.storefront_rounded, 'color': const Color(0xFFF5EEF8), 'iconColor': const Color(0xFF8E44AD), 'action': 'directory'},
-      {'label': 'More', 'icon': Icons.more_horiz_rounded, 'color': Colors.transparent, 'iconColor': Colors.grey, 'dashed': true, 'action': 'directory'},
     ];
 
     return Padding(
@@ -1544,10 +1542,10 @@ Contact: ${user.phoneNumber}
         physics: const NeverScrollableScrollPhysics(),
         itemCount: items.length,
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 4,
+          crossAxisCount: 3,
           mainAxisSpacing: 16,
           crossAxisSpacing: 8,
-          childAspectRatio: 0.85,
+          childAspectRatio: 0.95,
         ),
         itemBuilder: (context, index) {
           final item = items[index];

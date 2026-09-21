@@ -106,6 +106,7 @@ class Campaign {
   final String bannerUrl;
   final DateTime startDate;
   final DateTime endDate;
+  final String location;
   final String status; // Draft, Upcoming, Active, Completed, Cancelled
   final String effectiveStatus;
   final double targetAmount;
@@ -124,6 +125,7 @@ class Campaign {
     required this.description,
     required this.category,
     this.bannerUrl = '',
+    this.location = '',
     required this.startDate,
     required this.endDate,
     this.status = 'Active',
@@ -176,6 +178,7 @@ class Campaign {
       description: json['description'] as String? ?? '',
       category: json['category'] as String? ?? 'General',
       bannerUrl: json['bannerUrl'] as String? ?? '',
+      location: json['location'] as String? ?? '',
       startDate: parseDate(json['startDate']),
       endDate: parseDate(json['endDate']),
       status: json['status'] as String? ?? 'Active',
@@ -202,6 +205,7 @@ class Campaign {
       'description': description,
       'category': category,
       'bannerUrl': bannerUrl,
+      'location': location,
       'startDate': startDate.toIso8601String(),
       'endDate': endDate.toIso8601String(),
       'status': status,

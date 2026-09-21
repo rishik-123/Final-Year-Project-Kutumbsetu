@@ -8,7 +8,9 @@ import 'package:video_player/video_player.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:intl/intl.dart';
 import '../api_config.dart';
+import '../models/campaign_model.dart';
 import '../providers/auth_provider.dart';
 import '../providers/theme_provider.dart';
 
@@ -79,6 +81,26 @@ class _CommunityFeedScreenState extends ConsumerState<CommunityFeedScreen> {
     } finally {
       setState(() => _isLoadingEvents = false);
     }
+  }
+
+  DateTime _parseEventDate(String dateStr) {
+    if (dateStr.trim().isEmpty) return DateTime.now().add(const Duration(days: 7));
+    final clean = dateStr.replaceAll(RegExp(r'(st|nd|rd|th)', caseSensitive: false), '').trim();
+    final direct = DateTime.tryParse(clean);
+    if (direct != null) return direct;
+    final formats = [
+      DateFormat('d MMMM yyyy'),
+      DateFormat('d MMM yyyy'),
+      DateFormat('dd/MM/yyyy'),
+      DateFormat('yyyy-MM-dd'),
+      DateFormat('dd-MM-yyyy'),
+    ];
+    for (final f in formats) {
+      try {
+        return f.parse(clean);
+      } catch (_) {}
+    }
+    return DateTime.now().add(const Duration(days: 7));
   }
 
   void _showCreatePostBottomSheet(BuildContext context) {
@@ -638,13 +660,19 @@ class _CommunityFeedScreenState extends ConsumerState<CommunityFeedScreen> {
                                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                                       ),
                                       onPressed: () {
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          SnackBar(
-                                            content: Text('Registered interest for $title!'),
-                                            backgroundColor: const Color(0xFF16A34A),
-                                            behavior: SnackBarBehavior.floating,
-                                          ),
+                                        final eventDate = _parseEventDate(dateStr);
+                                        final eventId = (ev['_id'] ?? ev['id'] ?? 'event_${title.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '_')}').toString();
+                                        final campaignObj = Campaign(
+                                          id: eventId,
+                                          title: title,
+                                          description: description,
+                                          category: category,
+                                          location: location,
+                                          startDate: eventDate,
+                                          endDate: eventDate.add(const Duration(hours: 8)),
+                                          status: 'Active',
                                         );
+                                        context.push('/campaigns/$eventId/register', extra: campaignObj);
                                       },
                                     ),
                                   ],

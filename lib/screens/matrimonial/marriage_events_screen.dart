@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../models/campaign_model.dart';
 import '../../providers/matrimonial_providers.dart';
 
 class MarriageEventsScreen extends ConsumerStatefulWidget {
@@ -168,20 +169,34 @@ class _MarriageEventsScreenState extends ConsumerState<MarriageEventsScreen> {
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.end,
                                 children: [
-                                  ElevatedButton.icon(
-                                    icon: const Icon(Icons.check, color: Colors.white, size: 16),
-                                    label: const Text('RSVP', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: primaryBlue,
-                                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                    ),
-                                    onPressed: () {
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        const SnackBar(content: Text('Thank you! Your RSVP has been registered.')),
-                                      );
-                                    },
-                                  ),
+                                   ElevatedButton.icon(
+                                     icon: const Icon(Icons.how_to_reg_rounded, color: Colors.white, size: 16),
+                                     label: const Text('RSVP / Register', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                                     style: ElevatedButton.styleFrom(
+                                       backgroundColor: primaryBlue,
+                                       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                     ),
+                                     onPressed: () {
+                                       final eventId = (ev['_id'] ?? ev['id'] ?? 'matrimonial_event_${ev['title']}').toString();
+                                       DateTime eventDate = DateTime.now().add(const Duration(days: 7));
+                                       if (ev['date'] != null) {
+                                         final parsed = DateTime.tryParse(ev['date'].toString());
+                                         if (parsed != null) eventDate = parsed;
+                                       }
+                                       final campaignObj = Campaign(
+                                         id: eventId,
+                                         title: ev['title'] ?? 'Samaj Marriage Event',
+                                         description: ev['description'] ?? '',
+                                         category: 'Matrimonial Meet',
+                                         location: ev['location'] ?? 'Community Bhavan',
+                                         startDate: eventDate,
+                                         endDate: eventDate.add(const Duration(hours: 8)),
+                                         status: 'Active',
+                                       );
+                                       context.push('/campaigns/$eventId/register', extra: campaignObj);
+                                     },
+                                   ),
                                 ],
                               ),
                           ],

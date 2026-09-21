@@ -3411,8 +3411,50 @@ app.post('/api/campaigns/:id/register', async (req, res) => {
       return res.status(400).json({ success: false, message: 'User ID is required for registration.' });
     }
 
-    // Check if Campaign exists
-    const campaign = await Campaign.findById(campaignId);
+    let campaign = null;
+    if (mongoose.Types.ObjectId.isValid(campaignId)) {
+      campaign = await Campaign.findById(campaignId);
+    }
+
+    if (!campaign) {
+      const titleToFind = req.body.campaignTitle || req.body.title;
+      if (titleToFind) {
+        campaign = await Campaign.findOne({ title: titleToFind });
+      }
+    }
+
+    if (!campaign && mongoose.Types.ObjectId.isValid(campaignId)) {
+      const communityEv = await CommunityEvent.findById(campaignId);
+      if (communityEv) {
+        campaign = await Campaign.findOne({ title: communityEv.title });
+        if (!campaign) {
+          campaign = new Campaign({
+            title: communityEv.title,
+            category: communityEv.category || 'General',
+            description: communityEv.description || '',
+            location: communityEv.location || 'Gujarat',
+            startDate: new Date(),
+            endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+            status: 'Active',
+          });
+          await campaign.save();
+        }
+      }
+    }
+
+    if (!campaign && (req.body.campaignTitle || req.body.title)) {
+      campaign = new Campaign({
+        title: req.body.campaignTitle || req.body.title,
+        category: req.body.campaignCategory || 'Community Event',
+        description: req.body.campaignDescription || '',
+        location: req.body.campaignLocation || 'Gujarat',
+        startDate: new Date(),
+        endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        status: 'Active',
+      });
+      await campaign.save();
+    }
+
     if (!campaign) {
       return res.status(404).json({ success: false, message: 'Campaign not found.' });
     }
@@ -3425,7 +3467,7 @@ app.post('/api/campaigns/:id/register', async (req, res) => {
 
     // Check duplicate registration
     const existingReg = await CampaignRegistration.findOne({
-      campaignId,
+      campaignId: campaign._id,
       userId,
       registrationStatus: { $ne: 'Cancelled' },
     });
@@ -3455,7 +3497,7 @@ app.post('/api/campaigns/:id/register', async (req, res) => {
 
     const regNumber = generateRegistrationNumber();
     const registration = new CampaignRegistration({
-      campaignId,
+      campaignId: campaign._id,
       userId,
       registrationNumber: regNumber,
       participationType: participationType || 'Participant',

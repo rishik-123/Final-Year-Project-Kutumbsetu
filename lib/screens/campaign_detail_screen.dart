@@ -492,15 +492,17 @@ class _CampaignDetailScreenState extends ConsumerState<CampaignDetailScreen> {
                               onPressed: isActive
                                   ? () => context.push('/campaigns/${campaign.id}/register', extra: campaign)
                                   : null,
-                              icon: const Icon(Icons.app_registration_rounded),
+                              icon: const Icon(Icons.how_to_reg_rounded),
                               label: Text(
-                                isActive ? 'Register for Campaign' : 'Registration Closed',
+                                isActive ? 'Register Yourself' : 'Registration Closed',
+                                style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 15),
                               ),
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: isActive ? AppColors.accentBlue : Colors.grey,
+                                backgroundColor: isActive ? const Color(0xFFE67E22) : Colors.grey,
                                 foregroundColor: Colors.white,
                                 padding: const EdgeInsets.symmetric(vertical: 16),
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                elevation: isActive ? 2 : 0,
                               ),
                             ),
                           ),

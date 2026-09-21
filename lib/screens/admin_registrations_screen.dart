@@ -61,11 +61,12 @@ class _AdminRegistrationsScreenState extends ConsumerState<AdminRegistrationsScr
   void _showDynamicDetailsModal(CampaignRegistration reg) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final user = reg.user;
+    final formattedDate = DateFormat('MMMM d, yyyy — hh:mm a').format(reg.registeredAt);
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: isDark ? AppColors.cardDark : AppColors.cardLight,
+      backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -86,21 +87,45 @@ class _AdminRegistrationsScreenState extends ConsumerState<AdminRegistrationsScr
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('User Registration Form Responses', style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold)),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('Registration Details', style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold)),
+                      CampaignStatusBadge(status: reg.registrationStatus, isCompact: true),
+                    ],
+                  ),
                   const SizedBox(height: 12),
                   const Divider(),
                   const SizedBox(height: 12),
 
                   _buildRow('Registration ID', reg.registrationNumber),
+                  _buildRow('Registered At', formattedDate),
                   _buildRow('Member Name', user?.fullName ?? 'Member'),
-                  _buildRow('Phone Number', user?.phoneNumber ?? 'N/A'),
-                  _buildRow('City', user?.city ?? 'N/A'),
+                  _buildRow('Mobile Number', user?.phoneNumber ?? 'N/A'),
+                  _buildRow('Email Address', user?.email.isNotEmpty == true ? user!.email : 'N/A'),
+                  _buildRow('Address', user?.address.isNotEmpty == true ? user!.address : (user?.city ?? 'N/A')),
+                  _buildRow('City / Region', '${user?.city ?? ""} ${user?.state ?? ""}'.trim()),
                   _buildRow('Gender', user?.gender ?? 'N/A'),
                   _buildRow('Date of Birth', user?.dateOfBirth ?? 'N/A'),
 
+                  const SizedBox(height: 12),
+                  Text('Participation Information', style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 14, color: const Color(0xFFE67E22))),
+                  const SizedBox(height: 8),
+                  _buildRow('Participation Type', reg.participationType),
+                  _buildRow('No. of Participants', reg.numberOfParticipants.toString()),
+                  if (reg.emergencyContactName.isNotEmpty) ...[
+                    _buildRow('Emergency Contact', '${reg.emergencyContactName} (${reg.emergencyContactNumber})'),
+                  ],
+                  if (reg.specialRequirements.isNotEmpty) ...[
+                    _buildRow('Special Requirements', reg.specialRequirements),
+                  ],
+                  if (reg.heardFrom.isNotEmpty) ...[
+                    _buildRow('Heard From', reg.heardFrom),
+                  ],
+
                   if (reg.submittedData.isNotEmpty) ...[
                     const SizedBox(height: 14),
-                    Text('Campaign Custom Responses:', style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 14)),
+                    Text('Additional Custom Responses:', style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 14)),
                     const SizedBox(height: 8),
                     ...reg.submittedData.entries.map((e) => _buildRow(e.key, e.value.toString())),
                   ],
@@ -110,6 +135,12 @@ class _AdminRegistrationsScreenState extends ConsumerState<AdminRegistrationsScr
                     width: double.infinity,
                     child: ElevatedButton(
                       onPressed: () => Navigator.pop(ctx),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF1B4F72),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
                       child: const Text('Close'),
                     ),
                   ),

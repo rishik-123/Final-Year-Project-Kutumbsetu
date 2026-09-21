@@ -242,8 +242,9 @@ const generateRandomOtp = () => {
 
 // Helper: Generate Unique Registration Number
 const generateRegistrationNumber = () => {
-  const randomNum = Math.floor(100000 + Math.random() * 900000);
-  return `KS-REG-${randomNum}`;
+  const year = new Date().getFullYear();
+  const randomNum = Math.floor(10000 + Math.random() * 90000);
+  return `REG-${year}-${randomNum}`;
 };
 
 // ==========================================
@@ -3395,7 +3396,16 @@ app.post('/api/campaigns/:id/share', async (req, res) => {
 app.post('/api/campaigns/:id/register', async (req, res) => {
   try {
     const campaignId = req.params.id;
-    const { userId, submittedData } = req.body;
+    const {
+      userId,
+      participationType,
+      numberOfParticipants,
+      specialRequirements,
+      emergencyContactName,
+      emergencyContactNumber,
+      heardFrom,
+      submittedData,
+    } = req.body;
 
     if (!userId) {
       return res.status(400).json({ success: false, message: 'User ID is required for registration.' });
@@ -3448,6 +3458,12 @@ app.post('/api/campaigns/:id/register', async (req, res) => {
       campaignId,
       userId,
       registrationNumber: regNumber,
+      participationType: participationType || 'Participant',
+      numberOfParticipants: Number(numberOfParticipants) || 1,
+      specialRequirements: specialRequirements || '',
+      emergencyContactName: emergencyContactName || '',
+      emergencyContactNumber: emergencyContactNumber || '',
+      heardFrom: heardFrom || 'KutumbSetu',
       submittedData: submittedData || {},
       registrationStatus: 'Registered',
     });
@@ -3486,7 +3502,8 @@ app.get('/api/campaigns/:id/registrations', async (req, res) => {
     }
 
     let registrations = await CampaignRegistration.find(query)
-      .populate('userId', 'fullName phoneNumber email city gender profilePhoto occupation')
+      .populate('userId', 'fullName phoneNumber email address city state nativePlace gender dateOfBirth profilePhoto occupation')
+      .populate('campaignId', 'title category startDate endDate location')
       .sort({ registeredAt: -1 });
 
     if (search) {

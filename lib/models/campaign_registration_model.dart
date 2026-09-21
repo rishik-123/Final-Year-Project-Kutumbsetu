@@ -8,6 +8,12 @@ class CampaignRegistration {
   final String userId;
   final UserModel? user;
   final String registrationNumber;
+  final String participationType; // 'Participant', 'Volunteer'
+  final int numberOfParticipants;
+  final String specialRequirements;
+  final String emergencyContactName;
+  final String emergencyContactNumber;
+  final String heardFrom;
   final Map<String, dynamic> submittedData;
   final String registrationStatus; // Registered, Pending, Approved, Rejected, Cancelled, Attended
   final DateTime registeredAt;
@@ -20,6 +26,12 @@ class CampaignRegistration {
     required this.userId,
     this.user,
     required this.registrationNumber,
+    this.participationType = 'Participant',
+    this.numberOfParticipants = 1,
+    this.specialRequirements = '',
+    this.emergencyContactName = '',
+    this.emergencyContactNumber = '',
+    this.heardFrom = 'KutumbSetu',
     this.submittedData = const {},
     this.registrationStatus = 'Registered',
     required this.registeredAt,
@@ -59,6 +71,12 @@ class CampaignRegistration {
       userId: uId,
       user: u,
       registrationNumber: json['registrationNumber'] as String? ?? '',
+      participationType: json['participationType'] as String? ?? 'Participant',
+      numberOfParticipants: (json['numberOfParticipants'] as num?)?.toInt() ?? 1,
+      specialRequirements: json['specialRequirements'] as String? ?? '',
+      emergencyContactName: json['emergencyContactName'] as String? ?? '',
+      emergencyContactNumber: json['emergencyContactNumber'] as String? ?? '',
+      heardFrom: json['heardFrom'] as String? ?? 'KutumbSetu',
       submittedData: subData,
       registrationStatus: json['registrationStatus'] as String? ?? 'Registered',
       registeredAt: json['registeredAt'] != null
@@ -76,6 +94,12 @@ class CampaignRegistration {
       'campaignId': campaignId,
       'userId': userId,
       'registrationNumber': registrationNumber,
+      'participationType': participationType,
+      'numberOfParticipants': numberOfParticipants,
+      'specialRequirements': specialRequirements,
+      'emergencyContactName': emergencyContactName,
+      'emergencyContactNumber': emergencyContactNumber,
+      'heardFrom': heardFrom,
       'submittedData': submittedData,
       'registrationStatus': registrationStatus,
       'registeredAt': registeredAt.toIso8601String(),

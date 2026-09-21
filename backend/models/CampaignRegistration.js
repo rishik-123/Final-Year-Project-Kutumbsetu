@@ -18,6 +18,36 @@ const campaignRegistrationSchema = new mongoose.Schema(
       unique: true,
       trim: true,
     },
+    participationType: {
+      type: String,
+      enum: ['Participant', 'Volunteer'],
+      default: 'Participant',
+    },
+    numberOfParticipants: {
+      type: Number,
+      default: 1,
+      min: 1,
+    },
+    specialRequirements: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    emergencyContactName: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    emergencyContactNumber: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    heardFrom: {
+      type: String,
+      trim: true,
+      default: 'KutumbSetu',
+    },
     submittedData: {
       type: Map,
       of: mongoose.Schema.Types.Mixed,

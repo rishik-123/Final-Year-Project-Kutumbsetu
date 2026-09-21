@@ -1,31 +1,50 @@
-from appium import webdriver
-from appium.options.android import UiAutomator2Options
+import os
+import sys
 import time
 
-import os
+# 1. Safe Import Handling
+try:
+    from appium import webdriver
+    from appium.options.android import UiAutomator2Options
+except ImportError as e:
+    print(f"\n[ERROR] Missing required Python package: {e}")
+    print("Please install Appium and Selenium dependencies using:")
+    print("  pip install Appium-Python-Client selenium\n")
+    sys.exit(1)
 
-# Dynamically resolve the APK path relative to this script directory or fallback to absolute path
+# 2. Dynamically resolve the APK path
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 apk_path = os.path.join(project_root, "build", "app", "outputs", "flutter-apk", "app-debug.apk")
 if not os.path.exists(apk_path):
     apk_path = r"C:\Users\Abcom\OneDrive\Desktop\FINAL YEAR PROJECT KUTUMBSETU\build\app\outputs\flutter-apk\app-debug.apk"
 
-options = UiAutomator2Options()
+print(f"Using APK Path: {apk_path}")
+if not os.path.exists(apk_path):
+    print(f"[WARNING] APK not found at {apk_path}. Please run 'flutter build apk --debug' first.")
 
+# 3. Configure Android UiAutomator2 Options
+options = UiAutomator2Options()
 options.platform_name = "Android"
 options.automation_name = "UiAutomator2"
 options.device_name = "emulator-5554"
 options.app = apk_path
+options.no_reset = True
+options.auto_grant_permissions = True
 
-driver = webdriver.Remote(
-    "http://127.0.0.1:4723",
-    options=options
-)
+# 4. Connect to Appium Server
+print("Connecting to Appium server on http://127.0.0.1:4723 ...")
+try:
+    driver = webdriver.Remote(
+        "http://127.0.0.1:4723",
+        options=options
+    )
+    print("KutumbSetu application launched successfully!")
 
-print("KutumbSetu application launched successfully")
+    time.sleep(5)
 
-time.sleep(5)
-
-driver.quit()
-
-print("TEST PASSED")
+    driver.quit()
+    print("TEST PASSED")
+except Exception as e:
+    print(f"\n[ERROR] Could not connect to Appium Server: {e}")
+    print("Make sure Appium Server is running by typing in terminal: appium\n")
+    sys.exit(1)

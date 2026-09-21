@@ -1536,20 +1536,19 @@ Contact: ${user.phoneNumber}
     ];
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12.0),
+      padding: const EdgeInsets.symmetric(horizontal: 16.0),
       child: GridView.builder(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
         itemCount: items.length,
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 3,
-          mainAxisSpacing: 16,
-          crossAxisSpacing: 8,
-          childAspectRatio: 0.95,
+          mainAxisSpacing: 10,
+          crossAxisSpacing: 12,
+          childAspectRatio: 1.25,
         ),
         itemBuilder: (context, index) {
           final item = items[index];
-          final isDashed = item['dashed'] == true;
 
           return InkWell(
             onTap: () {
@@ -1569,48 +1568,52 @@ Contact: ${user.phoneNumber}
             },
             borderRadius: BorderRadius.circular(16),
             child: Column(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Container(
-                  width: 56,
-                  height: 56,
+                  width: 58,
+                  height: 58,
                   decoration: BoxDecoration(
                     color: item['color'],
                     shape: BoxShape.circle,
-                    border: isDashed
-                        ? Border.all(color: Colors.grey.shade400, width: 1.5, style: BorderStyle.solid) // Simple solid border for dashed style fallback
-                        : null,
+                    boxShadow: [
+                      BoxShadow(
+                        color: (item['iconColor'] as Color).withValues(alpha: 0.14),
+                        blurRadius: 8,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
                   ),
                   child: Center(
                     child: item['asset'] != null
                         ? Padding(
-                            padding: const EdgeInsets.all(8.0),
+                            padding: const EdgeInsets.all(9.0),
                             child: Image.asset(
                               item['asset'],
-                              width: 36,
-                              height: 36,
+                              width: 38,
+                              height: 38,
                               fit: BoxFit.contain,
                             ),
                           )
                         : Icon(
                             item['icon'],
                             color: item['iconColor'],
-                            size: 24,
+                            size: 26,
                           ),
                   ),
                 ),
                 const SizedBox(height: 6),
-                Expanded(
-                  child: Text(
-                    _translate(item['label']),
-                    style: GoogleFonts.inter(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: isDark ? Colors.grey.shade300 : Colors.grey.shade800,
-                    ),
-                    textAlign: TextAlign.center,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                Text(
+                  _translate(item['label']),
+                  style: GoogleFonts.inter(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: isDark ? Colors.grey.shade300 : Colors.grey.shade800,
                   ),
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),

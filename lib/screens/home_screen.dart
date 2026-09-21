@@ -1529,7 +1529,7 @@ Contact: ${user.phoneNumber}
     final List<Map<String, dynamic>> items = [
       {'label': 'Family Tree', 'icon': Icons.account_tree_rounded, 'asset': 'assets/icons/family_tree.png', 'color': const Color(0xFFE8F8F5), 'iconColor': const Color(0xFF16A34A)},
       {'label': 'Directory', 'icon': Icons.folder_shared_rounded, 'asset': 'assets/icons/directory.png', 'color': const Color(0xFFEBF5FB), 'iconColor': const Color(0xFF2563EB), 'action': 'directory'},
-      {'label': 'Matrimony', 'icon': Icons.favorite_rounded, 'color': const Color(0xFFFCE4D6), 'iconColor': const Color(0xFFEA4C89)},
+      {'label': 'Matrimony', 'icon': Icons.favorite_rounded, 'asset': 'assets/icons/matrimony.png', 'color': const Color(0xFFFCE4D6), 'iconColor': const Color(0xFFEA4C89)},
       {'label': 'Events', 'icon': Icons.calendar_month_rounded, 'asset': 'assets/icons/events.png', 'color': const Color(0xFFFEF9E7), 'iconColor': const Color(0xFFD35400), 'action': 'events'},
       {'label': 'News', 'icon': Icons.newspaper_rounded, 'asset': 'assets/icons/news.png', 'color': const Color(0xFFEAECEE), 'iconColor': const Color(0xFF7F8C8D), 'action': 'news'},
       {'label': 'Community Hub', 'icon': Icons.people_alt_rounded, 'color': const Color(0xFFFCF3CF), 'iconColor': const Color(0xFFD4AC0D), 'action': 'hub'},

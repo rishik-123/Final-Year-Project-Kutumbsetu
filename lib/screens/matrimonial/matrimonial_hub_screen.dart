@@ -72,12 +72,16 @@ class _MatrimonialHubScreenState extends ConsumerState<MatrimonialHubScreen> {
                 child: Stack(
                   children: [
                     Positioned(
-                      right: -30,
-                      top: -20,
-                      child: Icon(
-                        Icons.favorite_rounded,
-                        size: 160,
-                        color: Colors.white.withValues(alpha: 0.1),
+                      right: 16,
+                      top: 42,
+                      child: Opacity(
+                        opacity: 0.9,
+                        child: Image.asset(
+                          'assets/icons/matrimony.png',
+                          width: 85,
+                          height: 85,
+                          fit: BoxFit.contain,
+                        ),
                       ),
                     ),
                   ],

@@ -464,7 +464,7 @@ class _CampaignDetailScreenState extends ConsumerState<CampaignDetailScreen> {
                       // Bottom CTAs Row
                       Row(
                         children: [
-                          if (auth.isAdmin)
+                          if (auth.isAdmin || (auth.user != null && auth.user!.id == campaign.createdBy))
                             Expanded(
                               child: OutlinedButton.icon(
                                 onPressed: () {
@@ -480,7 +480,7 @@ class _CampaignDetailScreenState extends ConsumerState<CampaignDetailScreen> {
                                 ),
                               ),
                             ),
-                          if (auth.isAdmin) const SizedBox(width: 12),
+                          if (auth.isAdmin || (auth.user != null && auth.user!.id == campaign.createdBy)) const SizedBox(width: 12),
                           Expanded(
                             flex: 2,
                             child: ElevatedButton.icon(

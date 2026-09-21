@@ -97,7 +97,7 @@ class _AdminRegistrationsScreenState extends ConsumerState<AdminRegistrationsScr
                   const SizedBox(height: 12),
                   const Divider(),
                   const SizedBox(height: 12),
-
+                  _buildRow('Event / Campaign', reg.campaign?.title.isNotEmpty == true ? reg.campaign!.title : 'Community Event'),
                   _buildRow('Registration ID', reg.registrationNumber),
                   _buildRow('Registered At', formattedDate),
                   _buildRow('Member Name', user?.fullName ?? 'Member'),
@@ -179,11 +179,14 @@ class _AdminRegistrationsScreenState extends ConsumerState<AdminRegistrationsScr
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final registrationsAsync = ref.watch(campaignRegistrationsAdminProvider(widget.campaignId));
-    final dateFormat = DateFormat('MMM d, yyyy');
+    final dateFormat = DateFormat('MMM d, yyyy • hh:mm a');
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Registered Users List (SCRUM-79)', style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 16)),
+        title: Text(
+          widget.campaignId == 'all' ? 'All Event Registrations' : 'Campaign Registrations',
+          style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 16),
+        ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
           onPressed: () => context.pop(),
@@ -200,7 +203,7 @@ class _AdminRegistrationsScreenState extends ConsumerState<AdminRegistrationsScr
                   controller: _searchController,
                   onChanged: (_) => setState(() {}),
                   decoration: InputDecoration(
-                    hintText: 'Search registered user by name, phone, or ID...',
+                    hintText: 'Search user, phone, ID, or event name...',
                     prefixIcon: const Icon(Icons.search_rounded),
                     suffixIcon: _searchController.text.isNotEmpty
                         ? IconButton(
@@ -250,8 +253,14 @@ class _AdminRegistrationsScreenState extends ConsumerState<AdminRegistrationsScr
                     if (query.isNotEmpty) {
                       final name = reg.user?.fullName.toLowerCase() ?? '';
                       final phone = reg.user?.phoneNumber.toLowerCase() ?? '';
+                      final email = reg.user?.email.toLowerCase() ?? '';
                       final regNum = reg.registrationNumber.toLowerCase();
-                      return name.contains(query) || phone.contains(query) || regNum.contains(query);
+                      final eventTitle = reg.campaign?.title.toLowerCase() ?? '';
+                      return name.contains(query) ||
+                          phone.contains(query) ||
+                          email.contains(query) ||
+                          regNum.contains(query) ||
+                          eventTitle.contains(query);
                     }
                     return true;
                   }).toList();
@@ -274,35 +283,90 @@ class _AdminRegistrationsScreenState extends ConsumerState<AdminRegistrationsScr
                     itemBuilder: (context, index) {
                       final reg = filtered[index];
                       final user = reg.user;
+                      final eventTitle = reg.campaign?.title.isNotEmpty == true
+                          ? reg.campaign!.title
+                          : 'Community Event';
 
                       return Container(
-                        margin: const EdgeInsets.only(bottom: 12),
+                        margin: const EdgeInsets.only(bottom: 14),
                         decoration: BoxDecoration(
                           color: isDark ? AppColors.cardDark : AppColors.cardLight,
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(color: isDark ? AppColors.borderDark : AppColors.borderLight),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.03),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
                         ),
                         child: Padding(
                           padding: const EdgeInsets.all(16.0),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
+                              // A. Event Name Header Badge
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFE67E22).withValues(alpha: 0.12),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(Icons.campaign_rounded, size: 15, color: Color(0xFFE67E22)),
+                                    const SizedBox(width: 6),
+                                    Flexible(
+                                      child: Text(
+                                        eventTitle,
+                                        style: GoogleFonts.inter(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                          color: const Color(0xFFD35400),
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+
+                              // B. User Avatar, Name & Status
                               Row(
                                 children: [
                                   CircleAvatar(
                                     backgroundColor: AppColors.primaryBlue,
-                                    child: Text(
-                                      user?.fullName.isNotEmpty == true ? user!.fullName[0].toUpperCase() : 'U',
-                                      style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold),
-                                    ),
+                                    backgroundImage: (user?.profilePhoto.isNotEmpty == true)
+                                        ? NetworkImage(user!.profilePhoto)
+                                        : null,
+                                    child: (user?.profilePhoto.isEmpty != false)
+                                        ? Text(
+                                            user?.fullName.isNotEmpty == true ? user!.fullName[0].toUpperCase() : 'U',
+                                            style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold),
+                                          )
+                                        : null,
                                   ),
                                   const SizedBox(width: 12),
                                   Expanded(
                                     child: Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
-                                        Text(user?.fullName ?? 'Registered Member', style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 15), maxLines: 1, overflow: TextOverflow.ellipsis),
-                                        Text('${user?.phoneNumber ?? ''} • ${user?.city ?? ''}', style: const TextStyle(fontSize: 12, color: Colors.grey), maxLines: 1, overflow: TextOverflow.ellipsis),
+                                        Text(
+                                          user?.fullName ?? 'Registered Member',
+                                          style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 15),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        Text(
+                                          '${user?.phoneNumber ?? ''}${user?.email.isNotEmpty == true ? " • ${user!.email}" : ""}',
+                                          style: const TextStyle(fontSize: 12, color: Colors.grey),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
                                       ],
                                     ),
                                   ),
@@ -310,28 +374,66 @@ class _AdminRegistrationsScreenState extends ConsumerState<AdminRegistrationsScr
                                   CampaignStatusBadge(status: reg.registrationStatus, isCompact: true),
                                 ],
                               ),
-                              const SizedBox(height: 12),
-                              const Divider(height: 1),
                               const SizedBox(height: 10),
+                              const Divider(height: 1),
+                              const SizedBox(height: 8),
 
+                              // C. Registration ID & Date
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
-                                  Expanded(
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF1B4F72).withValues(alpha: 0.1),
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
                                     child: Text(
-                                      'Ref: ${reg.registrationNumber}',
-                                      style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.accentBlue),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
+                                      'ID: ${reg.registrationNumber}',
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                        color: const Color(0xFF1B4F72),
+                                      ),
                                     ),
                                   ),
-                                  const SizedBox(width: 8),
-                                  Text(dateFormat.format(reg.registeredAt), style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                                  Text(
+                                    dateFormat.format(reg.registeredAt),
+                                    style: const TextStyle(fontSize: 11, color: Colors.grey),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+
+                              // D. Essential Participation & Emergency Contact Details
+                              Row(
+                                children: [
+                                  const Icon(Icons.person_pin_rounded, size: 14, color: Colors.grey),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    '${reg.participationType} (${reg.numberOfParticipants} ${reg.numberOfParticipants > 1 ? "persons" : "person"})',
+                                    style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600),
+                                  ),
+                                  if (reg.emergencyContactName.isNotEmpty) ...[
+                                    const SizedBox(width: 10),
+                                    const Text('•', style: TextStyle(color: Colors.grey)),
+                                    const SizedBox(width: 10),
+                                    const Icon(Icons.phone_in_talk_rounded, size: 13, color: Colors.grey),
+                                    const SizedBox(width: 4),
+                                    Expanded(
+                                      child: Text(
+                                        'Emg: ${reg.emergencyContactName} (${reg.emergencyContactNumber})',
+                                        style: GoogleFonts.inter(fontSize: 11.5, color: Colors.grey.shade700),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
                                 ],
                               ),
                               const SizedBox(height: 12),
 
-                              // Admin Action Controls
+                              // E. Admin Action Controls
                               Row(
                                 children: [
                                   Expanded(
@@ -340,7 +442,7 @@ class _AdminRegistrationsScreenState extends ConsumerState<AdminRegistrationsScr
                                       icon: const Icon(Icons.description_outlined, size: 16),
                                       label: const FittedBox(
                                         fit: BoxFit.scaleDown,
-                                        child: Text('View Answers'),
+                                        child: Text('View Details'),
                                       ),
                                       style: OutlinedButton.styleFrom(
                                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
@@ -386,8 +488,8 @@ class _AdminRegistrationsScreenState extends ConsumerState<AdminRegistrationsScr
                     },
                   );
                 },
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (err, _) => Center(child: Text('Error: $err')),
+                loading: () => const Center(child: CircularProgressIndicator(color: AppColors.accentBlue)),
+                error: (err, _) => Center(child: Text('Failed to load registrations: $err')),
               ),
             ),
           ),

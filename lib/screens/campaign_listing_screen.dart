@@ -78,7 +78,13 @@ class _CampaignListingScreenState extends ConsumerState<CampaignListingScreen> {
                           ],
                         ),
                       ),
-                      if (auth.isAdmin)
+                      if (auth.isAdmin) ...[
+                        IconButton(
+                          onPressed: () => context.push('/campaigns/all/registrations'),
+                          icon: const Icon(Icons.people_alt_rounded, color: Colors.white),
+                          tooltip: 'All Event Registrations',
+                        ),
+                        const SizedBox(width: 4),
                         ElevatedButton.icon(
                           onPressed: () => context.push('/campaigns/create'),
                           icon: const Icon(Icons.add_circle_outline_rounded, size: 18),
@@ -92,6 +98,7 @@ class _CampaignListingScreenState extends ConsumerState<CampaignListingScreen> {
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           ),
                         ),
+                      ],
                     ],
                   ),
                   const SizedBox(height: 16),

@@ -1277,11 +1277,19 @@ Contact: ${user.phoneNumber}
           _buildFeaturedFamilies(isDark),
           const SizedBox(height: 20),
 
-          // 6. Community at a Glance
+          // 6. Upcoming Events
+          _buildUpcomingEvents(isDark),
+          const SizedBox(height: 20),
+
+          // 7. Recent Samaj News
+          _buildRecentSamajNews(isDark),
+          const SizedBox(height: 20),
+
+          // 8. Community at a Glance
           _buildCommunityAtGlance(isDark),
           const SizedBox(height: 20),
 
-          // 7. Community Hub Explore Card
+          // 9. Community Hub Explore Card
           _buildCommunityHubExploreCard(isDark),
           const SizedBox(height: 28),
         ],
@@ -1519,11 +1527,11 @@ Contact: ${user.phoneNumber}
   // Quick Actions Grid (Image 1)
   Widget _buildQuickActionsGrid(bool isDark) {
     final List<Map<String, dynamic>> items = [
-      {'label': 'Family Tree', 'icon': Icons.account_tree_rounded, 'color': const Color(0xFFE8F8F5), 'iconColor': const Color(0xFF16A34A)},
-      {'label': 'Directory', 'icon': Icons.folder_shared_rounded, 'color': const Color(0xFFEBF5FB), 'iconColor': const Color(0xFF2563EB), 'action': 'directory'},
+      {'label': 'Family Tree', 'icon': Icons.account_tree_rounded, 'asset': 'assets/icons/family_tree.png', 'color': const Color(0xFFE8F8F5), 'iconColor': const Color(0xFF16A34A)},
+      {'label': 'Directory', 'icon': Icons.folder_shared_rounded, 'asset': 'assets/icons/directory.png', 'color': const Color(0xFFEBF5FB), 'iconColor': const Color(0xFF2563EB), 'action': 'directory'},
       {'label': 'Matrimony', 'icon': Icons.favorite_rounded, 'color': const Color(0xFFFCE4D6), 'iconColor': const Color(0xFFEA4C89)},
-      {'label': 'Events', 'icon': Icons.calendar_month_rounded, 'color': const Color(0xFFFEF9E7), 'iconColor': const Color(0xFFD35400), 'action': 'events'},
-      {'label': 'News', 'icon': Icons.newspaper_rounded, 'color': const Color(0xFFEAECEE), 'iconColor': const Color(0xFF7F8C8D), 'action': 'news'},
+      {'label': 'Events', 'icon': Icons.calendar_month_rounded, 'asset': 'assets/icons/events.png', 'color': const Color(0xFFFEF9E7), 'iconColor': const Color(0xFFD35400), 'action': 'events'},
+      {'label': 'News', 'icon': Icons.newspaper_rounded, 'asset': 'assets/icons/news.png', 'color': const Color(0xFFEAECEE), 'iconColor': const Color(0xFF7F8C8D), 'action': 'news'},
       {'label': 'Community Hub', 'icon': Icons.people_alt_rounded, 'color': const Color(0xFFFCF3CF), 'iconColor': const Color(0xFFD4AC0D), 'action': 'hub'},
       {'label': 'Business', 'icon': Icons.storefront_rounded, 'color': const Color(0xFFF5EEF8), 'iconColor': const Color(0xFF8E44AD), 'action': 'directory'},
       {'label': 'More', 'icon': Icons.more_horiz_rounded, 'color': Colors.transparent, 'iconColor': Colors.grey, 'dashed': true, 'action': 'directory'},
@@ -1575,11 +1583,21 @@ Contact: ${user.phoneNumber}
                         : null,
                   ),
                   child: Center(
-                    child: Icon(
-                      item['icon'],
-                      color: item['iconColor'],
-                      size: 24,
-                    ),
+                    child: item['asset'] != null
+                        ? Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Image.asset(
+                              item['asset'],
+                              width: 36,
+                              height: 36,
+                              fit: BoxFit.contain,
+                            ),
+                          )
+                        : Icon(
+                            item['icon'],
+                            color: item['iconColor'],
+                            size: 24,
+                          ),
                   ),
                 ),
                 const SizedBox(height: 6),
@@ -2136,12 +2154,17 @@ Contact: ${user.phoneNumber}
                 ),
                 const SizedBox(width: 12),
                 Container(
-                  padding: const EdgeInsets.all(10),
+                  padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
                     color: const Color(0xFFFCE4D6),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(Icons.push_pin_rounded, color: Color(0xFFD35400), size: 20),
+                  child: Image.asset(
+                    'assets/icons/news.png',
+                    width: 28,
+                    height: 28,
+                    fit: BoxFit.contain,
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -2527,15 +2550,16 @@ Contact: ${user.phoneNumber}
             Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
                     color: const Color(0xFFE67E22).withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(14),
                   ),
-                  child: const Icon(
-                    Icons.groups_rounded,
-                    color: Color(0xFFE67E22),
-                    size: 26,
+                  child: Image.asset(
+                    'assets/icons/events.png',
+                    width: 32,
+                    height: 32,
+                    fit: BoxFit.contain,
                   ),
                 ),
                 const SizedBox(width: 14),
@@ -2654,9 +2678,9 @@ Contact: ${user.phoneNumber}
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
             _buildNavBarItem(0, Icons.home_rounded, 'Home', isDark),
-            _buildNavBarItem(1, Icons.park_rounded, 'Tree', isDark),
+            _buildNavBarItem(1, Icons.park_rounded, 'Tree', isDark, asset: 'assets/icons/family_tree.png'),
             _buildNavBarCenterButton(isDark),
-            _buildNavBarItem(3, Icons.people_alt_rounded, 'Community Hub', isDark),
+            _buildNavBarItem(3, Icons.people_alt_rounded, 'Community Hub', isDark, asset: 'assets/icons/events.png'),
             _buildNavBarItem(4, Icons.assignment_ind_rounded, 'Build Profile', isDark),
           ],
         ),
@@ -2664,7 +2688,7 @@ Contact: ${user.phoneNumber}
     );
   }
 
-  Widget _buildNavBarItem(int index, IconData icon, String label, bool isDark) {
+  Widget _buildNavBarItem(int index, IconData icon, String label, bool isDark, {String? asset}) {
     final isSelected = _currentIndex == index;
     final Color selectedCol = const Color(0xFFD35400);
     final Color unselectedCol = isDark ? Colors.grey.shade500 : Colors.grey.shade600;
@@ -2680,11 +2704,19 @@ Contact: ${user.phoneNumber}
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              icon,
-              color: isSelected ? selectedCol : unselectedCol,
-              size: 24,
-            ),
+            if (asset != null)
+              Image.asset(
+                asset,
+                width: 22,
+                height: 22,
+                fit: BoxFit.contain,
+              )
+            else
+              Icon(
+                icon,
+                color: isSelected ? selectedCol : unselectedCol,
+                size: 24,
+              ),
             const SizedBox(height: 2),
             Text(
               _translate(label),

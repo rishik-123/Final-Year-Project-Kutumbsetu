@@ -50,6 +50,7 @@ class AppBottomNavBar extends ConsumerWidget {
               _buildNavItem(
                 context,
                 icon: Icons.people_alt_rounded,
+                asset: 'assets/icons/directory.png',
                 label: 'Directory',
                 isSelected: selectedIndex == 0,
                 onTap: () {
@@ -61,6 +62,7 @@ class AppBottomNavBar extends ConsumerWidget {
               _buildNavItem(
                 context,
                 icon: Icons.campaign_rounded,
+                asset: 'assets/icons/events.png',
                 label: 'Campaigns',
                 isSelected: selectedIndex == 1,
                 onTap: () {
@@ -88,6 +90,7 @@ class AppBottomNavBar extends ConsumerWidget {
   Widget _buildNavItem(
     BuildContext context, {
     required IconData icon,
+    String? asset,
     required String label,
     required bool isSelected,
     required VoidCallback onTap,
@@ -106,11 +109,19 @@ class AppBottomNavBar extends ConsumerWidget {
         ),
         child: Row(
           children: [
-            Icon(
-              icon,
-              color: isSelected ? activeColor : inactiveColor,
-              size: 22,
-            ),
+            if (asset != null)
+              Image.asset(
+                asset,
+                width: 22,
+                height: 22,
+                fit: BoxFit.contain,
+              )
+            else
+              Icon(
+                icon,
+                color: isSelected ? activeColor : inactiveColor,
+                size: 22,
+              ),
             if (isSelected) ...[
               const SizedBox(width: 8),
               Text(

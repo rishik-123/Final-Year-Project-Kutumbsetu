@@ -119,11 +119,17 @@ class MyRegistrationsScreen extends ConsumerWidget {
               _buildDetailItem('Registration ID', reg.registrationNumber),
               _buildDetailItem('Campaign Title', reg.campaign?.title ?? 'Campaign'),
               _buildDetailItem('Category', reg.campaign?.category ?? 'General'),
+              _buildDetailItem('Participation Type', reg.participationType),
+              _buildDetailItem('Participants Count', reg.numberOfParticipants.toString()),
+              if (reg.emergencyContactName.isNotEmpty)
+                _buildDetailItem('Emergency Contact', '${reg.emergencyContactName} (${reg.emergencyContactNumber})'),
+              if (reg.specialRequirements.isNotEmpty)
+                _buildDetailItem('Special Requirements', reg.specialRequirements),
               _buildDetailItem('Registered Date', dateFormat.format(reg.registeredAt)),
 
               if (reg.submittedData.isNotEmpty) ...[
                 const SizedBox(height: 12),
-                Text('Dynamic Responses:', style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 13)),
+                Text('Additional Responses:', style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 13)),
                 const SizedBox(height: 6),
                 ...reg.submittedData.entries.map(
                   (e) => Padding(

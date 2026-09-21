@@ -114,6 +114,10 @@ class _CampaignRegistrationScreenState extends ConsumerState<CampaignRegistratio
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'userId': user.id,
+          'campaignTitle': campaign.title,
+          'campaignCategory': campaign.category,
+          'campaignLocation': campaign.location,
+          'campaignDescription': campaign.description,
           'participationType': _participationType,
           'numberOfParticipants': _numberOfParticipants,
           'specialRequirements': _specialRequirementsController.text.trim(),

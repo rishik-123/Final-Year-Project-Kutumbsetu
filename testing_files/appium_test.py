@@ -2,7 +2,13 @@ from appium import webdriver
 from appium.options.android import UiAutomator2Options
 import time
 
-apk_path = r"C:\Users\Abcom\OneDrive\Desktop\FINAL YEAR PROJECT KUTUMSETU\build\app\outputs\flutter-apk\app-debug.apk"
+import os
+
+# Dynamically resolve the APK path relative to this script directory or fallback to absolute path
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+apk_path = os.path.join(project_root, "build", "app", "outputs", "flutter-apk", "app-debug.apk")
+if not os.path.exists(apk_path):
+    apk_path = r"C:\Users\Abcom\OneDrive\Desktop\FINAL YEAR PROJECT KUTUMBSETU\build\app\outputs\flutter-apk\app-debug.apk"
 
 options = UiAutomator2Options()
 

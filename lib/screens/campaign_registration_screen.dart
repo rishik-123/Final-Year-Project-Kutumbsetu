@@ -70,7 +70,7 @@ class _CampaignRegistrationScreenState extends ConsumerState<CampaignRegistratio
     return dateOfBirth;
   }
 
-  Future<void> _submitRegistration(BuildContext context, Campaign campaign) async {
+  Future<void> _submitRegistration(Campaign campaign) async {
     if (!_formKey.currentState!.validate()) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -133,72 +133,71 @@ class _CampaignRegistrationScreenState extends ConsumerState<CampaignRegistratio
 
       final data = jsonDecode(response.body);
 
+      if (!mounted) return;
+
       if (response.statusCode == 201 && data['success'] == true) {
         final reg = data['registration'];
         ref.invalidate(myRegistrationsProvider);
         ref.invalidate(campaignDetailProvider(widget.campaignId));
         ref.invalidate(campaignsListProvider);
 
-        if (mounted) {
-          context.pushReplacement(
-            '/campaigns/${widget.campaignId}/success',
-            extra: {
-              'registrationNumber': reg['registrationNumber'] ?? 'REG-2026-00001',
-              'campaignTitle': campaign.title,
-              'campaignDate': '${DateFormat('dd MMM yyyy').format(campaign.startDate)} - ${DateFormat('dd MMM yyyy').format(campaign.endDate)}',
-              'campaignLocation': campaign.location.isNotEmpty ? campaign.location : 'Community Hall',
-              'participationType': _participationType,
-              'numberOfParticipants': _numberOfParticipants,
-              'emergencyContactName': _emergencyContactNameController.text.trim(),
-              'emergencyContactNumber': _emergencyContactNumberController.text.trim(),
-              'registrationStatus': reg['registrationStatus'] ?? 'Registered',
-              'registeredAt': reg['registeredAt'] ?? DateTime.now().toIso8601String(),
-            },
-          );
-        }
+        context.pushReplacement(
+          '/campaigns/${widget.campaignId}/success',
+          extra: {
+            'registrationNumber': reg['registrationNumber'] ?? 'REG-2026-00001',
+            'campaignTitle': campaign.title,
+            'campaignDate': '${DateFormat('dd MMM yyyy').format(campaign.startDate)} - ${DateFormat('dd MMM yyyy').format(campaign.endDate)}',
+            'campaignLocation': campaign.location.isNotEmpty ? campaign.location : 'Community Hall',
+            'participationType': _participationType,
+            'numberOfParticipants': _numberOfParticipants,
+            'emergencyContactName': _emergencyContactNameController.text.trim(),
+            'emergencyContactNumber': _emergencyContactNumberController.text.trim(),
+            'registrationStatus': reg['registrationStatus'] ?? 'Registered',
+            'registeredAt': reg['registeredAt'] ?? DateTime.now().toIso8601String(),
+          },
+        );
       } else {
         final errMsg = data['message'] ?? 'Registration failed. Please try again.';
-        if (mounted) {
-          showDialog(
-            context: context,
-            builder: (ctx) => AlertDialog(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              title: Row(
-                children: [
-                  const Icon(Icons.info_outline_rounded, color: Colors.orange),
-                  const SizedBox(width: 8),
-                  Text('Registration Notice', style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 16)),
-                ],
-              ),
-              content: Text(errMsg, style: GoogleFonts.inter(fontSize: 14)),
-              actions: [
-                if (data['registration'] != null)
-                  TextButton(
-                    onPressed: () {
-                      Navigator.pop(ctx);
-                      context.push('/my-registrations');
-                    },
-                    child: const Text('View My Registrations'),
-                  ),
-                ElevatedButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  child: const Text('OK'),
-                ),
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: Row(
+              children: [
+                const Icon(Icons.info_outline_rounded, color: Colors.orange),
+                const SizedBox(width: 8),
+                Text('Registration Notice', style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 16)),
               ],
             ),
-          );
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Connection failed: $e'),
-            backgroundColor: Colors.redAccent,
-            behavior: SnackBarBehavior.floating,
+            content: Text(errMsg, style: GoogleFonts.inter(fontSize: 14)),
+            actions: [
+              if (data['registration'] != null)
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    if (mounted) {
+                      context.push('/my-registrations');
+                    }
+                  },
+                  child: const Text('View My Registrations'),
+                ),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('OK'),
+              ),
+            ],
           ),
         );
       }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Connection failed: $e'),
+          backgroundColor: Colors.redAccent,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
@@ -235,7 +234,7 @@ class _CampaignRegistrationScreenState extends ConsumerState<CampaignRegistratio
               ),
             ],
           ),
-          if (trailing != null) trailing,
+          ?trailing,
         ],
       ),
     );
@@ -777,7 +776,7 @@ class _CampaignRegistrationScreenState extends ConsumerState<CampaignRegistratio
                   _buildSectionHeader('HOW DID YOU HEAR ABOUT US?', Icons.campaign_outlined),
 
                   DropdownButtonFormField<String>(
-                    value: _heardFrom,
+                    initialValue: _heardFrom,
                     decoration: InputDecoration(
                       labelText: 'How did you hear about this campaign? *',
                       prefixIcon: const Icon(Icons.hearing_rounded),
@@ -833,7 +832,7 @@ class _CampaignRegistrationScreenState extends ConsumerState<CampaignRegistratio
 
                   // 7. SUBMIT BUTTON (REGISTER YOURSELF)
                   ElevatedButton(
-                    onPressed: _isSubmitting ? null : () => _submitRegistration(context, campaign),
+                    onPressed: _isSubmitting ? null : () => _submitRegistration(campaign),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: darkNavy,
                       foregroundColor: Colors.white,

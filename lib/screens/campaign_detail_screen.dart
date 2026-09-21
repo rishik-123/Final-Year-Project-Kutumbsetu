@@ -28,10 +28,7 @@ class CampaignDetailScreen extends ConsumerStatefulWidget {
 }
 
 class _CampaignDetailScreenState extends ConsumerState<CampaignDetailScreen> {
-  bool _isUpdatingStatus = false;
-
   Future<void> _updateStatus(String newStatus) async {
-    setState(() => _isUpdatingStatus = true);
     try {
       final response = await http.patch(
         Uri.parse('${ApiConfig.baseUrl}/campaigns/${widget.campaignId}/status'),
@@ -57,8 +54,6 @@ class _CampaignDetailScreenState extends ConsumerState<CampaignDetailScreen> {
           SnackBar(content: Text('Failed to update status: $e'), backgroundColor: Colors.redAccent),
         );
       }
-    } finally {
-      if (mounted) setState(() => _isUpdatingStatus = false);
     }
   }
 

@@ -1,5 +1,3 @@
-import 'package:flutter/foundation.dart';
-
 class CampaignCategory {
   final String id;
   final String name;

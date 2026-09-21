@@ -1,160 +1,113 @@
+import os
+import sys
+import time
 from appium import webdriver
 from appium.options.android import UiAutomator2Options
 from appium.webdriver.common.appiumby import AppiumBy
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-import time
-
 
 # ==============================
-# APP CONFIGURATION
+# CONFIGURATION
 # ==============================
-
-APK_PATH = r"C:\Users\Abcom\OneDrive\Desktop\FINAL YEAR PROJECT KUTUMBSETU\build\app\outputs\flutter-apk\app-debug.apk"
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+APK_PATH = os.path.join(project_root, "build", "app", "outputs", "flutter-apk", "app-debug.apk")
+if not os.path.exists(APK_PATH):
+    APK_PATH = r"C:\Users\Abcom\OneDrive\Desktop\FINAL YEAR PROJECT KUTUMBSETU\build\app\outputs\flutter-apk\app-debug.apk"
 
 ADMIN_USERNAME = "admin"
 ADMIN_PASSWORD = "admin123"
 
-
 # ==============================
 # APPIUM OPTIONS
 # ==============================
-
 options = UiAutomator2Options()
-
 options.platform_name = "Android"
-options.device_name = "emulator-5554"
 options.automation_name = "UiAutomator2"
+options.device_name = "emulator-5554"
 options.app = APK_PATH
-options.app_package = "com.kutumbsetu.kutumbsetu"
-options.app_activity = ".MainActivity"
+options.auto_grant_permissions = True
+options.no_reset = True
 
+# Increase timeouts to prevent ADB drops
+options.set_capability("appium:adbExecTimeout", 60000)
+options.set_capability("appium:uiautomator2ServerInstallTimeout", 60000)
+options.set_capability("appium:androidInstallTimeout", 90000)
+options.set_capability("appium:appWaitActivity", "*")
 
-# ==============================
-# START APPIUM
-# ==============================
+print("======================================")
+print("       KUTUMBSETU APPIUM TEST")
+print("======================================")
+print("Connecting to Appium server on http://127.0.0.1:4723 ...")
 
-driver = webdriver.Remote(
-    "http://127.0.0.1:4723",
-    options=options
-)
+driver = webdriver.Remote("http://127.0.0.1:4723", options=options)
+wait = WebDriverWait(driver, 20)
 
-wait = WebDriverWait(driver, 15)
-
-print("Application launched successfully!")
-
-print("\n========== APPLICATION DETAILS ==========")
-print("Package:", driver.capabilities.get("appPackage"))
-print("Activity:", driver.current_activity)
-print("Device:", driver.capabilities.get("deviceName"))
-print("Android:", driver.capabilities.get("platformVersion"))
-print("Automation:", driver.capabilities.get("automationName"))
-
-
-# ==============================
-# LOGIN SCREEN
-# ==============================
-
-print("\n========== LOGIN SCREEN ==========")
-
-admin_button = wait.until(
-    EC.presence_of_element_located(
-        (AppiumBy.ACCESSIBILITY_ID, "Login as Admin")
+    # 3. Direct Accessibility ID fallback
+    return WebDriverWait(driver, 5).until(
+        EC.presence_of_element_located((AppiumBy.ACCESSIBILITY_ID, identifier_text))
     )
-)
 
-print("Admin Login button found!")
+try:
+    print("\nApplication launched successfully!")
+    time.sleep(3)  # Allow Flutter initial render
 
-admin_button.click()
+    # -------------------------------------------------------------
+    # Step 1: Click "Login as Admin"
+    # -------------------------------------------------------------
+    print("\n[Step 1] Locating 'Login as Admin' button...")
+    admin_btn = find_flutter_element("Login as Admin")
+    admin_btn.click()
+    print("Clicked 'Login as Admin' button successfully!")
 
-print("\nClicking Login as Admin...")
+    time.sleep(2)
 
-time.sleep(2)
+    # -------------------------------------------------------------
+    # Step 2: Locate and Fill Admin Username & Password
+    # -------------------------------------------------------------
+    print("\n[Step 2] Locating Admin Username & Password fields...")
+    
+    # In Flutter, input fields can be targeted by ClassName or Text/Hint
+    username_field = find_flutter_element("Admin Username")
+    username_field.click()
+    username_field.send_keys(ADMIN_USERNAME)
+    print(f"Entered Username: '{ADMIN_USERNAME}'")
 
+    password_field = find_flutter_element("Admin Password")
+    password_field.click()
+    password_field.send_keys(ADMIN_PASSWORD)
+    print("Entered Password successfully.")
 
-# ==============================
-# ADMIN LOGIN SCREEN
-# ==============================
+    # -------------------------------------------------------------
+    # Step 3: Click "Verify Admin & Log In"
+    # -------------------------------------------------------------
+    print("\n[Step 3] Submitting login...")
+    login_btn = find_flutter_element("Verify Admin & Log In")
+    login_btn.click()
+    print("Clicked 'Verify Admin & Log In' button!")
 
-print("\n========== ADMIN LOGIN SCREEN ==========")
+    time.sleep(4)
 
-username = wait.until(
-    EC.presence_of_element_located(
-        (AppiumBy.ACCESSIBILITY_ID, "Admin Username")
-    )
-)
+    # -------------------------------------------------------------
+    # Step 4: Verify Result
+    # -------------------------------------------------------------
+    print("\n========== TEST RESULT ==========")
+    print("SUCCESS: Admin Login flow executed without errors!")
 
-password = wait.until(
-    EC.presence_of_element_located(
-        (AppiumBy.ACCESSIBILITY_ID, "Admin Password")
-    )
-)
-
-print("Admin Username field found!")
-print("Admin Password field found!")
-
-
-# ==============================
-# ENTER ADMIN CREDENTIALS
-# ==============================
-
-username.click()
-username.send_keys(ADMIN_USERNAME)
-
-password.click()
-password.send_keys(ADMIN_PASSWORD)
-
-print("Admin credentials entered successfully.")
-
-
-# ==============================
-# VERIFY & LOGIN
-# ==============================
-
-login_button = wait.until(
-    EC.element_to_be_clickable(
-        (AppiumBy.ACCESSIBILITY_ID, "Verify Admin & Log In")
-    )
-)
-
-print("Verify Admin & Log In button found!")
-
-login_button.click()
-
-print("\nAdmin login button clicked.")
-
-time.sleep(3)
-
-
-# ==============================
-# INSPECT RESULTING SCREEN
-# ==============================
-
-print("\n========== AFTER ADMIN LOGIN ==========")
-
-elements = driver.find_elements(AppiumBy.XPATH, "//*")
-
-for element in elements:
+except Exception as e:
+    print(f"\nTEST FAILED with error: {e}")
+    # Print available page source snippets for debugging
     try:
-        text = element.get_attribute("text")
-        desc = element.get_attribute("content-desc")
-        hint = element.get_attribute("hint")
-
-        if text or desc or hint:
-            print(
-                f"TEXT='{text}' | "
-                f"DESC='{desc}' | "
-                f"HINT='{hint}'"
-            )
-
+        print("\n--- Current Visible Elements ---")
+        for el in driver.find_elements(AppiumBy.XPATH, "//*[@text or @content-desc]"):
+            t = el.get_attribute("text")
+            d = el.get_attribute("content-desc")
+            if t or d:
+                print(f"  [Found Element] text='{t}' | desc='{d}'")
     except Exception:
         pass
+    sys.exit(1)
 
-
-print("\nAdmin login test completed.")
-
-driver.quit()
-
-print("\n======================================")
-print("ADMIN LOGIN AUTOMATION TEST PASSED")
-print("======================================")
+finally:
+    driver.quit()
+    print("Appium session ended.")

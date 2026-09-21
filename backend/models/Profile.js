@@ -17,6 +17,11 @@ const profileSchema = new mongoose.Schema({
     trim: true,
     default: '',
   },
+  age: {
+    type: String,
+    trim: true,
+    default: '',
+  },
   phoneNumber: {
     type: String,
     trim: true,

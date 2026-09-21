@@ -1,11 +1,14 @@
 import 'dart:convert';
-import 'package:http/http.dart' as http;
+import 'dart:io';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:http/http.dart' as http;
+import 'package:image_picker/image_picker.dart';
+import 'package:intl/intl.dart';
 import '../api_config.dart';
 import '../providers/theme_provider.dart';
-import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
@@ -390,6 +393,41 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     },
                   ),
                   const SizedBox(height: 16),
+
+                  //Age entryBox
+                  TextFormField(
+                    controller:_ageController,
+                    keyboardType:TextInputType.number,
+                    maxLength: 10,
+                    decoration: InputDecoration(
+                      labelText: 'Age',
+                      prefixIcon: const Icon(Icons.person_outline_rounded),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Age is required';
+                      }
+                      return null;
+                    },
+                  )
+                  //Gender TextBox
+                  TextFormField(
+                    controller:_genderController,
+                    keyboardType:TextInputType.text,
+                    maxLength: 10,
+                    decoration: InputDecoration(
+                      labelText: 'Gender',
+                      prefixIcon: const Icon(Icons.person_outline_rounded),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Gender is required';
+                      }
+                      return null;
+                    },
+                  )
 
                   // Email Address
                   TextFormField(

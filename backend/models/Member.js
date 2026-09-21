@@ -75,6 +75,16 @@ const memberSchema = new mongoose.Schema({
     default: 'Gujarat',
     trim: true,
   },
+  address: {
+    type: String,
+    default: '',
+    trim: true,
+  },
+  age: {
+    type: String,
+    default: '',
+    trim: true,
+  },
   profilePhoto: {
     type: String,
     default: '',

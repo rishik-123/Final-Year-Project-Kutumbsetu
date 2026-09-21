@@ -589,6 +589,7 @@ app.post('/api/users/register', async (req, res) => {
       fatherName,
       gender,
       dateOfBirth,
+      age,
       nativePlace,
       address,
       city,
@@ -596,6 +597,7 @@ app.post('/api/users/register', async (req, res) => {
       maritalStatus,
       occupation,
       profilePhoto,
+      profilePhotoBase64,
       role,
     } = req.body;
 
@@ -656,9 +658,29 @@ app.post('/api/users/register', async (req, res) => {
     const savedUser = await newUser.save();
     console.log(`Successfully registered new user: ${savedUser.fullName} (isApproved: ${savedUser.isApproved})`);
 
+    // Process Profile Picture upload if base64 provided
+    let finalProfilePhoto = profilePhoto || '';
+    if (profilePhotoBase64 && profilePhotoBase64.trim().length > 0) {
+      try {
+        const base64Data = profilePhotoBase64.replace(/^data:image\/\w+;base64,/, "");
+        const buffer = Buffer.from(base64Data, 'base64');
+        const uploadsDir = path.join(__dirname, 'uploads');
+        if (!fs.existsSync(uploadsDir)) {
+          fs.mkdirSync(uploadsDir, { recursive: true });
+        }
+        const filename = `user-photo-${savedUser._id}-${Date.now()}.jpg`;
+        const filepath = path.join(uploadsDir, filename);
+        fs.writeFileSync(filepath, buffer);
+        finalProfilePhoto = `/uploads/${filename}`;
+        console.log(`Saved user registration profile photo to: ${finalProfilePhoto}`);
+      } catch (photoErr) {
+        console.error('Error saving registered user photo:', photoErr);
+      }
+    }
+
     // Smart Member Linking & Profile Initialization
     try {
-      // 1. Resolve or link existing Member record (prevents duplicate when relatives previously entered this person)
+      // 1. Resolve or link existing Member record
       let member = null;
       if (sanitizedPhone) {
         member = await Member.findOne({ phoneNumber: sanitizedPhone });
@@ -678,6 +700,11 @@ app.post('/api/users/register', async (req, res) => {
         member.userId = savedUser._id;
         if (sanitizedPhone && !member.phoneNumber) member.phoneNumber = sanitizedPhone;
         if (targetEmail && !member.email) member.email = targetEmail;
+        if (gender) member.gender = gender;
+        if (dateOfBirth) member.dateOfBirth = dateOfBirth;
+        if (address) member.address = address;
+        if (age) member.age = age;
+        if (finalProfilePhoto) member.profilePhoto = finalProfilePhoto;
         await member.save();
         console.log(`[Register] Linked newly registered user to existing Member ID: ${member.memberId} (${member.fullName})`);
       } else {
@@ -690,6 +717,13 @@ app.post('/api/users/register', async (req, res) => {
           city: city || '',
           village: nativePlace || '',
         });
+        if (member) {
+          if (dateOfBirth) member.dateOfBirth = dateOfBirth;
+          if (address) member.address = address;
+          if (age) member.age = age;
+          if (finalProfilePhoto) member.profilePhoto = finalProfilePhoto;
+          await member.save();
+        }
       }
 
       // 2. Create initial Profile document
@@ -698,13 +732,14 @@ app.post('/api/users/register', async (req, res) => {
         memberId: member.memberId,
         gender: member.gender || gender || 'Male',
         dateOfBirth: member.dateOfBirth || dateOfBirth || '',
+        age: age || '',
         phoneNumber: member.phoneNumber || sanitizedPhone || '',
-        profilePhoto: member.profilePhoto || profilePhoto || '',
+        profilePhoto: finalProfilePhoto || member.profilePhoto || '',
         bloodGroup: '',
         village: member.village || nativePlace || '',
         city: member.city || city || '',
         state: member.state || state || '',
-        address: address || '',
+        address: address || member.address || '',
         qualification: '',
         profession: occupation || '',
         fatherId: member.fatherId || '',

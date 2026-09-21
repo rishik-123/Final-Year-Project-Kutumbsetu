@@ -3533,11 +3533,18 @@ app.post('/api/campaigns/:id/register', async (req, res) => {
   }
 });
 
-// Admin: Get Registered User List for Campaign (SCRUM-79)
+// Admin: Get Registered User List for Campaign or All Campaigns (SCRUM-79)
 app.get('/api/campaigns/:id/registrations', async (req, res) => {
   try {
     const { status, search } = req.query;
-    let query = { campaignId: req.params.id };
+    let query = {};
+    if (req.params.id && req.params.id !== 'all') {
+      if (mongoose.Types.ObjectId.isValid(req.params.id)) {
+        query.campaignId = req.params.id;
+      } else {
+        query.campaignId = req.params.id;
+      }
+    }
 
     if (status && status !== 'All') {
       query.registrationStatus = status;
@@ -3545,20 +3552,38 @@ app.get('/api/campaigns/:id/registrations', async (req, res) => {
 
     let registrations = await CampaignRegistration.find(query)
       .populate('userId', 'fullName phoneNumber email address city state nativePlace gender dateOfBirth profilePhoto occupation')
-      .populate('campaignId', 'title category startDate endDate location')
+      .populate('campaignId', 'title category startDate endDate location bannerUrl')
       .sort({ registeredAt: -1 });
 
     if (search) {
       const searchRegex = new RegExp(search, 'i');
       registrations = registrations.filter((reg) => {
         const u = reg.userId;
+        const c = reg.campaignId;
         return (
           (u && u.fullName && searchRegex.test(u.fullName)) ||
           (u && u.phoneNumber && searchRegex.test(u.phoneNumber)) ||
-          reg.registrationNumber.includes(search)
+          (u && u.email && searchRegex.test(u.email)) ||
+          (c && c.title && searchRegex.test(c.title)) ||
+          (reg.emergencyContactName && searchRegex.test(reg.emergencyContactName)) ||
+          (reg.registrationNumber && reg.registrationNumber.toLowerCase().includes(search.toLowerCase()))
         );
       });
     }
+
+    return res.status(200).json({ success: true, count: registrations.length, registrations });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// Admin: Direct endpoint for all campaign registrations
+app.get('/api/admin/campaign-registrations/all', async (req, res) => {
+  try {
+    const registrations = await CampaignRegistration.find({})
+      .populate('userId', 'fullName phoneNumber email address city state nativePlace gender dateOfBirth profilePhoto occupation')
+      .populate('campaignId', 'title category startDate endDate location bannerUrl')
+      .sort({ registeredAt: -1 });
 
     return res.status(200).json({ success: true, count: registrations.length, registrations });
   } catch (error) {

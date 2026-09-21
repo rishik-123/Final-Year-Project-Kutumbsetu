@@ -9,6 +9,7 @@ try:
     from selenium.webdriver.support.ui import WebDriverWait
     from selenium.webdriver.support import expected_conditions as EC
 except ImportError as e:
+    # Condition for error
     print(f"\n ERROR Missing required Python package: {e}")
     print("Please install Appium and Selenium dependencies using:")
     print("  pip install Appium-Python-Client selenium\n")

@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import '../../api_config.dart';
 import '../../providers/auth_provider.dart';
+import 'admin_registrations_screen.dart';
 
 class AdminDashboardScreen extends ConsumerStatefulWidget {
   const AdminDashboardScreen({super.key});
@@ -48,7 +49,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> wit
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 7, vsync: this);
+    _tabController = TabController(length: 8, vsync: this);
     _tabController.addListener(() {
       if (_tabController.indexIsChanging) return;
       setState(() {
@@ -75,19 +76,20 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> wit
         _fetchPostRequests();
         break;
       case 2:
-        _fetchEvents();
         break;
       case 3:
-        _fetchMatrimonialRequests();
         break;
       case 4:
-        _fetchProfiles();
+        _fetchEvents();
         break;
       case 5:
-        _fetchSurnameAnalytics();
+        _fetchMatrimonialRequests();
         break;
       case 6:
-        _fetchEvents();
+        _fetchProfiles();
+        break;
+      case 7:
+        _fetchSurnameAnalytics();
         break;
     }
   }
@@ -426,8 +428,16 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> wit
               text: 'User Requests (${_postRequests.length})',
             ),
             Tab(
+              icon: const Icon(Icons.assignment_ind_rounded, size: 18),
+              text: 'Event Registrations',
+            ),
+            Tab(
               icon: const Icon(Icons.post_add_rounded, size: 18),
               text: 'Upload Post / Announcement',
+            ),
+            Tab(
+              icon: const Icon(Icons.event_available_rounded, size: 18),
+              text: 'Broadcast Events',
             ),
             Tab(
               icon: const Icon(Icons.favorite_rounded, size: 18),
@@ -441,10 +451,6 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> wit
               icon: const Icon(Icons.pie_chart_rounded, size: 18),
               text: 'Featured Family Analytics',
             ),
-            Tab(
-              icon: const Icon(Icons.event_available_rounded, size: 18),
-              text: 'Broadcast Events',
-            ),
           ],
         ),
       ),
@@ -453,11 +459,12 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> wit
         children: [
           _buildApprovalsTab(isDark),
           _buildUserRequestsTab(isDark),
+          const AdminRegistrationsScreen(campaignId: 'all', hideAppBar: true),
           _buildUploadMediaTab(isDark),
+          _buildBroadcastEventsTab(isDark),
           _buildMatrimonialTrackerTab(isDark),
           _buildProfileModerationTab(isDark),
           _buildFamilyAnalyticsTab(isDark),
-          _buildBroadcastEventsTab(isDark),
         ],
       ),
     );

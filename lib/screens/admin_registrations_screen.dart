@@ -184,16 +184,18 @@ class _AdminRegistrationsScreenState extends ConsumerState<AdminRegistrationsScr
     final dateFormat = DateFormat('MMM d, yyyy • hh:mm a');
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          widget.campaignId == 'all' ? 'All Event Registrations' : 'Campaign Registrations',
-          style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 16),
-        ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: () => context.pop(),
-        ),
-      ),
+      appBar: widget.hideAppBar
+          ? null
+          : AppBar(
+              title: Text(
+                widget.campaignId == 'all' ? 'All Event Registrations' : 'Campaign Registrations',
+                style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+              leading: IconButton(
+                icon: const Icon(Icons.arrow_back_rounded),
+                onPressed: () => context.pop(),
+              ),
+            ),
       body: Column(
         children: [
           // 1. Search Bar & Status Filter

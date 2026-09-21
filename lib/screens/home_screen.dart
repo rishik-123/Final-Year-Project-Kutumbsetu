@@ -1535,41 +1535,29 @@ Contact: ${user.phoneNumber}
       {'label': 'Community Hub', 'icon': Icons.people_alt_rounded, 'color': const Color(0xFFFCF3CF), 'iconColor': const Color(0xFFD4AC0D), 'action': 'hub'},
     ];
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0),
-      child: GridView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        itemCount: items.length,
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 3,
-          mainAxisSpacing: 10,
-          crossAxisSpacing: 12,
-          childAspectRatio: 1.25,
-        ),
-        itemBuilder: (context, index) {
-          final item = items[index];
-
-          return InkWell(
-            onTap: () {
-              if (item['action'] == 'directory') {
-                context.push('/directory');
-              } else if (item['label'] == 'Family Tree') {
-                setState(() {
-                  _currentIndex = 1;
-                });
-              } else if (item['label'] == 'Matrimony') {
-                context.push('/matrimonial');
-              } else if (item['action'] == 'events' || item['action'] == 'news' || item['action'] == 'hub') {
-                setState(() {
-                  _currentIndex = 3;
-                });
-              }
-            },
-            borderRadius: BorderRadius.circular(16),
+    Widget buildActionItem(Map<String, dynamic> item) {
+      return Expanded(
+        child: InkWell(
+          onTap: () {
+            if (item['action'] == 'directory') {
+              context.push('/directory');
+            } else if (item['label'] == 'Family Tree') {
+              setState(() {
+                _currentIndex = 1;
+              });
+            } else if (item['label'] == 'Matrimony') {
+              context.push('/matrimonial');
+            } else if (item['action'] == 'events' || item['action'] == 'news' || item['action'] == 'hub') {
+              setState(() {
+                _currentIndex = 3;
+              });
+            }
+          },
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 2.0),
             child: Column(
               mainAxisSize: MainAxisSize.min,
-              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Container(
                   width: 58,
@@ -1617,8 +1605,32 @@ Contact: ${user.phoneNumber}
                 ),
               ],
             ),
-          );
-        },
+          ),
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              buildActionItem(items[0]),
+              buildActionItem(items[1]),
+              buildActionItem(items[2]),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              buildActionItem(items[3]),
+              buildActionItem(items[4]),
+              buildActionItem(items[5]),
+            ],
+          ),
+        ],
       ),
     );
   }

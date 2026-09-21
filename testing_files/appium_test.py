@@ -31,6 +31,12 @@ options.app = apk_path
 options.no_reset = True
 options.auto_grant_permissions = True
 
+# Increase timeouts to prevent adbExec timeouts on emulator / slower machines
+options.set_capability("appium:adbExecTimeout", 60000)
+options.set_capability("appium:uiautomator2ServerInstallTimeout", 60000)
+options.set_capability("appium:androidInstallTimeout", 90000)
+options.set_capability("appium:appWaitActivity", "*")
+
 # 4. Connect to Appium Server
 print("Connecting to Appium server on http://127.0.0.1:4723 ...")
 try:

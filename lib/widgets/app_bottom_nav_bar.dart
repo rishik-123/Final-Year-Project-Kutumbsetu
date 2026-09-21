@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../constants/app_colors.dart';
-import '../providers/auth_provider.dart';
 
 class AppBottomNavBar extends ConsumerWidget {
   final String currentRoute;
@@ -16,8 +15,6 @@ class AppBottomNavBar extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final auth = ref.watch(authProvider);
-    final isAdmin = auth.isAdmin;
 
     int selectedIndex = 0;
     if (currentRoute.startsWith('/campaigns')) {
@@ -45,7 +42,7 @@ class AppBottomNavBar extends ConsumerWidget {
       ),
       child: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
@@ -80,57 +77,6 @@ class AppBottomNavBar extends ConsumerWidget {
                 onTap: () {
                   if (currentRoute != '/my-registrations') context.go('/my-registrations');
                 },
-              ),
-
-              // 4. Admin Toggle / Role Badge
-              InkWell(
-                onTap: () {
-                  ref.read(authProvider.notifier).toggleAdminRole();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        !isAdmin
-                            ? 'Switched to Admin Role. You can now create campaigns & manage registrations.'
-                            : 'Switched to Normal User Role.',
-                        style: GoogleFonts.inter(fontWeight: FontWeight.w500),
-                      ),
-                      behavior: SnackBarBehavior.floating,
-                      duration: const Duration(seconds: 2),
-                    ),
-                  );
-                },
-                borderRadius: BorderRadius.circular(12),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          color: isAdmin
-                              ? AppColors.primaryBlue.withValues(alpha: 0.15)
-                              : Colors.grey.withValues(alpha: 0.1),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          isAdmin ? Icons.admin_panel_settings : Icons.person_outline,
-                          color: isAdmin ? AppColors.accentBlue : Colors.grey,
-                          size: 22,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        isAdmin ? 'Admin ON' : 'User',
-                        style: GoogleFonts.inter(
-                          fontSize: 11,
-                          fontWeight: isAdmin ? FontWeight.bold : FontWeight.w500,
-                          color: isAdmin ? AppColors.accentBlue : Colors.grey,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
               ),
             ],
           ),

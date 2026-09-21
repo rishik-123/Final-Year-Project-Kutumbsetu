@@ -304,12 +304,6 @@ class _CampaignRegistrationScreenState extends ConsumerState<CampaignRegistratio
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    const saffronColor = Color(0xFFE67E22);
-    const darkNavy = Color(0xFF1B4F72);
-
-    final auth = ref.watch(authProvider);
-    final user = auth.user;
-
     final campaignAsync = ref.watch(campaignDetailProvider(widget.campaignId));
 
     return Scaffold(
@@ -326,27 +320,62 @@ class _CampaignRegistrationScreenState extends ConsumerState<CampaignRegistratio
           onPressed: () => context.pop(),
         ),
       ),
-      body: campaignAsync.when(
-        data: (loadedCampaign) {
-          final campaign = loadedCampaign ?? widget.campaign;
-          if (campaign == null) {
-            return const Center(child: Text('Campaign details not available.'));
-          }
+      body: widget.campaign != null
+          ? _buildFormContent(context, widget.campaign!)
+          : campaignAsync.when(
+              data: (loadedCampaign) {
+                if (loadedCampaign == null) {
+                  return const Center(child: Text('Campaign details not available.'));
+                }
+                return _buildFormContent(context, loadedCampaign);
+              },
+              loading: () => const Center(
+                child: CircularProgressIndicator(color: Color(0xFFE67E22)),
+              ),
+              error: (err, _) => Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.error_outline_rounded, color: Colors.redAccent, size: 48),
+                      const SizedBox(height: 12),
+                      Text('Failed to load campaign information: $err', textAlign: TextAlign.center),
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: () => ref.invalidate(campaignDetailProvider(widget.campaignId)),
+                        child: const Text('Retry'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+    );
+  }
 
-          final dateFormat = DateFormat('dd MMM yyyy');
-          final formattedCampaignDate =
-              '${dateFormat.format(campaign.startDate)} - ${dateFormat.format(campaign.endDate)}';
-          final campaignLocation =
-              campaign.location.isNotEmpty ? campaign.location : 'Community Hall / Center';
+  Widget _buildFormContent(BuildContext context, Campaign campaign) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    const saffronColor = Color(0xFFE67E22);
+    const darkNavy = Color(0xFF1B4F72);
 
-          return SingleChildScrollView(
-            physics: const BouncingScrollPhysics(),
-            padding: const EdgeInsets.symmetric(horizontal: 18.0, vertical: 16.0),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
+    final auth = ref.watch(authProvider);
+    final user = auth.user;
+
+    final dateFormat = DateFormat('dd MMM yyyy');
+    final formattedCampaignDate =
+        '${dateFormat.format(campaign.startDate)} - ${dateFormat.format(campaign.endDate)}';
+    final campaignLocation =
+        campaign.location.isNotEmpty ? campaign.location : 'Community Hall / Center';
+
+    return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.symmetric(horizontal: 18.0, vertical: 16.0),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
                   // 1. AUTO-FILLED CAMPAIGN INFORMATION BANNER CARD
                   Container(
                     padding: const EdgeInsets.all(16),
@@ -871,29 +900,5 @@ class _CampaignRegistrationScreenState extends ConsumerState<CampaignRegistratio
               ),
             ),
           );
-        },
-        loading: () => const Center(
-          child: CircularProgressIndicator(color: Color(0xFFE67E22)),
-        ),
-        error: (err, _) => Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.error_outline_rounded, color: Colors.redAccent, size: 48),
-                const SizedBox(height: 12),
-                Text('Failed to load campaign information: $err', textAlign: TextAlign.center),
-                const SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: () => ref.invalidate(campaignDetailProvider(widget.campaignId)),
-                  child: const Text('Retry'),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
   }
 }

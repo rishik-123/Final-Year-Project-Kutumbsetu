@@ -74,6 +74,11 @@ const campaignSchema = new mongoose.Schema(
       default: '',
       trim: true,
     },
+    location: {
+      type: String,
+      default: '',
+      trim: true,
+    },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',

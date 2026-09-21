@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../constants/app_colors.dart';
-import '../models/campaign_model.dart';
 import '../providers/auth_provider.dart';
 import '../providers/campaign_providers.dart';
 import '../widgets/app_bottom_nav_bar.dart';

@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:latest
+    container_name: kutumbsetu-mongo
+    restart: always
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - kutumb-network
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: kutumb-auth-app
+    restart: always
+    ports:
+      - "5000:5000"
+    environment:
+      - PORT=5000
+      - MONGO_URI=mongodb://mongodb:27017/kutumbsetu
+      - JWT_SECRET=my_jwt_secret_key
+    depends_on:
+      - mongodb
+    networks:
+      - kutumb-network
+
+volumes:
+  mongo_data:
+
+networks:
+  kutumb-network:
+    driver: bridge

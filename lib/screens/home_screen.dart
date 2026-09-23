@@ -1261,9 +1261,9 @@ Contact: ${user.phoneNumber}
               ),
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           _buildQuickActionsGrid(isDark),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
 
           // 3. User "Send Request to Admin" Card
           _buildSendRequestToAdminCard(isDark),

@@ -1,25 +1,19 @@
-# Step A: Navigate to backend folder
+# Step 1: Ensure custom network exists
+docker network create kutumb-net 2>$null
+
+# Step 2: Start MongoDB container on kutumb-net (starts existing or runs fresh)
+docker start mongo-db 2>$null || docker run -d --name mongo-db --network kutumb-net -p 27018:27017 mongo:latest
+
+# Step 3: Rebuild the Node.js App image
 cd "C:\Users\Abcom\OneDrive\Desktop\FINAL YEAR PROJECT KUTUMBSETU\backend"
-
-# Step B: Create a custom Docker network (containers talk to each other here)
-docker network create kutumb-net
-
-# Step C: Run MongoDB container (mapped to port 27018 to avoid port 27017 conflicts)
-docker run -d --name mongo-db --network kutumb-net -p 27018:27017 mongo:latest
-
-# Step D: Build the Node.js App Docker Image from Dockerfile
 docker build -t kutumbsetu-login-app:v1 .
 
-# Step E: Remove any old container if it exists with that name
+# Step 4: Remove old app container
 docker rm -f kutumb-app
 
-# Step F: Run the App container (mapped to port 5001 to avoid port 5000 conflicts)
+# Step 5: Run the App container connected to mongo-db
 docker run -d --name kutumb-app --network kutumb-net -p 5001:5000 -e MONGODB_URI=mongodb://mongo-db:27017/kutumbsetu -e MONGO_URI=mongodb://mongo-db:27017/kutumbsetu kutumbsetu-login-app:v1
 
-# Step G: Check running containers
+# Step 6: Verify running containers and logs
 docker ps
-
-# Step H: Check application logs for DB connection proof
 docker logs -f kutumb-app
-
-

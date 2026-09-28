@@ -131,9 +131,10 @@ options = UiAutomator2Options()
 options.platform_name = "Android"
 options.automation_name = "UiAutomator2"
 options.device_name = "emulator-5554"
-options.app = APK_PATH
+options.app_package = "com.kutumbsetu.kutumbsetu"
+options.app_activity = ".MainActivity"
 options.auto_grant_permissions = True
-options.no_reset = False
+options.no_reset = True
 
 options.set_capability("appium:adbExecTimeout", 60000)
 options.set_capability("appium:uiautomator2ServerInstallTimeout", 60000)

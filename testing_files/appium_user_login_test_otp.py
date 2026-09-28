@@ -125,13 +125,15 @@ def get_latest_otp_automatic(target_email):
 # ==============================
 # APPIUM OPTIONS
 # ==============================
+PACKAGE_NAME = "com.kutumbsetu.kutumbsetu"
+
 options = UiAutomator2Options()
 options.platform_name = "Android"
 options.automation_name = "UiAutomator2"
 options.device_name = "emulator-5554"
 options.app = APK_PATH
 options.auto_grant_permissions = True
-options.no_reset = True
+options.no_reset = False
 
 options.set_capability("appium:adbExecTimeout", 60000)
 options.set_capability("appium:uiautomator2ServerInstallTimeout", 60000)
@@ -148,36 +150,15 @@ driver = webdriver.Remote("http://127.0.0.1:4723", options=options)
 wait = WebDriverWait(driver, 25)
 
 try:
-    print("\nApplication launched successfully!")
-    time.sleep(3)  # Allow initial Flutter render
-
-    # -------------------------------------------------------------
-    # Step 0: Ensure we are on the initial 'Email' login step
-    # -------------------------------------------------------------
-    print("[Step 0] Ensuring clean login screen state...")
+    print("\nRestarting application to ensure a clean initial state...")
     try:
-        # If stuck on OTP screen from a previous run
-        change_email_btn = driver.find_elements(
-            AppiumBy.XPATH, "//*[@content-desc='Change Email' or @text='Change Email']"
-        )
-        if change_email_btn:
-            print("Detected previous OTP state. Resetting to Email step via 'Change Email'...")
-            change_email_btn[0].click()
-            time.sleep(1)
+        driver.terminate_app(PACKAGE_NAME)
+        time.sleep(1)
+        driver.activate_app(PACKAGE_NAME)
     except Exception:
         pass
 
-    try:
-        # If stuck on Admin screen from a previous run
-        back_to_email_btn = driver.find_elements(
-            AppiumBy.XPATH, "//*[@content-desc='Back to Email Login' or @text='Back to Email Login']"
-        )
-        if back_to_email_btn:
-            print("Detected Admin state. Resetting to Email step via 'Back to Email Login'...")
-            back_to_email_btn[0].click()
-            time.sleep(1)
-    except Exception:
-        pass
+    time.sleep(4)  # Allow initial Flutter render
 
     # -------------------------------------------------------------
     # Step 1: Locate & Enter User Email

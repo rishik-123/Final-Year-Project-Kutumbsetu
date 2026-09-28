@@ -14,7 +14,7 @@ docker build -t kutumbsetu-login-app:v1 .
 docker rm -f kutumb-app
 
 # Step F: Run the App container (mapped to port 5001 to avoid port 5000 conflicts)
-docker run -d --name kutumb-app --network kutumb-net -p 5001:5000 -e MONGO_URI=mongodb://mongo-db:27017/kutumbsetu kutumbsetu-login-app:v1
+docker run -d --name kutumb-app --network kutumb-net -p 5001:5000 -e MONGODB_URI=mongodb://mongo-db:27017/kutumbsetu -e MONGO_URI=mongodb://mongo-db:27017/kutumbsetu kutumbsetu-login-app:v1
 
 # Step G: Check running containers
 docker ps

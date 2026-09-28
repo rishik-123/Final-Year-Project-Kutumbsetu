@@ -4,7 +4,7 @@ let mongodInstance = null;
 
 const connectDB = async () => {
   try {
-    let mongoUri = process.env.MONGODB_URI;
+    let mongoUri = process.env.MONGODB_URI || process.env.MONGO_URI;
 
     if (!mongoUri) {
       try {

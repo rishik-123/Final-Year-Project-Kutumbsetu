@@ -152,6 +152,34 @@ try:
     time.sleep(3)  # Allow initial Flutter render
 
     # -------------------------------------------------------------
+    # Step 0: Ensure we are on the initial 'Email' login step
+    # -------------------------------------------------------------
+    print("[Step 0] Ensuring clean login screen state...")
+    try:
+        # If stuck on OTP screen from a previous run
+        change_email_btn = driver.find_elements(
+            AppiumBy.XPATH, "//*[@content-desc='Change Email' or @text='Change Email']"
+        )
+        if change_email_btn:
+            print("Detected previous OTP state. Resetting to Email step via 'Change Email'...")
+            change_email_btn[0].click()
+            time.sleep(1)
+    except Exception:
+        pass
+
+    try:
+        # If stuck on Admin screen from a previous run
+        back_to_email_btn = driver.find_elements(
+            AppiumBy.XPATH, "//*[@content-desc='Back to Email Login' or @text='Back to Email Login']"
+        )
+        if back_to_email_btn:
+            print("Detected Admin state. Resetting to Email step via 'Back to Email Login'...")
+            back_to_email_btn[0].click()
+            time.sleep(1)
+    except Exception:
+        pass
+
+    # -------------------------------------------------------------
     # Step 1: Locate & Enter User Email
     # -------------------------------------------------------------
     print("\n[Step 1] Locating Email Input field...")
@@ -164,6 +192,12 @@ try:
     email_field.send_keys(USER_EMAIL)
     print(f"Entered User Email: '{USER_EMAIL}'")
 
+    try:
+        driver.hide_keyboard()
+    except Exception:
+        pass
+    time.sleep(1)
+
     # -------------------------------------------------------------
     # Step 2: Click "Send OTP Code"
     # -------------------------------------------------------------
@@ -171,7 +205,7 @@ try:
     send_otp_btn = wait.until(
         EC.element_to_be_clickable((
             AppiumBy.XPATH,
-            "//*[@content-desc='Send OTP Code' or @text='Send OTP Code']"
+            "//*[@content-desc='Send OTP Code' or @text='Send OTP Code' or contains(@text, 'Send OTP') or contains(@content-desc, 'Send OTP')]"
         ))
     )
     send_otp_btn.click()
@@ -198,6 +232,12 @@ try:
     otp_field.send_keys(otp_code)
     print(f"Entered OTP: '{otp_code}' successfully.")
 
+    try:
+        driver.hide_keyboard()
+    except Exception:
+        pass
+    time.sleep(1)
+
     # -------------------------------------------------------------
     # Step 5: Click "Verify & Log In"
     # -------------------------------------------------------------
@@ -205,7 +245,7 @@ try:
     verify_btn = wait.until(
         EC.element_to_be_clickable((
             AppiumBy.XPATH,
-            "//*[@content-desc='Verify & Log In' or @text='Verify & Log In']"
+            "//*[@content-desc='Verify & Log In' or @text='Verify & Log In' or contains(@text, 'Verify') or contains(@content-desc, 'Verify')]"
         ))
     )
     verify_btn.click()
@@ -227,7 +267,11 @@ try:
             "contains(@content-desc, 'Matrimony') or "
             "contains(@content-desc, 'Events') or "
             "contains(@content-desc, 'Community Feed') or "
-            "contains(@content-desc, 'Search families')]"
+            "contains(@content-desc, 'Search families') or "
+            "contains(@text, 'Jay Shree Krishna') or "
+            "contains(@text, 'Quick actions') or "
+            "contains(@text, 'Directory') or "
+            "contains(@text, 'Family Tree')]"
         ))
     )
     indicator_text = home_indicator.get_attribute("content-desc") or home_indicator.get_attribute("text")

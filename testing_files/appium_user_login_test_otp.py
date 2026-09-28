@@ -30,10 +30,34 @@ if not os.path.exists(APK_PATH):
     APK_PATH = r"C:\Users\Abcom\OneDrive\Desktop\FINAL YEAR PROJECT KUTUMBSETU\build\app\outputs\flutter-apk\app-debug.apk"
 
 # ==============================
-# 1. AUTO-FETCH OTP FROM GMAIL
+# 1. AUTO-FETCH OTP FROM MONGODB (Instant & 100% Reliable)
 # ==============================
-def fetch_otp_from_gmail(user_email, app_password, retries=8, delay=2):
-    """Connects to Gmail via IMAP (no pip packages needed) and grabs the newest KutumbSetu OTP."""
+def fetch_otp_from_mongodb(email_addr, retries=10, delay=1.0):
+    """Fetches latest OTP directly from MongoDB collection 'otp_verifications'."""
+    if not HAS_PYMONGO:
+        return None
+    try:
+        clean_email = email_addr.lower().strip()
+        print(f"[Auto-OTP] Checking MongoDB collection 'otp_verifications' for '{clean_email}'...")
+        client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
+        db = client["kutumbsetu"]
+        
+        for attempt in range(1, retries + 1):
+            doc = db["otp_verifications"].find_one({"email": clean_email})
+            if doc and doc.get("otp"):
+                otp_val = str(doc["otp"]).strip()
+                print(f"[Auto-OTP] Found latest OTP in MongoDB: {otp_val}")
+                return otp_val
+            time.sleep(delay)
+    except Exception as e:
+        print(f"[Auto-OTP] MongoDB notice: {e}")
+    return None
+
+# ==============================
+# 2. AUTO-FETCH OTP FROM GMAIL (IMAP Fallback)
+# ==============================
+def fetch_otp_from_gmail(user_email, app_password, retries=8, delay=2.0):
+    """Connects to Gmail via IMAP and grabs the newest KutumbSetu OTP."""
     print(f"\n[Auto-OTP] Checking Gmail Inbox for new OTP email...")
     for attempt in range(1, retries + 1):
         try:
@@ -41,11 +65,12 @@ def fetch_otp_from_gmail(user_email, app_password, retries=8, delay=2):
             mail.login(user_email, app_password)
             mail.select("INBOX")
 
-            # Search recent emails
-            status, messages = mail.search(None, 'ALL')
+            status, messages = mail.search(None, 'UNSEEN')
+            if status != "OK" or not messages[0]:
+                status, messages = mail.search(None, 'ALL')
+
             if status == "OK" and messages[0]:
                 msg_ids = messages[0].split()
-                # Check the latest 5 emails
                 for msg_id in reversed(msg_ids[-5:]):
                     res, data = mail.fetch(msg_id, "(RFC822)")
                     if res != "OK":
@@ -54,6 +79,14 @@ def fetch_otp_from_gmail(user_email, app_password, retries=8, delay=2):
                     msg = email.message_from_bytes(data[0][1])
                     subject = str(msg.get("Subject", ""))
                     
+                    subj_match = re.search(r'OTP:\s*(\d{6})', subject, re.IGNORECASE)
+                    if subj_match:
+                        mail.store(msg_id, '+FLAGS', '\\Seen')
+                        mail.logout()
+                        otp_found = subj_match.group(1)
+                        print(f"[Auto-OTP] Found OTP in Gmail Subject: {otp_found}")
+                        return otp_found
+
                     body = ""
                     if msg.is_multipart():
                         for part in msg.walk():
@@ -70,11 +103,11 @@ def fetch_otp_from_gmail(user_email, app_password, retries=8, delay=2):
                             body = payload.decode(errors="ignore")
 
                     if "KutumbSetu" in body or "KutumbSetu" in subject or "OTP" in body:
-                        # Extract 6-digit OTP
                         matches = re.findall(r'\b\d{6}\b', body)
                         if matches:
+                            mail.store(msg_id, '+FLAGS', '\\Seen')
                             mail.logout()
-                            print(f"[Auto-OTP] Found OTP in Gmail: {matches[0]}")
+                            print(f"[Auto-OTP] Found OTP in Gmail Body: {matches[0]}")
                             return matches[0]
 
             mail.logout()
@@ -84,39 +117,19 @@ def fetch_otp_from_gmail(user_email, app_password, retries=8, delay=2):
         time.sleep(delay)
     return None
 
-# ==============================
-# 2. AUTO-FETCH OTP FROM MONGODB
-# ==============================
-def fetch_otp_from_mongodb(email_addr):
-    """Fetches latest OTP directly from MongoDB collection."""
-    if not HAS_PYMONGO:
-        return None
-    try:
-        print(f"[Auto-OTP] Checking MongoDB collection 'otpverifications'...")
-        client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=4000)
-        db = client["kutumbsetu"]
-        doc = db["otpverifications"].find_one({"email": email_addr.lower().trim()})
-        if doc and doc.get("otp"):
-            otp_val = str(doc["otp"]).strip()
-            print(f"[Auto-OTP] Found OTP in Database: {otp_val}")
-            return otp_val
-    except Exception as e:
-        print(f"[Auto-OTP] MongoDB notice: {e}")
-    return None
-
 def get_latest_otp_automatic(target_email):
-    """Combines Gmail IMAP and MongoDB to guarantee zero manual typing."""
-    # 1. Try Gmail IMAP
-    otp = fetch_otp_from_gmail(target_email, GMAIL_APP_PASS, retries=5, delay=2)
+    """Combines MongoDB and Gmail IMAP to guarantee zero manual typing."""
+    # 1. Try MongoDB first (Fastest and direct source of truth)
+    otp = fetch_otp_from_mongodb(target_email, retries=8, delay=1.0)
     if otp:
         return otp
 
-    # 2. Try MongoDB
-    otp = fetch_otp_from_mongodb(target_email)
+    # 2. Try Gmail IMAP
+    otp = fetch_otp_from_gmail(target_email, GMAIL_APP_PASS, retries=5, delay=2.0)
     if otp:
         return otp
 
-    # 3. Fallback prompt if both network queries fail
+    # 3. Fallback prompt if both queries fail
     print("\n" + "="*50)
     entered = input(f"Enter the 6-digit OTP received on {target_email}: ").strip()
     print("="*50 + "\n")
@@ -125,14 +138,11 @@ def get_latest_otp_automatic(target_email):
 # ==============================
 # APPIUM OPTIONS
 # ==============================
-PACKAGE_NAME = "com.kutumbsetu.kutumbsetu"
-
 options = UiAutomator2Options()
 options.platform_name = "Android"
 options.automation_name = "UiAutomator2"
 options.device_name = "emulator-5554"
-options.app_package = "com.kutumbsetu.kutumbsetu"
-options.app_activity = ".MainActivity"
+options.app = APK_PATH
 options.auto_grant_permissions = True
 options.no_reset = True
 
@@ -151,15 +161,8 @@ driver = webdriver.Remote("http://127.0.0.1:4723", options=options)
 wait = WebDriverWait(driver, 25)
 
 try:
-    print("\nRestarting application to ensure a clean initial state...")
-    try:
-        driver.terminate_app(PACKAGE_NAME)
-        time.sleep(1)
-        driver.activate_app(PACKAGE_NAME)
-    except Exception:
-        pass
-
-    time.sleep(4)  # Allow initial Flutter render
+    print("\nApplication launched successfully!")
+    time.sleep(3)  # Allow initial Flutter build
 
     # -------------------------------------------------------------
     # Step 1: Locate & Enter User Email
@@ -174,26 +177,20 @@ try:
     email_field.send_keys(USER_EMAIL)
     print(f"Entered User Email: '{USER_EMAIL}'")
 
-    try:
-        driver.hide_keyboard()
-    except Exception:
-        pass
-    time.sleep(1)
-
     # -------------------------------------------------------------
     # Step 2: Click "Send OTP Code"
     # -------------------------------------------------------------
     print("\n[Step 2] Clicking 'Send OTP Code' button...")
     send_otp_btn = wait.until(
-        EC.element_to_be_clickable((
+        EC.presence_of_element_located((
             AppiumBy.XPATH,
-            "//*[@content-desc='Send OTP Code' or @text='Send OTP Code' or contains(@text, 'Send OTP') or contains(@content-desc, 'Send OTP')]"
+            "//*[@content-desc='Send OTP Code' or @text='Send OTP Code']"
         ))
     )
     send_otp_btn.click()
     print("Clicked 'Send OTP Code' successfully! Waiting for OTP arrival...")
 
-    time.sleep(3)
+    time.sleep(2)
 
     # -------------------------------------------------------------
     # Step 3: Automatically Fetch the OTP (Zero manual entry)
@@ -214,20 +211,14 @@ try:
     otp_field.send_keys(otp_code)
     print(f"Entered OTP: '{otp_code}' successfully.")
 
-    try:
-        driver.hide_keyboard()
-    except Exception:
-        pass
-    time.sleep(1)
-
     # -------------------------------------------------------------
     # Step 5: Click "Verify & Log In"
     # -------------------------------------------------------------
     print("\n[Step 5] Clicking 'Verify & Log In' button...")
     verify_btn = wait.until(
-        EC.element_to_be_clickable((
+        EC.presence_of_element_located((
             AppiumBy.XPATH,
-            "//*[@content-desc='Verify & Log In' or @text='Verify & Log In' or contains(@text, 'Verify') or contains(@content-desc, 'Verify')]"
+            "//*[@content-desc='Verify & Log In' or @text='Verify & Log In']"
         ))
     )
     verify_btn.click()
@@ -249,11 +240,7 @@ try:
             "contains(@content-desc, 'Matrimony') or "
             "contains(@content-desc, 'Events') or "
             "contains(@content-desc, 'Community Feed') or "
-            "contains(@content-desc, 'Search families') or "
-            "contains(@text, 'Jay Shree Krishna') or "
-            "contains(@text, 'Quick actions') or "
-            "contains(@text, 'Directory') or "
-            "contains(@text, 'Family Tree')]"
+            "contains(@content-desc, 'Search families')]"
         ))
     )
     indicator_text = home_indicator.get_attribute("content-desc") or home_indicator.get_attribute("text")

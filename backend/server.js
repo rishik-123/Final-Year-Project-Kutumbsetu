@@ -82,6 +82,7 @@ app.use(cors());
 app.use(express.json({ limit: '100mb' }));
 app.use(express.urlencoded({ limit: '100mb', extended: true }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Logger middleware for debugging request inputs
 app.use((req, res, next) => {
@@ -91,11 +92,49 @@ app.use((req, res, next) => {
 
 // Root & Health check routes
 app.get('/', (req, res) => {
+  if (req.accepts('html') && fs.existsSync(path.join(__dirname, 'public', 'index.html'))) {
+    return res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  }
   res.status(200).json({
     status: 'online',
     message: 'KutumbSetu Backend Server is running successfully!',
     timestamp: new Date().toISOString(),
   });
+});
+
+app.get('/api/db-stats', async (req, res) => {
+  try {
+    const isConnected = mongoose.connection.readyState === 1;
+    const dbName = mongoose.connection.name || 'kutumbsetu';
+    const host = mongoose.connection.host || 'unknown';
+    const port = mongoose.connection.port || 27017;
+    
+    let usersCount = 0;
+    let membersCount = 0;
+    let otpsCount = 0;
+    
+    if (isConnected) {
+      usersCount = await User.countDocuments();
+      membersCount = await Member.countDocuments();
+      otpsCount = await OtpVerification.countDocuments();
+    }
+    
+    return res.status(200).json({
+      success: true,
+      connected: isConnected,
+      database: dbName,
+      host,
+      port,
+      counts: {
+        users: usersCount,
+        members: membersCount,
+        otps: otpsCount,
+      },
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
 });
 
 app.get('/api', (req, res) => {

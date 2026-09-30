@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KutumbSetu • Containerized Login & Registration Portal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #E67E22;
+      --primary-dark: #D35400;
+      --secondary: #1B4F72;
+      --secondary-dark: #0E2F44;
+      --bg: #0B132B;
+      --surface: #1C2541;
+      --surface-light: #2A365D;
+      --text: #F8FAFC;
+      --text-muted: #94A3B8;
+      --accent: #10B981;
+      --error: #EF4444;
+      --border: rgba(255, 255, 255, 0.1);
+      --radius: 16px;
+      --shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+
+    body {
+      background: radial-gradient(circle at top, #1C2541 0%, #0B132B 100%);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 16px;
+    }
+
+    header {
+      width: 100%;
+      max-width: 900px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-icon {
+      width: 48px;
+      height: 48px;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      box-shadow: 0 4px 12px rgba(230, 126, 34, 0.3);
+    }
+
+    .brand h1 {
+      font-family: 'Outfit', sans-serif;
+      font-size: 26px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      background: linear-gradient(90deg, #FFFFFF, #CBD5E1);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .brand p {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    /* DB Status Badge */
+    .db-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      border-radius: 9999px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--accent);
+    }
+
+    .db-dot {
+      width: 10px;
+      height: 10px;
+      background: var(--accent);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--accent);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.85); }
+    }
+
+    /* Main Container */
+    .main-card {
+      width: 100%;
+      max-width: 900px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      background: rgba(0, 0, 0, 0.2);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 16px 20px;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+      border-bottom: 2px solid transparent;
+    }
+
+    .tab-btn:hover {
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .tab-btn.active {
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+      background: rgba(230, 126, 34, 0.08);
+    }
+
+    .tab-content {
+      display: none;
+      padding: 32px;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    /* Forms */
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    @media (max-width: 640px) {
+      .form-grid { grid-template-columns: 1fr; }
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .form-group.full-width {
+      grid-column: 1 / -1;
+    }
+
+    label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    input, select, textarea {
+      width: 100%;
+      padding: 12px 16px;
+      background: var(--surface-light);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(230, 126, 34, 0.2);
+    }
+
+    .input-row {
+      display: flex;
+      gap: 12px;
+    }
+
+    .btn {
+      padding: 12px 24px;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 14px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 12px rgba(230, 126, 34, 0.3);
+    }
+
+    .btn:hover {
+      background: var(--primary-dark);
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: var(--secondary);
+      box-shadow: 0 4px 12px rgba(27, 79, 114, 0.3);
+    }
+
+    .btn-secondary:hover {
+      background: var(--secondary-dark);
+    }
+
+    /* Live Output Box */
+    .status-box {
+      margin-top: 24px;
+      padding: 16px;
+      border-radius: 12px;
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid var(--border);
+      display: none;
+      animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .status-box.success {
+      display: block;
+      border-color: var(--accent);
+      background: rgba(16, 185, 129, 0.1);
+      color: #A7F3D0;
+    }
+
+    .status-box.error {
+      display: block;
+      border-color: var(--error);
+      background: rgba(239, 68, 68, 0.1);
+      color: #FECACA;
+    }
+
+    .status-box pre {
+      margin-top: 8px;
+      font-family: monospace;
+      font-size: 12px;
+      background: rgba(0, 0, 0, 0.4);
+      padding: 12px;
+      border-radius: 8px;
+      overflow-x: auto;
+    }
+
+    /* DB Inspector Stats */
+    .db-stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-top: 20px;
+    }
+
+    .stat-card {
+      background: var(--surface-light);
+      padding: 20px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      text-align: center;
+    }
+
+    .stat-number {
+      font-size: 32px;
+      font-weight: 800;
+      color: var(--primary);
+      font-family: 'Outfit', sans-serif;
+    }
+
+    .stat-label {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    footer {
+      margin-top: 24px;
+      font-size: 12px;
+      color: var(--text-muted);
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">
+      <div class="brand-icon">🏛️</div>
+      <div>
+        <h1>KutumbSetu Portal</h1>
+        <p>Docker Containerized Login & Registration System</p>
+      </div>
+    </div>
+    <div class="db-badge" id="dbStatusBadge">
+      <div class="db-dot"></div>
+      <span id="dbStatusText">Checking MongoDB...</span>
+    </div>
+  </header>
+
+  <div class="main-card">
+    <!-- Navigation Tabs -->
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('register')">
+        <span>📝</span> User Registration
+      </button>
+      <button class="tab-btn" onclick="switchTab('login')">
+        <span>🔑</span> OTP Login
+      </button>
+      <button class="tab-btn" onclick="switchTab('admin')">
+        <span>🛡️</span> Admin Portal
+      </button>
+      <button class="tab-btn" onclick="switchTab('db')">
+        <span>🗄️</span> DB Connectivity Proof
+      </button>
+    </div>
+
+    <!-- TAB 1: USER REGISTRATION -->
+    <div id="tab-register" class="tab-content active">
+      <h2 style="font-family: 'Outfit'; margin-bottom: 8px;">Register New Member</h2>
+      <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 24px;">Submit user credentials to create live records inside the containerized MongoDB database.</p>
+
+      <form id="registerForm" onsubmit="handleRegister(event)">
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Full Name *</label>
+            <input type="text" id="regFullName" placeholder="e.g. Rohan Jayeshbhai Shah" required>
+          </div>
+          <div class="form-group">
+            <label>Email Address *</label>
+            <div class="input-row">
+              <input type="email" id="regEmail" placeholder="user@example.com" required>
+              <button type="button" class="btn btn-secondary" style="white-space: nowrap;" onclick="sendRegistrationOtp()">Send OTP</button>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Phone Number *</label>
+            <input type="tel" id="regPhone" placeholder="9898989898" required>
+          </div>
+          <div class="form-group">
+            <label>6-Digit Email OTP *</label>
+            <input type="text" id="regOtp" placeholder="Enter OTP received" maxlength="6" required>
+          </div>
+          <div class="form-group">
+            <label>Gender</label>
+            <select id="regGender">
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>City / Native Place</label>
+            <input type="text" id="regCity" placeholder="e.g. Surat">
+          </div>
+          <div class="form-group full-width">
+            <button type="submit" class="btn" style="width: 100%; padding: 14px;">🚀 Register Member into MongoDB</button>
+          </div>
+        </div>
+      </form>
+
+      <div id="regStatus" class="status-box"></div>
+    </div>
+
+    <!-- TAB 2: OTP LOGIN -->
+    <div id="tab-login" class="tab-content">
+      <h2 style="font-family: 'Outfit'; margin-bottom: 8px;">OTP Email Login</h2>
+      <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 24px;">Authenticate using your registered email address with dynamic OTP verification.</p>
+
+      <div class="form-grid" style="max-width: 500px; margin: 0 auto;">
+        <div class="form-group full-width">
+          <label>Registered Email Address</label>
+          <div class="input-row">
+            <input type="email" id="loginEmail" placeholder="e.g. rishikjariwala54@gmail.com" required>
+            <button type="button" class="btn btn-secondary" onclick="sendLoginOtp()">Get OTP</button>
+          </div>
+        </div>
+        <div class="form-group full-width">
+          <label>Enter 6-Digit OTP</label>
+          <input type="text" id="loginOtp" placeholder="Enter 6-digit OTP code" maxlength="6" required>
+        </div>
+        <div class="form-group full-width">
+          <button type="button" class="btn" style="width: 100%; padding: 14px;" onclick="handleVerifyLogin()">🔓 Verify OTP & Log In</button>
+        </div>
+      </div>
+
+      <div id="loginStatus" class="status-box"></div>
+    </div>
+
+    <!-- TAB 3: ADMIN LOGIN -->
+    <div id="tab-admin" class="tab-content">
+      <h2 style="font-family: 'Outfit'; margin-bottom: 8px;">System Admin Login</h2>
+      <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 24px;">Log in as Admin to inspect registered users and manage database entries.</p>
+
+      <div class="form-grid" style="max-width: 500px; margin: 0 auto;">
+        <div class="form-group full-width">
+          <label>Admin Username</label>
+          <input type="text" id="adminUsername" value="admin" required>
+        </div>
+        <div class="form-group full-width">
+          <label>Admin Password</label>
+          <input type="password" id="adminPassword" value="admin123" required>
+        </div>
+        <div class="form-group full-width">
+          <button type="button" class="btn btn-secondary" style="width: 100%; padding: 14px;" onclick="handleAdminLogin()">🛡️ Log In as Admin</button>
+        </div>
+      </div>
+
+      <div id="adminStatus" class="status-box"></div>
+    </div>
+
+    <!-- TAB 4: DATABASE PROOF -->
+    <div id="tab-db" class="tab-content">
+      <h2 style="font-family: 'Outfit'; margin-bottom: 8px;">Live Database Connectivity Proof</h2>
+      <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 20px;">Real-time metrics queried directly from the connected MongoDB database inside Docker.</p>
+
+      <div class="db-stats-grid">
+        <div class="stat-card">
+          <div class="stat-number" id="dbHost">mongo-db</div>
+          <div class="stat-label">MongoDB Host</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number" id="dbUsersCount">0</div>
+          <div class="stat-label">Registered Users</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number" id="dbMembersCount">0</div>
+          <div class="stat-label">Community Members</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number" id="dbOtpsCount">0</div>
+          <div class="stat-label">Active OTP Records</div>
+        </div>
+      </div>
+
+      <div style="margin-top: 24px; text-align: center;">
+        <button class="btn btn-secondary" onclick="fetchDbStats()">🔄 Refresh Live Database Stats</button>
+      </div>
+
+      <div id="dbInspectorStatus" class="status-box" style="display: block; margin-top: 20px;">
+        <strong>API Health Status:</strong>
+        <pre id="dbJsonDetails">Fetching latest database telemetry...</pre>
+      </div>
+    </div>
+
+  </div>
+
+  <footer>
+    KutumbSetu • Docker Container Architecture • MongoDB Bridge: <code>kutumb-net</code>
+  </footer>
+
+  <script>
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      
+      event.currentTarget.classList.add('active');
+      document.getElementById('tab-' + tabId).classList.add('active');
+
+      if (tabId === 'db') {
+        fetchDbStats();
+      }
+    }
+
+    async function fetchDbStats() {
+      try {
+        const res = await fetch('/api/db-stats');
+        const data = await res.json();
+        
+        if (data.success && data.connected) {
+          document.getElementById('dbStatusText').innerText = `MongoDB Connected (${data.host}:${data.port})`;
+          document.getElementById('dbHost').innerText = data.host;
+          document.getElementById('dbUsersCount').innerText = data.counts.users;
+          document.getElementById('dbMembersCount').innerText = data.counts.members;
+          document.getElementById('dbOtpsCount').innerText = data.counts.otps;
+          document.getElementById('dbJsonDetails').innerText = JSON.stringify(data, null, 2);
+        } else {
+          document.getElementById('dbStatusText').innerText = 'MongoDB Disconnected';
+          document.getElementById('dbStatusBadge').style.borderColor = 'var(--error)';
+        }
+      } catch (err) {
+        document.getElementById('dbStatusText').innerText = 'Backend API Offline';
+      }
+    }
+
+    // Send Registration OTP
+    async function sendRegistrationOtp() {
+      const email = document.getElementById('regEmail').value.trim();
+      const statusBox = document.getElementById('regStatus');
+      if (!email) {
+        alert('Please enter your email address first.');
+        return;
+      }
+
+      statusBox.className = 'status-box';
+      statusBox.style.display = 'block';
+      statusBox.innerText = 'Sending OTP to ' + email + '...';
+
+      try {
+        const res = await fetch('/api/auth/send-email-otp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email })
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          statusBox.className = 'status-box success';
+          statusBox.innerHTML = `✅ <strong>OTP Sent Successfully!</strong><br>Generated OTP (Dev): <code style="font-size: 16px; color: #FFF; background: var(--primary); padding: 2px 8px; border-radius: 4px;">${data.otp || 'Sent to Gmail'}</code>`;
+          if (data.otp) {
+            document.getElementById('regOtp').value = data.otp;
+          }
+        } else {
+          statusBox.className = 'status-box error';
+          statusBox.innerText = '❌ Error: ' + (data.message || 'Failed to send OTP.');
+        }
+      } catch (err) {
+        statusBox.className = 'status-box error';
+        statusBox.innerText = '❌ Connection failed: ' + err.message;
+      }
+    }
+
+    // Handle Registration Submit
+    async function handleRegister(e) {
+      e.preventDefault();
+      const statusBox = document.getElementById('regStatus');
+      const payload = {
+        fullName: document.getElementById('regFullName').value.trim(),
+        email: document.getElementById('regEmail').value.trim(),
+        phoneNumber: document.getElementById('regPhone').value.trim(),
+        otp: document.getElementById('regOtp').value.trim(),
+        gender: document.getElementById('regGender').value,
+        city: document.getElementById('regCity').value.trim(),
+      };
+
+      statusBox.className = 'status-box';
+      statusBox.style.display = 'block';
+      statusBox.innerText = 'Registering member in MongoDB...';
+
+      try {
+        const res = await fetch('/api/users/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          statusBox.className = 'status-box success';
+          statusBox.innerHTML = `🎉 <strong>Registration Successful!</strong><br>Record created in MongoDB collection <code>users</code> & <code>members</code>.<pre>${JSON.stringify(data, null, 2)}</pre>`;
+          fetchDbStats();
+        } else {
+          statusBox.className = 'status-box error';
+          statusBox.innerText = '❌ Registration Failed: ' + (data.message || 'Server error');
+        }
+      } catch (err) {
+        statusBox.className = 'status-box error';
+        statusBox.innerText = '❌ Error connecting to backend: ' + err.message;
+      }
+    }
+
+    // Send Login OTP
+    async function sendLoginOtp() {
+      const email = document.getElementById('loginEmail').value.trim();
+      const statusBox = document.getElementById('loginStatus');
+      if (!email) {
+        alert('Please enter your email.');
+        return;
+      }
+
+      statusBox.className = 'status-box';
+      statusBox.style.display = 'block';
+      statusBox.innerText = 'Requesting OTP...';
+
+      try {
+        const res = await fetch('/api/auth/send-email-otp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email })
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          statusBox.className = 'status-box success';
+          statusBox.innerHTML = `✅ <strong>OTP Dispatched!</strong><br>Code: <code style="font-size: 16px; color: #FFF; background: var(--primary); padding: 2px 8px; border-radius: 4px;">${data.otp || 'Check Gmail'}</code>`;
+          if (data.otp) {
+            document.getElementById('loginOtp').value = data.otp;
+          }
+        } else {
+          statusBox.className = 'status-box error';
+          statusBox.innerText = '❌ ' + (data.message || 'Failed to send OTP.');
+        }
+      } catch (err) {
+        statusBox.className = 'status-box error';
+        statusBox.innerText = '❌ Error: ' + err.message;
+      }
+    }
+
+    // Verify Login OTP
+    async function handleVerifyLogin() {
+      const email = document.getElementById('loginEmail').value.trim();
+      const otp = document.getElementById('loginOtp').value.trim();
+      const statusBox = document.getElementById('loginStatus');
+
+      if (!email || !otp) {
+        alert('Please enter both email and 6-digit OTP.');
+        return;
+      }
+
+      statusBox.className = 'status-box';
+      statusBox.style.display = 'block';
+      statusBox.innerText = 'Verifying credentials against MongoDB...';
+
+      try {
+        const res = await fetch('/api/auth/verify-email-otp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, otp })
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          statusBox.className = 'status-box success';
+          statusBox.innerHTML = `🎉 <strong>Login Verified! Welcome to KutumbSetu!</strong><pre>${JSON.stringify(data, null, 2)}</pre>`;
+          fetchDbStats();
+        } else {
+          statusBox.className = 'status-box error';
+          statusBox.innerText = '❌ Login Failed: ' + (data.message || 'Invalid OTP code');
+        }
+      } catch (err) {
+        statusBox.className = 'status-box error';
+        statusBox.innerText = '❌ Connection Error: ' + err.message;
+      }
+    }
+
+    // Admin Login
+    async function handleAdminLogin() {
+      const username = document.getElementById('adminUsername').value.trim();
+      const password = document.getElementById('adminPassword').value;
+      const statusBox = document.getElementById('adminStatus');
+
+      statusBox.className = 'status-box';
+      statusBox.style.display = 'block';
+      statusBox.innerText = 'Authenticating Admin with database...';
+
+      try {
+        const res = await fetch('/api/auth/admin-login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          statusBox.className = 'status-box success';
+          statusBox.innerHTML = `🛡️ <strong>Admin Authenticated Successfully!</strong><pre>${JSON.stringify(data, null, 2)}</pre>`;
+          fetchDbStats();
+        } else {
+          statusBox.className = 'status-box error';
+          statusBox.innerText = '❌ ' + (data.message || 'Invalid credentials');
+        }
+      } catch (err) {
+        statusBox.className = 'status-box error';
+        statusBox.innerText = '❌ Error: ' + err.message;
+      }
+    }
+
+    // Initial load
+    fetchDbStats();
+    setInterval(fetchDbStats, 10000);
+  </script>
+</body>
+</html>

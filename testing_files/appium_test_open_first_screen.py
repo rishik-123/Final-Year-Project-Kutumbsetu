@@ -26,10 +26,12 @@ options.app = APK_PATH
 options.no_reset = True
 options.auto_grant_permissions = True
 
-# Extended timeouts to prevent adbExec timeouts on emulator
-options.set_capability("appium:adbExecTimeout", 60000)
-options.set_capability("appium:uiautomator2ServerInstallTimeout", 60000)
-options.set_capability("appium:androidInstallTimeout", 90000)
+# Extended timeouts to prevent adbExec and uiautomator2 launch timeouts on emulator
+options.set_capability("appium:uiautomator2ServerLaunchTimeout", 90000)
+options.set_capability("appium:uiautomator2ServerInstallTimeout", 90000)
+options.set_capability("appium:adbExecTimeout", 90000)
+options.set_capability("appium:androidInstallTimeout", 120000)
+options.set_capability("appium:newCommandTimeout", 180)
 options.set_capability("appium:appWaitActivity", "*")
 
 print("======================================")

@@ -146,9 +146,11 @@ options.app = APK_PATH
 options.auto_grant_permissions = True
 options.no_reset = True
 
-options.set_capability("appium:adbExecTimeout", 60000)
-options.set_capability("appium:uiautomator2ServerInstallTimeout", 60000)
-options.set_capability("appium:androidInstallTimeout", 90000)
+options.set_capability("appium:uiautomator2ServerLaunchTimeout", 90000)
+options.set_capability("appium:uiautomator2ServerInstallTimeout", 90000)
+options.set_capability("appium:adbExecTimeout", 90000)
+options.set_capability("appium:androidInstallTimeout", 120000)
+options.set_capability("appium:newCommandTimeout", 180)
 options.set_capability("appium:appWaitActivity", "*")
 
 print("======================================")

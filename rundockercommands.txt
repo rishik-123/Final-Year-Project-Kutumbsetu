@@ -1,9 +1,17 @@
+# 1. Navigate to backend folder
 cd "C:\Users\Abcom\OneDrive\Desktop\FINAL YEAR PROJECT KUTUMBSETU\backend"
-docker build -t kutumbsetu-app .
-docker run -d -p 5000:5000 --name kutumb-container kutumbsetu-app
-docker run -d -p 5001:5000 --name kutumb-container kutumbsetu-app
-http://localhost:5000
-(or http://localhost:5001 if mapped to 5001)
 
-doocker rm -f kutumb-container
-docker ps
+# 2. Rebuild the Docker image (uses node:18-slim with MongoDB support)
+docker build -t kutumbsetu-app .
+
+# 3. Remove any old container
+docker rm -f kutumb-container
+
+# 4. Run the container
+docker run -d -p 5001:5000 --name kutumb-container kutumbsetu-app
+
+# 5. Check logs (shows MongoDB Connected successfully)
+docker logs kutumb-container
+
+# 6. Open in Browser
+# http://localhost:5001

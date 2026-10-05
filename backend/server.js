@@ -108,17 +108,17 @@ app.get('/api/db-stats', async (req, res) => {
     const dbName = mongoose.connection.name || 'kutumbsetu';
     const host = mongoose.connection.host || 'unknown';
     const port = mongoose.connection.port || 27017;
-    
+
     let usersCount = 0;
     let membersCount = 0;
     let otpsCount = 0;
-    
+
     if (isConnected) {
       usersCount = await User.countDocuments();
       membersCount = await Member.countDocuments();
       otpsCount = await OtpVerification.countDocuments();
     }
-    
+
     return res.status(200).json({
       success: true,
       connected: isConnected,
@@ -422,7 +422,7 @@ app.post('/api/auth/verify-email-otp', async (req, res) => {
 
     // Successfully verified: delete document to prevent reuse
     await OtpVerification.deleteOne({ _id: latestOtpDoc._id });
-    
+
     // Look up if user is already registered
     let user = await User.findOne({ email: targetEmail });
     if (!user) {
@@ -1549,7 +1549,7 @@ app.post('/api/matrimonial/profile', async (req, res) => {
     }
 
     let profile = await MatrimonialProfile.findOne({ userId });
-    
+
     const profileData = {
       userId,
       name,
@@ -1627,7 +1627,7 @@ app.get('/api/matrimonial/profile/:userId', async (req, res) => {
     doc.connectionStatus = connectionStatus;
 
     const isOwnProfile = requesterId && requesterId.toString() === userId.toString();
-    
+
     // Calculate age
     doc.age = calculateAge(doc.dob);
 
@@ -1704,7 +1704,7 @@ app.get('/api/matrimonial/profiles', async (req, res) => {
 
     // Apply filters
     if (gender) query.gender = gender;
-    
+
     // Requester check: hide own profile from default lists unless explicitly searching
     if (requesterId && (!search || !search.trim())) {
       query.userId = { $ne: requesterId };
@@ -1715,7 +1715,7 @@ app.get('/api/matrimonial/profiles', async (req, res) => {
       const dateMax = new Date();
       if (ageMin) dateMax.setFullYear(dateMax.getFullYear() - parseInt(ageMin));
       if (ageMax) dateMin.setFullYear(dateMin.getFullYear() - parseInt(ageMax) - 1);
-      
+
       query.dob = {};
       if (ageMin) query.dob.$lte = dateMax;
       if (ageMax) query.dob.$gte = dateMin;
@@ -1752,7 +1752,7 @@ app.get('/api/matrimonial/profiles', async (req, res) => {
     if (search && search.trim()) {
       const cleanSearch = search.trim();
       const searchRegex = new RegExp(escapeRegex(cleanSearch), 'i');
-      
+
       const matchingUsers = await User.find({
         $or: [
           { email: searchRegex },
@@ -1822,8 +1822,8 @@ app.get('/api/matrimonial/profiles', async (req, res) => {
         ]
       });
       allUserReqs.forEach(reqDoc => {
-        const otherId = reqDoc.senderId.toString() === requesterId.toString() 
-          ? reqDoc.receiverId.toString() 
+        const otherId = reqDoc.senderId.toString() === requesterId.toString()
+          ? reqDoc.receiverId.toString()
           : reqDoc.senderId.toString();
         sentReqMap[otherId] = reqDoc.status;
       });
@@ -1832,7 +1832,7 @@ app.get('/api/matrimonial/profiles', async (req, res) => {
     const listWithMatch = profiles.map(p => {
       const doc = p.toObject();
       doc.age = calculateAge(doc.dob);
-      
+
       // AI Matching Logic
       let matchScore = 70; // default base match
       if (requesterPref) {
@@ -2048,9 +2048,9 @@ app.get('/api/matrimonial/shortlisted', async (req, res) => {
 
     const list = await MatrimonialShortlist.find({ userId });
     const shortlistedIds = list.map(item => item.shortlistedUserId);
-    
+
     const profiles = await MatrimonialProfile.find({ userId: { $in: shortlistedIds } });
-    
+
     const formatted = profiles.map(p => {
       const doc = p.toObject();
       doc.age = calculateAge(doc.dob);
@@ -2100,7 +2100,7 @@ const seedMatrimonialData = async () => {
         console.log('Seeding: No users in DB. Skipping matrimonial seeding.');
         return;
       }
-      
+
       const samplePhotos = {
         'Male': ['avatar_male_1', 'avatar_male_2'],
         'Female': ['avatar_female_1', 'avatar_generic']
@@ -2108,14 +2108,14 @@ const seedMatrimonialData = async () => {
 
       for (let i = 0; i < users.length; i++) {
         const u = users[i];
-        
+
         // Let's seed for some users to simulate realistic profiles (e.g. 80%)
-        if (i % 5 === 0) continue; 
-        
+        if (i % 5 === 0) continue;
+
         const gender = u.gender || 'Male';
         const photoList = samplePhotos[gender] || ['avatar_generic'];
         const profilePhoto = u.profilePhoto || photoList[i % photoList.length];
-        
+
         const age = 22 + (i % 15);
         const dobDate = new Date();
         dobDate.setFullYear(dobDate.getFullYear() - age);
@@ -2294,21 +2294,21 @@ const generateUniqueFamilyId = async (fullName) => {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
   let isUnique = false;
   let familyId = '';
-  
+
   while (!isUnique) {
     let randomStr = '';
     for (let i = 0; i < 4; i++) {
       randomStr += chars.charAt(Math.floor(Math.random() * chars.length));
     }
     familyId = `${cleanFirst}-${cleanLast}-${randomStr}`;
-    
+
     // Check if this familyId already exists in Profile collection
     const existing = await Profile.findOne({ familyId });
     if (!existing) {
       isUnique = true;
     }
   }
-  
+
   return familyId;
 };
 
@@ -2425,12 +2425,12 @@ app.get('/share/post/:id', async (req, res) => {
     if (!post) {
       return res.status(404).send('Post not found');
     }
-    
+
     const baseUrl = `${req.protocol}://${req.get('host')}`;
-    const mediaUrl = post.mediaUrl 
-      ? (post.mediaUrl.startsWith('http') ? post.mediaUrl : `${baseUrl}${post.mediaUrl}`) 
+    const mediaUrl = post.mediaUrl
+      ? (post.mediaUrl.startsWith('http') ? post.mediaUrl : `${baseUrl}${post.mediaUrl}`)
       : '';
-      
+
     res.send(`
       <!DOCTYPE html>
       <html lang="en">
@@ -2611,12 +2611,12 @@ app.get('/share/reel/:id', async (req, res) => {
     if (!reel) {
       return res.status(404).send('Reel not found');
     }
-    
+
     const baseUrl = `${req.protocol}://${req.get('host')}`;
-    const videoUrl = reel.videoUrl 
-      ? (reel.videoUrl.startsWith('http') ? reel.videoUrl : `${baseUrl}${reel.videoUrl}`) 
+    const videoUrl = reel.videoUrl
+      ? (reel.videoUrl.startsWith('http') ? reel.videoUrl : `${baseUrl}${reel.videoUrl}`)
       : '';
-      
+
     res.send(`
       <!DOCTYPE html>
       <html lang="en">
@@ -3782,7 +3782,7 @@ app.post('/api/admin/post-requests', async (req, res) => {
         const buffer = Buffer.from(cleanBase64, 'base64');
         const uploadsDir = path.join(__dirname, 'uploads');
         if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
-        const filename = `request-${Date.now()}-${Math.floor(Math.random()*1000)}.${ext}`;
+        const filename = `request-${Date.now()}-${Math.floor(Math.random() * 1000)}.${ext}`;
         fs.writeFileSync(path.join(uploadsDir, filename), buffer);
         finalMediaUrl = `/uploads/${filename}`;
       } catch (err) {
@@ -4571,7 +4571,7 @@ const PORT = process.env.PORT || 5000;
 const startServer = async () => {
   await connectDB();
   await seedDefaultCategories();
-  app.listen(PORT, () => {
+  app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running on port ${PORT}`);
   });
 };

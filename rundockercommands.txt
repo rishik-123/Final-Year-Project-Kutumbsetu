@@ -15,3 +15,8 @@ docker logs kutumb-container
 
 # 6. Open in Browser
 # http://localhost:5001
+
+
+#push on docker hub
+docker login
+docker tag kutumbsetu-app rishik12345/kutumbsetu-app:latest

@@ -13,7 +13,10 @@ docker compose logs -f backend
 # 5. Open in Browser
 # http://localhost:5000/
 
-#other method
+
+# ------------------------------------------------------------------------------
+# OTHER METHOD: STANDALONE DOCKER RUN
+# ------------------------------------------------------------------------------
 # 1. Navigate to backend directory
 cd "C:\Users\Abcom\OneDrive\Desktop\FINAL YEAR PROJECT KUTUMBSETU\backend"
 
@@ -34,13 +37,22 @@ docker logs -f kutumb-container
 
 
 # ------------------------------------------------------------------------------
-# DOCKER HUB PUSH COMMANDS
+# PUSH CONTAINER / IMAGE TO DOCKER HUB
 # ------------------------------------------------------------------------------
-# 1. Log in to Docker Hub
+# Step 1: Login to your Docker Hub account in terminal
 docker login
 
-# 2. Tag your local image with your Docker Hub repository
-docker tag kutumbsetu-app rishik12345/kutumbsetu-app:latest
+# Step 2 (Option A): Tag the image built with Docker Compose
+docker tag finalyearprojectkutumbsetu-backend:latest rishik12345/kutumbsetu-app:latest
 
-# 3. Push to Docker Hub
+# Step 2 (Option B): Tag the standalone image if you used "docker build -t kutumbsetu-app"
+# docker tag kutumbsetu-app:latest rishik12345/kutumbsetu-app:latest
+
+# Step 2 (Option C): Save/commit directly from your RUNNING container to an image
+# docker commit kutumbsetu-backend rishik12345/kutumbsetu-app:latest
+
+# Step 3: Push the image to Docker Hub repository
 docker push rishik12345/kutumbsetu-app:latest
+
+# Step 4 (Optional): Verify by pulling on your EC2 instance or another machine
+# docker pull rishik12345/kutumbsetu-app:latest

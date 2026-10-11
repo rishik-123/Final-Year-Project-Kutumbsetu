@@ -6,7 +6,6 @@
 # - Python 3.8+ (for OTP / helper scripts): https://www.python.org/downloads/
 # - Android Studio & Android SDK (Platform-tools / ADB): https://developer.android.com/studio
 # - VS Code / Android Studio (Extensions: Flutter, Dart, Prettier, Node.js)
-
 # ------------------------------------------------------------------------------
 # 2. PYTHON PACKAGES (For Python scripts e.g. backend/send_otp.py)
 #    Run: pip install -r requirements.txt

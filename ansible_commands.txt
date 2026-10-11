@@ -1,0 +1,4 @@
+ansible-playbook install_softwares.yml
+ansible all -m command -a "node --version"
+ansible all -m command -a "docker --version" -b
+ansible all -m command -a "systemctl is-active nginx" -b

@@ -1,689 +1,706 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>KutumbSetu • Containerized Login & Registration Portal</title>
+  <title>KutumbSetu — कुटुम्बसेतु</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --primary: #E67E22;
-      --primary-dark: #D35400;
-      --secondary: #1B4F72;
-      --secondary-dark: #0E2F44;
-      --bg: #0B132B;
-      --surface: #1C2541;
-      --surface-light: #2A365D;
-      --text: #F8FAFC;
-      --text-muted: #94A3B8;
-      --accent: #10B981;
-      --error: #EF4444;
-      --border: rgba(255, 255, 255, 0.1);
-      --radius: 16px;
-      --shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
+      --bg-screen: #FAF4EB;
+      --card-bg: #FFFFFF;
+      --text-main: #333333;
+      --text-muted: #757575;
+      --saffron: #E67E22;
+      --saffron-dark: #D35400;
+      --navy: #1B4F72;
+      --input-border: #D1D5DB;
+      --input-bg: #FFFFFF;
+      --card-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
+      --phone-border: #1a1a1a;
     }
 
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      font-family: 'Plus Jakarta Sans', sans-serif;
+    [data-theme="dark"] {
+      --bg-screen: #181818;
+      --card-bg: #242424;
+      --text-main: #FFFFFF;
+      --text-muted: #9E9E9E;
+      --saffron: #E67E22;
+      --saffron-dark: #F39C12;
+      --navy: #2980B9;
+      --input-border: #424242;
+      --input-bg: #1E1E1E;
+      --card-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
     }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 
     body {
-      background: radial-gradient(circle at top, #1C2541 0%, #0B132B 100%);
-      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      background: #111827;
       min-height: 100vh;
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 24px 16px;
-    }
-
-    header {
-      width: 100%;
-      max-width: 900px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 24px;
-      flex-wrap: wrap;
-      gap: 16px;
-    }
-
-    .brand {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .brand-icon {
-      width: 48px;
-      height: 48px;
-      background: linear-gradient(135deg, var(--primary), var(--secondary));
-      border-radius: 12px;
-      display: flex;
-      align-items: center;
       justify-content: center;
-      font-size: 24px;
-      box-shadow: 0 4px 12px rgba(230, 126, 34, 0.3);
+      padding: 20px 10px;
     }
 
-    .brand h1 {
-      font-family: 'Outfit', sans-serif;
-      font-size: 26px;
-      font-weight: 800;
-      letter-spacing: -0.5px;
-      background: linear-gradient(90deg, #FFFFFF, #CBD5E1);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-
-    .brand p {
-      font-size: 12px;
-      color: var(--text-muted);
-    }
-
-    /* DB Status Badge */
-    .db-badge {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 8px 16px;
-      background: rgba(16, 185, 129, 0.1);
-      border: 1px solid rgba(16, 185, 129, 0.3);
-      border-radius: 9999px;
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--accent);
-    }
-
-    .db-dot {
-      width: 10px;
-      height: 10px;
-      background: var(--accent);
-      border-radius: 50%;
-      box-shadow: 0 0 8px var(--accent);
-      animation: pulse 2s infinite;
-    }
-
-    @keyframes pulse {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.5; transform: scale(0.85); }
-    }
-
-    /* Main Container */
-    .main-card {
+    /* PHONE CONTAINER */
+    .phone-mockup {
       width: 100%;
-      max-width: 900px;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
+      max-width: 410px;
+      height: 840px;
+      background: var(--bg-screen);
+      border-radius: 46px;
+      box-shadow: 0 0 0 10px #0f172a, 0 25px 60px rgba(0, 0, 0, 0.6), inset 0 0 4px rgba(255, 255, 255, 0.2);
+      position: relative;
       overflow: hidden;
       display: flex;
       flex-direction: column;
+      transition: background 0.3s ease;
     }
 
-    /* Tabs */
-    .tabs {
+    /* PHONE NOTCH / STATUS BAR */
+    .notch-bar {
+      height: 38px;
+      width: 100%;
       display: flex;
-      background: rgba(0, 0, 0, 0.2);
-      border-bottom: 1px solid var(--border);
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      z-index: 20;
+    }
+    .camera-punch {
+      width: 12px;
+      height: 12px;
+      background: #000;
+      border-radius: 50%;
+      border: 1px solid #333;
     }
 
-    .tab-btn {
+    /* SCROLLABLE SCREEN CONTENT */
+    .screen-content {
       flex: 1;
-      padding: 16px 20px;
+      overflow-y: auto;
+      padding: 12px 24px 28px 24px;
+      display: flex;
+      flex-direction: column;
+      scrollbar-width: none;
+    }
+    .screen-content::-webkit-scrollbar { display: none; }
+
+    /* THEME SWITCH */
+    .top-actions {
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 8px;
+    }
+    .theme-btn {
+      background: none;
       border: none;
-      background: transparent;
+      cursor: pointer;
+      padding: 8px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       color: var(--text-muted);
+      transition: color 0.2s;
+    }
+    .theme-btn:hover { color: var(--saffron); }
+
+    /* HEADER BRANDING */
+    .branding-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 28px;
+      text-align: center;
+    }
+    .logo-circle {
+      width: 94px;
+      height: 94px;
+      border-radius: 50%;
+      background: #FFFFFF;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 12px 30px rgba(230, 126, 34, 0.14);
+      margin-bottom: 18px;
+      transition: transform 0.2s;
+    }
+    [data-theme="dark"] .logo-circle {
+      background: #2A2A2A;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
+    }
+    .logo-circle svg {
+      width: 58px;
+      height: 58px;
+      fill: var(--saffron);
+    }
+
+    .app-title {
+      font-family: 'Poppins', sans-serif;
+      font-size: 32px;
+      font-weight: 700;
+      color: var(--text-main);
+      line-height: 1.1;
+      margin-bottom: 4px;
+    }
+    .app-sub {
+      font-family: 'Poppins', sans-serif;
+      font-size: 19px;
       font-weight: 600;
+      color: var(--saffron);
+      letter-spacing: 2px;
+    }
+
+    /* CARD COMPONENT */
+    .form-card {
+      background: var(--card-bg);
+      border-radius: 24px;
+      padding: 24px;
+      box-shadow: var(--card-shadow);
+      margin-bottom: 20px;
+      transition: background 0.3s, box-shadow 0.3s;
+    }
+    .card-title {
+      font-family: 'Poppins', sans-serif;
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 6px;
+    }
+    .card-desc {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 22px;
+      line-height: 1.4;
+    }
+
+    /* INPUT GROUPS */
+    .input-wrap {
+      position: relative;
+      margin-bottom: 18px;
+    }
+    .input-wrap svg {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 20px;
+      height: 20px;
+      fill: var(--text-muted);
+      transition: fill 0.2s;
+    }
+    .form-input {
+      width: 100%;
+      height: 50px;
+      padding: 0 14px 0 44px;
+      border-radius: 12px;
+      border: 1.5px solid var(--input-border);
+      background: var(--input-bg);
+      color: var(--text-main);
       font-size: 14px;
+      font-family: 'Inter', sans-serif;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .form-input:focus {
+      border-color: var(--saffron);
+      box-shadow: 0 0 0 3px rgba(230, 126, 34, 0.15);
+    }
+    .form-input:focus + svg {
+      fill: var(--saffron);
+    }
+
+    /* BUTTONS */
+    .btn-orange {
+      width: 100%;
+      height: 50px;
+      background: var(--saffron);
+      color: #FFFFFF;
+      border: none;
+      border-radius: 12px;
+      font-family: 'Poppins', sans-serif;
+      font-weight: 700;
+      font-size: 15px;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 8px;
-      transition: all 0.2s ease;
-      border-bottom: 2px solid transparent;
+      box-shadow: 0 6px 16px rgba(230, 126, 34, 0.3);
+      transition: background 0.2s, transform 0.1s;
     }
-
-    .tab-btn:hover {
-      color: var(--text);
-      background: rgba(255, 255, 255, 0.03);
+    .btn-orange:hover {
+      background: var(--saffron-dark);
+      transform: translateY(-1px);
     }
-
-    .tab-btn.active {
-      color: var(--primary);
-      border-bottom-color: var(--primary);
-      background: rgba(230, 126, 34, 0.08);
-    }
-
-    .tab-content {
-      display: none;
-      padding: 32px;
-    }
-
-    .tab-content.active {
-      display: block;
-    }
-
-    /* Forms */
-    .form-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 20px;
-    }
-
-    @media (max-width: 640px) {
-      .form-grid { grid-template-columns: 1fr; }
-    }
-
-    .form-group {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .form-group.full-width {
-      grid-column: 1 / -1;
-    }
-
-    label {
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--text-muted);
-    }
-
-    input, select, textarea {
+    .btn-blue {
       width: 100%;
-      padding: 12px 16px;
-      background: var(--surface-light);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      color: var(--text);
-      font-size: 14px;
-      outline: none;
-      transition: border-color 0.2s;
-    }
-
-    input:focus, select:focus, textarea:focus {
-      border-color: var(--primary);
-      box-shadow: 0 0 0 3px rgba(230, 126, 34, 0.2);
-    }
-
-    .input-row {
-      display: flex;
-      gap: 12px;
-    }
-
-    .btn {
-      padding: 12px 24px;
-      background: var(--primary);
-      color: white;
+      height: 50px;
+      background: var(--navy);
+      color: #FFFFFF;
       border: none;
-      border-radius: 10px;
+      border-radius: 12px;
+      font-family: 'Poppins', sans-serif;
+      font-weight: 700;
+      font-size: 15px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 6px 16px rgba(27, 79, 114, 0.3);
+      transition: background 0.2s, transform 0.1s;
+    }
+    .btn-blue:hover { opacity: 0.95; transform: translateY(-1px); }
+
+    .btn-outline {
+      width: 100%;
+      height: 50px;
+      background: transparent;
+      color: var(--saffron);
+      border: 1.5px solid var(--saffron);
+      border-radius: 12px;
+      font-family: 'Inter', sans-serif;
       font-weight: 700;
       font-size: 14px;
       cursor: pointer;
-      display: inline-flex;
+      display: flex;
       align-items: center;
       justify-content: center;
       gap: 8px;
-      transition: all 0.2s ease;
-      box-shadow: 0 4px 12px rgba(230, 126, 34, 0.3);
+      margin-top: 14px;
+      transition: background 0.2s;
+    }
+    .btn-outline:hover {
+      background: rgba(230, 126, 34, 0.06);
+    }
+    .btn-outline svg {
+      width: 18px;
+      height: 18px;
+      fill: var(--saffron);
     }
 
-    .btn:hover {
-      background: var(--primary-dark);
-      transform: translateY(-1px);
-    }
-
-    .btn-secondary {
-      background: var(--secondary);
-      box-shadow: 0 4px 12px rgba(27, 79, 114, 0.3);
-    }
-
-    .btn-secondary:hover {
-      background: var(--secondary-dark);
-    }
-
-    /* Live Output Box */
-    .status-box {
-      margin-top: 24px;
-      padding: 16px;
-      border-radius: 12px;
-      background: rgba(0, 0, 0, 0.3);
-      border: 1px solid var(--border);
-      display: none;
-      animation: fadeIn 0.3s ease;
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(6px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    .status-box.success {
-      display: block;
-      border-color: var(--accent);
-      background: rgba(16, 185, 129, 0.1);
-      color: #A7F3D0;
-    }
-
-    .status-box.error {
-      display: block;
-      border-color: var(--error);
-      background: rgba(239, 68, 68, 0.1);
-      color: #FECACA;
-    }
-
-    .status-box pre {
-      margin-top: 8px;
-      font-family: monospace;
-      font-size: 12px;
-      background: rgba(0, 0, 0, 0.4);
-      padding: 12px;
-      border-radius: 8px;
-      overflow-x: auto;
-    }
-
-    /* DB Inspector Stats */
-    .db-stats-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 16px;
-      margin-top: 20px;
-    }
-
-    .stat-card {
-      background: var(--surface-light);
-      padding: 20px;
-      border-radius: 12px;
-      border: 1px solid var(--border);
+    /* FOOTER TEXT & LINKS */
+    .bottom-prompt {
       text-align: center;
+      margin-top: 10px;
+      font-size: 14px;
+      color: var(--text-main);
     }
-
-    .stat-number {
-      font-size: 32px;
-      font-weight: 800;
-      color: var(--primary);
-      font-family: 'Outfit', sans-serif;
+    .bottom-link {
+      color: var(--saffron);
+      font-weight: 700;
+      text-decoration: none;
+      cursor: pointer;
+      margin-left: 4px;
     }
+    .bottom-link:hover { text-decoration: underline; }
 
-    .stat-label {
+    .action-links {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 10px;
+      margin-bottom: 20px;
       font-size: 13px;
-      color: var(--text-muted);
-      margin-top: 4px;
+    }
+    .action-link-orange { color: var(--saffron); font-weight: 600; cursor: pointer; text-decoration: none; }
+    .action-link-grey { color: var(--text-muted); cursor: pointer; text-decoration: none; }
+
+    /* STATUS BANNER */
+    .alert-banner {
+      display: none;
+      padding: 10px 14px;
+      border-radius: 10px;
+      font-size: 13px;
+      margin-bottom: 16px;
+      line-height: 1.4;
+    }
+    .alert-success { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
+    .alert-error { background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; }
+
+    /* HOME INDICATOR */
+    .home-bar {
+      height: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding-bottom: 6px;
+    }
+    .home-indicator {
+      width: 120px;
+      height: 4px;
+      background: #000000;
+      border-radius: 999px;
+      opacity: 0.6;
+    }
+    [data-theme="dark"] .home-indicator { background: #FFFFFF; }
+
+    /* BOTTOM EXTERNAL DOCKER/DB PILL */
+    .db-status-dock {
+      margin-top: 16px;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(30, 41, 59, 0.95);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 8px 18px;
+      border-radius: 999px;
+      color: #94a3b8;
+      font-size: 12px;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+    }
+    .db-dot {
+      width: 8px;
+      height: 8px;
+      background: #22c55e;
+      border-radius: 50%;
+      box-shadow: 0 0 10px #22c55e;
     }
 
-    footer {
-      margin-top: 24px;
-      font-size: 12px;
-      color: var(--text-muted);
-      text-align: center;
+    /* REGISTRATION STEP FORM FIELDS */
+    .reg-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
     }
   </style>
 </head>
 <body>
 
-  <header>
-    <div class="brand">
-      <div class="brand-icon">🏛️</div>
-      <div>
-        <h1>KutumbSetu Portal</h1>
-        <p>Docker Containerized Login & Registration System</p>
+  <!-- PHONE DEVICE FRAME -->
+  <div class="phone-mockup">
+    <!-- TOP NOTCH / STATUS -->
+    <div class="notch-bar">
+      <span style="font-size: 11px; font-weight: 600; color: var(--text-muted);"><span id="liveTime">09:41</span></span>
+      <div class="camera-punch"></div>
+      <div style="width: 28px;"></div>
+    </div>
+
+    <!-- MAIN SCROLLABLE APP SCREEN -->
+    <div class="screen-content">
+      
+      <!-- THEME SWITCH (MOON/SUN) -->
+      <div class="top-actions">
+        <button class="theme-btn" id="themeToggle" onclick="toggleTheme()" title="Toggle Theme">
+          <svg id="moonIcon" width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12.3 2a10 10 0 0 0-.19 20 10 10 0 0 0 8.75-5.13 1 1 0 0 0-1.07-1.47 8 8 0 0 1-9.9-9.9 1 1 0 0 0-1.47-1.07A10 10 0 0 0 12.3 2z"/>
+          </svg>
+        </button>
       </div>
-    </div>
-    <div class="db-badge" id="dbStatusBadge">
-      <div class="db-dot"></div>
-      <span id="dbStatusText">Checking MongoDB...</span>
-    </div>
-  </header>
 
-  <div class="main-card">
-    <!-- Navigation Tabs -->
-    <div class="tabs">
-      <button class="tab-btn active" onclick="switchTab('register')">
-        <span>📝</span> User Registration
-      </button>
-      <button class="tab-btn" onclick="switchTab('login')">
-        <span>🔑</span> OTP Login
-      </button>
-      <button class="tab-btn" onclick="switchTab('admin')">
-        <span>🛡️</span> Admin Portal
-      </button>
-      <button class="tab-btn" onclick="switchTab('db')">
-        <span>🗄️</span> DB Connectivity Proof
-      </button>
-    </div>
+      <!-- KUTUMBSETU BRANDING (EXACT LOGO & TITLE) -->
+      <div class="branding-box">
+        <div class="logo-circle">
+          <!-- diversity_3 icon -->
+          <svg viewBox="0 0 24 24">
+            <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5zm-4-4c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.83 0-4 .92-4 2.5V19h8v-2.5c0-1.58-2.17-2.5-4-2.5z"/>
+          </svg>
+        </div>
+        <h1 class="app-title">KutumbSetu</h1>
+        <h2 class="app-sub">कुटुम्बसेतु</h2>
+      </div>
 
-    <!-- TAB 1: USER REGISTRATION -->
-    <div id="tab-register" class="tab-content active">
-      <h2 style="font-family: 'Outfit'; margin-bottom: 8px;">Register New Member</h2>
-      <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 24px;">Submit user credentials to create live records inside the containerized MongoDB database.</p>
+      <!-- ALERTS -->
+      <div id="alertMsg" class="alert-banner"></div>
 
-      <form id="registerForm" onsubmit="handleRegister(event)">
-        <div class="form-grid">
-          <div class="form-group">
-            <label>Full Name *</label>
-            <input type="text" id="regFullName" placeholder="e.g. Rohan Jayeshbhai Shah" required>
+      <!-- ================= 1. SIGN IN SCREEN (IMAGE 1 EXACT MATCH) ================= -->
+      <div id="stepEmail" class="form-card">
+        <h3 class="card-title">Sign In</h3>
+        <p class="card-desc">Authenticate using Email OTP code verification.</p>
+
+        <form onsubmit="handleSendOtp(event)">
+          <div class="input-wrap">
+            <input type="email" id="emailInput" class="form-input" placeholder="Email Address" required />
+            <!-- mail icon -->
+            <svg viewBox="0 0 24 24">
+              <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
+            </svg>
           </div>
-          <div class="form-group">
-            <label>Email Address *</label>
-            <div class="input-row">
-              <input type="email" id="regEmail" placeholder="user@example.com" required>
-              <button type="button" class="btn btn-secondary" style="white-space: nowrap;" onclick="sendRegistrationOtp()">Send OTP</button>
+
+          <button type="submit" class="btn-orange" id="btnSendOtp">Send OTP Code</button>
+
+          <button type="button" class="btn-outline" onclick="goToView('stepAdmin')">
+            <!-- admin_panel_settings icon -->
+            <svg viewBox="0 0 24 24">
+              <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/>
+            </svg>
+            Login as Admin
+          </button>
+        </form>
+      </div>
+
+      <!-- ================= 2. OTP VERIFICATION SCREEN ================= -->
+      <div id="stepOtp" class="form-card" style="display: none;">
+        <h3 class="card-title">Enter Verification Code</h3>
+        <p class="card-desc">Enter the 6-digit code sent to <b id="displayEmail"></b></p>
+
+        <form onsubmit="handleVerifyOtp(event)">
+          <div class="input-wrap">
+            <input type="text" id="otpInput" maxlength="6" class="form-input" placeholder="Enter 6-Digit Email OTP" required />
+            <!-- lock_clock icon -->
+            <svg viewBox="0 0 24 24">
+              <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/>
+            </svg>
+          </div>
+
+          <div class="action-links">
+            <span class="action-link-orange" onclick="resendOtp()">Resend OTP</span>
+            <span class="action-link-grey" onclick="goToView('stepEmail')">Change Email</span>
+          </div>
+
+          <button type="submit" class="btn-blue">Verify & Log In</button>
+        </form>
+      </div>
+
+      <!-- ================= 3. ADMIN LOGIN SCREEN ================= -->
+      <div id="stepAdmin" class="form-card" style="display: none;">
+        <h3 class="card-title">Admin Authentication</h3>
+        <p class="card-desc">Sign in with system administrator credentials.</p>
+
+        <form onsubmit="handleAdminLogin(event)">
+          <div class="input-wrap">
+            <input type="text" id="adminUser" class="form-input" value="admin" placeholder="Admin Username" required />
+            <svg viewBox="0 0 24 24">
+              <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+            </svg>
+          </div>
+
+          <div class="input-wrap">
+            <input type="password" id="adminPass" class="form-input" value="admin123" placeholder="Admin Password" required />
+            <svg viewBox="0 0 24 24">
+              <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2z"/>
+            </svg>
+          </div>
+
+          <div class="action-links" style="justify-content: flex-end;">
+            <span class="action-link-grey" onclick="goToView('stepEmail')">Back to Email Login</span>
+          </div>
+
+          <button type="submit" class="btn-blue">Verify Admin & Log In</button>
+        </form>
+
+        <div id="adminRecords" style="display:none; margin-top:16px;">
+          <p style="font-size:12px; font-weight:700; color:var(--text-muted); margin-bottom:8px;">MongoDB Pending Users:</p>
+          <div id="adminList" style="max-height:160px; overflow-y:auto; border:1px solid var(--input-border); border-radius:10px; font-size:12px;"></div>
+        </div>
+      </div>
+
+      <!-- ================= 4. REGISTER NEW USER SCREEN ================= -->
+      <div id="stepRegister" class="form-card" style="display: none;">
+        <h3 class="card-title">Register Member</h3>
+        <p class="card-desc">Join KutumbSetu family directory.</p>
+
+        <form onsubmit="handleRegistration(event)">
+          <div class="input-wrap">
+            <input type="text" id="regFullName" class="form-input" placeholder="Full Name *" required />
+            <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+          </div>
+
+          <div class="input-wrap">
+            <input type="email" id="regEmail" class="form-input" placeholder="Email Address *" required />
+            <svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+          </div>
+
+          <div class="reg-grid">
+            <div class="input-wrap">
+              <input type="text" id="regOtp" class="form-input" placeholder="6-digit OTP *" style="padding-left:14px;" required />
+            </div>
+            <button type="button" class="btn-orange" style="height:50px; font-size:13px;" onclick="sendRegOtp()">Get OTP</button>
+          </div>
+
+          <div class="input-wrap">
+            <input type="tel" id="regPhone" class="form-input" placeholder="Phone Number" />
+            <svg viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
+          </div>
+
+          <div class="reg-grid">
+            <div class="input-wrap">
+              <select id="regGender" class="form-input" style="padding-left:14px;">
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div class="input-wrap">
+              <input type="text" id="regCity" class="form-input" placeholder="City" style="padding-left:14px;" />
             </div>
           </div>
-          <div class="form-group">
-            <label>Phone Number *</label>
-            <input type="tel" id="regPhone" placeholder="9898989898" required>
-          </div>
-          <div class="form-group">
-            <label>6-Digit Email OTP *</label>
-            <input type="text" id="regOtp" placeholder="Enter OTP received" maxlength="6" required>
-          </div>
-          <div class="form-group">
-            <label>Gender</label>
-            <select id="regGender">
-              <option value="Male">Male</option>
-              <option value="Female">Female</option>
-              <option value="Other">Other</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>City / Native Place</label>
-            <input type="text" id="regCity" placeholder="e.g. Surat">
-          </div>
-          <div class="form-group full-width">
-            <button type="submit" class="btn" style="width: 100%; padding: 14px;">🚀 Register Member into MongoDB</button>
-          </div>
-        </div>
-      </form>
 
-      <div id="regStatus" class="status-box"></div>
+          <button type="submit" class="btn-orange">Complete Registration</button>
+        </form>
+
+        <div style="text-align:center; margin-top:14px;">
+          <span class="action-link-grey" onclick="goToView('stepEmail')">← Back to Sign In</span>
+        </div>
+      </div>
+
+      <!-- BOTTOM REGISTRATION LINK (SHOWN ON STEP 1) -->
+      <div id="bottomRegisterPrompt" class="bottom-prompt">
+        New to KutumbSetu? <span class="bottom-link" onclick="goToView('stepRegister')">Register Here</span>
+      </div>
+
     </div>
 
-    <!-- TAB 2: OTP LOGIN -->
-    <div id="tab-login" class="tab-content">
-      <h2 style="font-family: 'Outfit'; margin-bottom: 8px;">OTP Email Login</h2>
-      <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 24px;">Authenticate using your registered email address with dynamic OTP verification.</p>
-
-      <div class="form-grid" style="max-width: 500px; margin: 0 auto;">
-        <div class="form-group full-width">
-          <label>Registered Email Address</label>
-          <div class="input-row">
-            <input type="email" id="loginEmail" placeholder="e.g. rishikjariwala54@gmail.com" required>
-            <button type="button" class="btn btn-secondary" onclick="sendLoginOtp()">Get OTP</button>
-          </div>
-        </div>
-        <div class="form-group full-width">
-          <label>Enter 6-Digit OTP</label>
-          <input type="text" id="loginOtp" placeholder="Enter 6-digit OTP code" maxlength="6" required>
-        </div>
-        <div class="form-group full-width">
-          <button type="button" class="btn" style="width: 100%; padding: 14px;" onclick="handleVerifyLogin()">🔓 Verify OTP & Log In</button>
-        </div>
-      </div>
-
-      <div id="loginStatus" class="status-box"></div>
+    <!-- PHONE HOME INDICATOR -->
+    <div class="home-bar">
+      <div class="home-indicator"></div>
     </div>
-
-    <!-- TAB 3: ADMIN LOGIN -->
-    <div id="tab-admin" class="tab-content">
-      <h2 style="font-family: 'Outfit'; margin-bottom: 8px;">System Admin Login</h2>
-      <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 24px;">Log in as Admin to inspect registered users and manage database entries.</p>
-
-      <div class="form-grid" style="max-width: 500px; margin: 0 auto;">
-        <div class="form-group full-width">
-          <label>Admin Username</label>
-          <input type="text" id="adminUsername" value="admin" required>
-        </div>
-        <div class="form-group full-width">
-          <label>Admin Password</label>
-          <input type="password" id="adminPassword" value="admin123" required>
-        </div>
-        <div class="form-group full-width">
-          <button type="button" class="btn btn-secondary" style="width: 100%; padding: 14px;" onclick="handleAdminLogin()">🛡️ Log In as Admin</button>
-        </div>
-      </div>
-
-      <div id="adminStatus" class="status-box"></div>
-    </div>
-
-    <!-- TAB 4: DATABASE PROOF -->
-    <div id="tab-db" class="tab-content">
-      <h2 style="font-family: 'Outfit'; margin-bottom: 8px;">Live Database Connectivity Proof</h2>
-      <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 20px;">Real-time metrics queried directly from the connected MongoDB database inside Docker.</p>
-
-      <div class="db-stats-grid">
-        <div class="stat-card">
-          <div class="stat-number" id="dbHost">mongo-db</div>
-          <div class="stat-label">MongoDB Host</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-number" id="dbUsersCount">0</div>
-          <div class="stat-label">Registered Users</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-number" id="dbMembersCount">0</div>
-          <div class="stat-label">Community Members</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-number" id="dbOtpsCount">0</div>
-          <div class="stat-label">Active OTP Records</div>
-        </div>
-      </div>
-
-      <div style="margin-top: 24px; text-align: center;">
-        <button class="btn btn-secondary" onclick="fetchDbStats()">🔄 Refresh Live Database Stats</button>
-      </div>
-
-      <div id="dbInspectorStatus" class="status-box" style="display: block; margin-top: 20px;">
-        <strong>API Health Status:</strong>
-        <pre id="dbJsonDetails">Fetching latest database telemetry...</pre>
-      </div>
-    </div>
-
   </div>
 
-  <footer>
-    KutumbSetu • Docker Container Architecture • MongoDB Bridge: <code>kutumb-net</code>
-  </footer>
+  <!-- FLOATING LIVE DOCKER & DATABASE STATS PILL -->
+  <div class="db-status-dock">
+    <div class="db-dot" id="dbDot"></div>
+    <span id="dbDockText">Connecting to MongoDB (Docker container)...</span>
+  </div>
 
   <script>
-    function switchTab(tabId) {
-      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-      
-      event.currentTarget.classList.add('active');
-      document.getElementById('tab-' + tabId).classList.add('active');
+    // Clock
+    function updateClock() {
+      const now = new Date();
+      document.getElementById('liveTime').textContent = 
+        now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+    }
+    updateClock();
+    setInterval(updateClock, 30000);
 
-      if (tabId === 'db') {
-        fetchDbStats();
-      }
+    // Dark/Light Theme Toggle
+    function toggleTheme() {
+      const html = document.documentElement;
+      const isDark = html.getAttribute('data-theme') === 'dark';
+      html.setAttribute('data-theme', isDark ? 'light' : 'dark');
+      document.getElementById('moonIcon').innerHTML = isDark
+        ? '<path d="M12.3 2a10 10 0 0 0-.19 20 10 10 0 0 0 8.75-5.13 1 1 0 0 0-1.07-1.47 8 8 0 0 1-9.9-9.9 1 1 0 0 0-1.47-1.07A10 10 0 0 0 12.3 2z"/>'
+        : '<circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" stroke="currentColor" stroke-width="2"/>';
     }
 
-    async function fetchDbStats() {
+    // View Navigation
+    function goToView(viewId) {
+      document.getElementById('stepEmail').style.display = 'none';
+      document.getElementById('stepOtp').style.display = 'none';
+      document.getElementById('stepAdmin').style.display = 'none';
+      document.getElementById('stepRegister').style.display = 'none';
+      document.getElementById(viewId).style.display = 'block';
+
+      // Show bottom register link only on main email step
+      document.getElementById('bottomRegisterPrompt').style.display = 
+        (viewId === 'stepEmail') ? 'block' : 'none';
+      
+      hideAlert();
+    }
+
+    // Alerts
+    function showAlert(text, isSuccess) {
+      const el = document.getElementById('alertMsg');
+      el.style.display = 'block';
+      el.className = 'alert-banner ' + (isSuccess ? 'alert-success' : 'alert-error');
+      el.innerHTML = text;
+    }
+    function hideAlert() {
+      document.getElementById('alertMsg').style.display = 'none';
+    }
+
+    // Live Database Stats
+    async function checkDb() {
       try {
         const res = await fetch('/api/db-stats');
         const data = await res.json();
-        
-        if (data.success && data.connected) {
-          document.getElementById('dbStatusText').innerText = `MongoDB Connected (${data.host}:${data.port})`;
-          document.getElementById('dbHost').innerText = data.host;
-          document.getElementById('dbUsersCount').innerText = data.counts.users;
-          document.getElementById('dbMembersCount').innerText = data.counts.members;
-          document.getElementById('dbOtpsCount').innerText = data.counts.otps;
-          document.getElementById('dbJsonDetails').innerText = JSON.stringify(data, null, 2);
+        if (data.connected) {
+          document.getElementById('dbDockText').innerHTML = 
+            `MongoDB Connected: <b>${data.database}</b> • Users in DB: <b>${data.counts.users}</b>`;
+          document.getElementById('dbDot').style.background = '#22c55e';
         } else {
-          document.getElementById('dbStatusText').innerText = 'MongoDB Disconnected';
-          document.getElementById('dbStatusBadge').style.borderColor = 'var(--error)';
+          document.getElementById('dbDockText').textContent = 'MongoDB Disconnected';
+          document.getElementById('dbDot').style.background = '#ef4444';
         }
-      } catch (err) {
-        document.getElementById('dbStatusText').innerText = 'Backend API Offline';
+      } catch (e) {
+        document.getElementById('dbDockText').textContent = 'Backend Offline';
+        document.getElementById('dbDot').style.background = '#ef4444';
       }
     }
+    checkDb();
+    setInterval(checkDb, 8000);
 
-    // Send Registration OTP
-    async function sendRegistrationOtp() {
-      const email = document.getElementById('regEmail').value.trim();
-      const statusBox = document.getElementById('regStatus');
-      if (!email) {
-        alert('Please enter your email address first.');
-        return;
-      }
-
-      statusBox.className = 'status-box';
-      statusBox.style.display = 'block';
-      statusBox.innerText = 'Sending OTP to ' + email + '...';
-
-      try {
-        const res = await fetch('/api/auth/send-email-otp', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email })
-        });
-        const data = await res.json();
-        if (res.ok && data.success) {
-          statusBox.className = 'status-box success';
-          statusBox.innerHTML = `✅ <strong>OTP Sent Successfully!</strong><br>Generated OTP (Dev): <code style="font-size: 16px; color: #FFF; background: var(--primary); padding: 2px 8px; border-radius: 4px;">${data.otp || 'Sent to Gmail'}</code>`;
-          if (data.otp) {
-            document.getElementById('regOtp').value = data.otp;
-          }
-        } else {
-          statusBox.className = 'status-box error';
-          statusBox.innerText = '❌ Error: ' + (data.message || 'Failed to send OTP.');
-        }
-      } catch (err) {
-        statusBox.className = 'status-box error';
-        statusBox.innerText = '❌ Connection failed: ' + err.message;
-      }
-    }
-
-    // Handle Registration Submit
-    async function handleRegister(e) {
+    // 1. Send OTP (Sign In)
+    let currentEmail = '';
+    async function handleSendOtp(e) {
       e.preventDefault();
-      const statusBox = document.getElementById('regStatus');
-      const payload = {
-        fullName: document.getElementById('regFullName').value.trim(),
-        email: document.getElementById('regEmail').value.trim(),
-        phoneNumber: document.getElementById('regPhone').value.trim(),
-        otp: document.getElementById('regOtp').value.trim(),
-        gender: document.getElementById('regGender').value,
-        city: document.getElementById('regCity').value.trim(),
-      };
-
-      statusBox.className = 'status-box';
-      statusBox.style.display = 'block';
-      statusBox.innerText = 'Registering member in MongoDB...';
-
-      try {
-        const res = await fetch('/api/users/register', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-        const data = await res.json();
-        if (res.ok && data.success) {
-          statusBox.className = 'status-box success';
-          statusBox.innerHTML = `🎉 <strong>Registration Successful!</strong><br>Record created in MongoDB collection <code>users</code> & <code>members</code>.<pre>${JSON.stringify(data, null, 2)}</pre>`;
-          fetchDbStats();
-        } else {
-          statusBox.className = 'status-box error';
-          statusBox.innerText = '❌ Registration Failed: ' + (data.message || 'Server error');
-        }
-      } catch (err) {
-        statusBox.className = 'status-box error';
-        statusBox.innerText = '❌ Error connecting to backend: ' + err.message;
-      }
-    }
-
-    // Send Login OTP
-    async function sendLoginOtp() {
-      const email = document.getElementById('loginEmail').value.trim();
-      const statusBox = document.getElementById('loginStatus');
-      if (!email) {
-        alert('Please enter your email.');
-        return;
-      }
-
-      statusBox.className = 'status-box';
-      statusBox.style.display = 'block';
-      statusBox.innerText = 'Requesting OTP...';
+      currentEmail = document.getElementById('emailInput').value.trim();
+      const btn = document.getElementById('btnSendOtp');
+      btn.textContent = 'Sending OTP...';
+      btn.disabled = true;
 
       try {
         const res = await fetch('/api/auth/send-email-otp', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email })
+          body: JSON.stringify({ email: currentEmail })
         });
         const data = await res.json();
-        if (res.ok && data.success) {
-          statusBox.className = 'status-box success';
-          statusBox.innerHTML = `✅ <strong>OTP Dispatched!</strong><br>Code: <code style="font-size: 16px; color: #FFF; background: var(--primary); padding: 2px 8px; border-radius: 4px;">${data.otp || 'Check Gmail'}</code>`;
-          if (data.otp) {
-            document.getElementById('loginOtp').value = data.otp;
-          }
+        btn.textContent = 'Send OTP Code';
+        btn.disabled = false;
+
+        if (data.success) {
+          document.getElementById('displayEmail').textContent = currentEmail;
+          document.getElementById('otpInput').value = data.otp || '';
+          goToView('stepOtp');
+          showAlert(`✓ OTP generated in MongoDB! Code: <b>${data.otp}</b>`, true);
         } else {
-          statusBox.className = 'status-box error';
-          statusBox.innerText = '❌ ' + (data.message || 'Failed to send OTP.');
+          showAlert(data.message || 'Error generating OTP', false);
         }
       } catch (err) {
-        statusBox.className = 'status-box error';
-        statusBox.innerText = '❌ Error: ' + err.message;
+        btn.textContent = 'Send OTP Code';
+        btn.disabled = false;
+        showAlert('Network error: ' + err.message, false);
       }
     }
 
-    // Verify Login OTP
-    async function handleVerifyLogin() {
-      const email = document.getElementById('loginEmail').value.trim();
-      const otp = document.getElementById('loginOtp').value.trim();
-      const statusBox = document.getElementById('loginStatus');
-
-      if (!email || !otp) {
-        alert('Please enter both email and 6-digit OTP.');
-        return;
+    // Resend OTP
+    async function resendOtp() {
+      showAlert('Resending OTP...', true);
+      const res = await fetch('/api/auth/send-email-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: currentEmail })
+      });
+      const data = await res.json();
+      if (data.success) {
+        document.getElementById('otpInput').value = data.otp || '';
+        showAlert(`✓ New OTP generated: <b>${data.otp}</b>`, true);
       }
+    }
 
-      statusBox.className = 'status-box';
-      statusBox.style.display = 'block';
-      statusBox.innerText = 'Verifying credentials against MongoDB...';
+    // 2. Verify OTP
+    async function handleVerifyOtp(e) {
+      e.preventDefault();
+      const otp = document.getElementById('otpInput').value.trim();
+      showAlert('Verifying with MongoDB...', true);
 
       try {
         const res = await fetch('/api/auth/verify-email-otp', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, otp })
+          body: JSON.stringify({ email: currentEmail, otp })
         });
         const data = await res.json();
-        if (res.ok && data.success) {
-          statusBox.className = 'status-box success';
-          statusBox.innerHTML = `🎉 <strong>Login Verified! Welcome to KutumbSetu!</strong><pre>${JSON.stringify(data, null, 2)}</pre>`;
-          fetchDbStats();
+        if (data.success) {
+          showAlert(`🎉 <b>Login Successful!</b> User authenticated in MongoDB.`, true);
         } else {
-          statusBox.className = 'status-box error';
-          statusBox.innerText = '❌ Login Failed: ' + (data.message || 'Invalid OTP code');
+          showAlert(data.message || 'Invalid OTP', false);
         }
       } catch (err) {
-        statusBox.className = 'status-box error';
-        statusBox.innerText = '❌ Connection Error: ' + err.message;
+        showAlert('Verification failed: ' + err.message, false);
       }
     }
 
-    // Admin Login
-    async function handleAdminLogin() {
-      const username = document.getElementById('adminUsername').value.trim();
-      const password = document.getElementById('adminPassword').value;
-      const statusBox = document.getElementById('adminStatus');
-
-      statusBox.className = 'status-box';
-      statusBox.style.display = 'block';
-      statusBox.innerText = 'Authenticating Admin with database...';
+    // 3. Admin Login
+    async function handleAdminLogin(e) {
+      e.preventDefault();
+      const username = document.getElementById('adminUser').value;
+      const password = document.getElementById('adminPass').value;
 
       try {
         const res = await fetch('/api/auth/admin-login', {
@@ -692,23 +709,73 @@
           body: JSON.stringify({ username, password })
         });
         const data = await res.json();
-        if (res.ok && data.success) {
-          statusBox.className = 'status-box success';
-          statusBox.innerHTML = `🛡️ <strong>Admin Authenticated Successfully!</strong><pre>${JSON.stringify(data, null, 2)}</pre>`;
-          fetchDbStats();
+        if (data.success) {
+          showAlert('✓ Admin Authenticated! Fetching users from MongoDB...', true);
+          const pRes = await fetch('/api/users/pending');
+          const pData = await pRes.json();
+          const list = document.getElementById('adminList');
+          list.innerHTML = '';
+          (pData.pendingUsers || []).forEach(u => {
+            const row = document.createElement('div');
+            row.style.padding = '8px 12px';
+            row.style.borderBottom = '1px solid var(--input-border)';
+            row.innerHTML = `<b>${u.fullName}</b> (${u.email})<br><small style="color:var(--text-muted)">ID: ${u._id}</small>`;
+            list.appendChild(row);
+          });
+          document.getElementById('adminRecords').style.display = 'block';
         } else {
-          statusBox.className = 'status-box error';
-          statusBox.innerText = '❌ ' + (data.message || 'Invalid credentials');
+          showAlert(data.message || 'Invalid Admin Credentials', false);
         }
       } catch (err) {
-        statusBox.className = 'status-box error';
-        statusBox.innerText = '❌ Error: ' + err.message;
+        showAlert('Admin login error: ' + err.message, false);
       }
     }
 
-    // Initial load
-    fetchDbStats();
-    setInterval(fetchDbStats, 10000);
+    // 4. Registration OTP & Submission
+    async function sendRegOtp() {
+      const email = document.getElementById('regEmail').value.trim();
+      if (!email) return showAlert('Please enter an email address first.', false);
+      showAlert('Generating OTP...', true);
+      const res = await fetch('/api/auth/send-email-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+      const data = await res.json();
+      if (data.success) {
+        document.getElementById('regOtp').value = data.otp || '';
+        showAlert(`✓ OTP Code: <b>${data.otp}</b> (Saved to MongoDB)`, true);
+      }
+    }
+
+    async function handleRegistration(e) {
+      e.preventDefault();
+      const payload = {
+        fullName: document.getElementById('regFullName').value.trim(),
+        email: document.getElementById('regEmail').value.trim(),
+        otp: document.getElementById('regOtp').value.trim(),
+        phoneNumber: document.getElementById('regPhone').value.trim(),
+        gender: document.getElementById('regGender').value,
+        city: document.getElementById('regCity').value.trim(),
+      };
+      showAlert('Registering member into MongoDB...', true);
+      try {
+        const res = await fetch('/api/users/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (data.success) {
+          showAlert(`🎉 <b>Registration Complete!</b><br>Saved to database with ID: <code>${data.user._id}</code>`, true);
+          checkDb();
+        } else {
+          showAlert(data.message || 'Registration failed', false);
+        }
+      } catch (err) {
+        showAlert('Registration error: ' + err.message, false);
+      }
+    }
   </script>
 </body>
 </html>

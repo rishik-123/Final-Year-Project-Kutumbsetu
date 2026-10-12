@@ -2,8 +2,10 @@ import os
 import sys
 import time
 import re
+import subprocess
 import imaplib
 import email
+from email.header import decode_header
 from appium import webdriver
 from appium.options.android import UiAutomator2Options
 from appium.webdriver.common.appiumby import AppiumBy
@@ -30,15 +32,51 @@ if not os.path.exists(APK_PATH):
     APK_PATH = r"C:\Users\Abcom\OneDrive\Desktop\FINAL YEAR PROJECT KUTUMBSETU\build\app\outputs\flutter-apk\app-debug.apk"
 
 # ==============================
-# 1. AUTO-FETCH OTP FROM MONGODB (Instant & 100% Reliable)
+# 0. AUTOMATIC ADB REVERSE (Port 5000 Bridge)
 # ==============================
-def fetch_otp_from_mongodb(email_addr, retries=10, delay=1.0):
-    """Fetches latest OTP directly from MongoDB collection 'otp_verifications'."""
+def setup_adb_reverse():
+    """Ensures Android emulator/device can connect to local backend port 5000."""
+    adb_candidates = [
+        r"C:\Users\Abcom\AppData\Local\Android\Sdk\platform-tools\adb.exe",
+        "adb"
+    ]
+    for adb_bin in adb_candidates:
+        try:
+            res = subprocess.run([adb_bin, "reverse", "tcp:5000", "tcp:5000"], capture_output=True, text=True, timeout=10)
+            if res.returncode == 0:
+                print(f"[ADB Bridge] 'adb reverse tcp:5000 tcp:5000' active via {adb_bin}")
+                return True
+        except Exception:
+            pass
+    print("[ADB Bridge] Warning: Could not run adb reverse automatically. Ensure port 5000 is forwarded if using local backend.")
+    return False
+
+# ==============================
+# 1. CLEAN STALE OTP FROM MONGODB
+# ==============================
+def clear_existing_otp_from_mongodb(email_addr):
+    """Deletes existing OTP for email so that cooldowns are bypassed and we never read a stale OTP."""
+    if not HAS_PYMONGO:
+        return
+    try:
+        clean_email = email_addr.lower().strip()
+        client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
+        db = client["kutumbsetu"]
+        deleted = db["otp_verifications"].delete_many({"email": clean_email})
+        print(f"[Auto-OTP] Cleared {deleted.deleted_count} old OTP record(s) for '{clean_email}' in MongoDB.")
+    except Exception as e:
+        print(f"[Auto-OTP] MongoDB clear notice: {e}")
+
+# ==============================
+# 2. AUTO-FETCH NEW OTP FROM MONGODB (Instant & 100% Reliable)
+# ==============================
+def fetch_otp_from_mongodb(email_addr, retries=15, delay=1.0):
+    """Polls MongoDB collection 'otp_verifications' for newly generated OTP."""
     if not HAS_PYMONGO:
         return None
     try:
         clean_email = email_addr.lower().strip()
-        print(f"[Auto-OTP] Checking MongoDB collection 'otp_verifications' for '{clean_email}'...")
+        print(f"[Auto-OTP] Polling MongoDB collection 'otp_verifications' for '{clean_email}'...")
         client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
         db = client["kutumbsetu"]
         
@@ -46,7 +84,7 @@ def fetch_otp_from_mongodb(email_addr, retries=10, delay=1.0):
             doc = db["otp_verifications"].find_one({"email": clean_email})
             if doc and doc.get("otp"):
                 otp_val = str(doc["otp"]).strip()
-                print(f"[Auto-OTP] Found latest OTP in MongoDB: {otp_val}")
+                print(f"[Auto-OTP] Success! Found new OTP in MongoDB (Attempt {attempt}): {otp_val}")
                 return otp_val
             time.sleep(delay)
     except Exception as e:
@@ -54,8 +92,21 @@ def fetch_otp_from_mongodb(email_addr, retries=10, delay=1.0):
     return None
 
 # ==============================
-# 2. AUTO-FETCH OTP FROM GMAIL (IMAP Fallback)
+# 3. AUTO-FETCH OTP FROM GMAIL (IMAP Fallback)
 # ==============================
+def decode_mime_text(s):
+    try:
+        fragments = decode_header(s)
+        res = ""
+        for frag, encoding in fragments:
+            if isinstance(frag, bytes):
+                res += frag.decode(encoding or "utf-8", errors="ignore")
+            else:
+                res += str(frag)
+        return res
+    except Exception:
+        return str(s)
+
 def fetch_otp_from_gmail(user_email, app_password, retries=8, delay=2.0):
     """Connects to Gmail via IMAP and grabs the newest KutumbSetu OTP."""
     print(f"\n[Auto-OTP] Checking Gmail Inbox for new OTP email...")
@@ -77,7 +128,7 @@ def fetch_otp_from_gmail(user_email, app_password, retries=8, delay=2.0):
                         continue
                     
                     msg = email.message_from_bytes(data[0][1])
-                    subject = str(msg.get("Subject", ""))
+                    subject = decode_mime_text(msg.get("Subject", ""))
                     
                     subj_match = re.search(r'OTP:\s*(\d{6})', subject, re.IGNORECASE)
                     if subj_match:
@@ -120,7 +171,7 @@ def fetch_otp_from_gmail(user_email, app_password, retries=8, delay=2.0):
 def get_latest_otp_automatic(target_email):
     """Combines MongoDB and Gmail IMAP to guarantee zero manual typing."""
     # 1. Try MongoDB first (Fastest and direct source of truth)
-    otp = fetch_otp_from_mongodb(target_email, retries=8, delay=1.0)
+    otp = fetch_otp_from_mongodb(target_email, retries=12, delay=1.0)
     if otp:
         return otp
 
@@ -129,15 +180,17 @@ def get_latest_otp_automatic(target_email):
     if otp:
         return otp
 
-    # 3. Fallback prompt if both queries fail
+    # 3. Fallback prompt if both automated queries fail
     print("\n" + "="*50)
     entered = input(f"Enter the 6-digit OTP received on {target_email}: ").strip()
     print("="*50 + "\n")
     return entered
 
 # ==============================
-# APPIUM OPTIONS
+# MAIN TEST EXECUTION
 # ==============================
+setup_adb_reverse()
+
 options = UiAutomator2Options()
 options.platform_name = "Android"
 options.automation_name = "UiAutomator2"
@@ -164,7 +217,12 @@ wait = WebDriverWait(driver, 25)
 
 try:
     print("\nApplication launched successfully!")
-    time.sleep(3)  # Allow initial Flutter build
+    time.sleep(3)  # Allow Flutter initialization
+
+    # -------------------------------------------------------------
+    # Step 0: Ensure fresh state & purge old OTPs from DB
+    # -------------------------------------------------------------
+    clear_existing_otp_from_mongodb(USER_EMAIL)
 
     # -------------------------------------------------------------
     # Step 1: Locate & Enter User Email
@@ -179,6 +237,13 @@ try:
     email_field.send_keys(USER_EMAIL)
     print(f"Entered User Email: '{USER_EMAIL}'")
 
+    # Dismiss soft keyboard to ensure buttons are fully visible & clickable
+    try:
+        driver.hide_keyboard()
+        time.sleep(0.5)
+    except Exception:
+        pass
+
     # -------------------------------------------------------------
     # Step 2: Click "Send OTP Code"
     # -------------------------------------------------------------
@@ -190,20 +255,35 @@ try:
         ))
     )
     send_otp_btn.click()
-    print("Clicked 'Send OTP Code' successfully! Waiting for OTP arrival...")
-
-    time.sleep(2)
+    print("Clicked 'Send OTP Code' successfully! Waiting for OTP arrival & screen transition...")
 
     # -------------------------------------------------------------
-    # Step 3: Automatically Fetch the OTP (Zero manual entry)
+    # Step 3: Wait specifically for OTP Screen to appear
     # -------------------------------------------------------------
+    print("\n[Step 3] Waiting for OTP verification screen to appear...")
+    wait.until(
+        EC.presence_of_element_located((
+            AppiumBy.XPATH,
+            "//*[@content-desc='Verify & Log In' or @text='Verify & Log In' or "
+            "@content-desc='Resend OTP' or @text='Resend OTP' or "
+            "contains(@content-desc, 'Enter 6-Digit Email OTP') or contains(@text, 'Enter 6-Digit Email OTP')]"
+        ))
+    )
+    print("Screen successfully transitioned to OTP verification step!")
+
+    # -------------------------------------------------------------
+    # Step 4: Automatically Fetch the OTP
+    # -------------------------------------------------------------
+    print("\n[Step 4] Auto-retrieving the fresh OTP...")
     otp_code = get_latest_otp_automatic(USER_EMAIL)
-    print(f"\n[Step 3] Auto-retrieved OTP: '{otp_code}'")
+    if not otp_code or len(otp_code) != 6:
+        raise ValueError(f"Invalid OTP fetched: '{otp_code}'")
+    print(f"Auto-retrieved OTP: '{otp_code}'")
 
     # -------------------------------------------------------------
-    # Step 4: Locate OTP Input field and Enter OTP
+    # Step 5: Locate OTP Input field and Enter OTP
     # -------------------------------------------------------------
-    print("\n[Step 4] Entering OTP into app...")
+    print("\n[Step 5] Entering OTP into app...")
     otp_field = wait.until(
         lambda d: d.find_element(AppiumBy.CLASS_NAME, "android.widget.EditText")
     )
@@ -213,10 +293,16 @@ try:
     otp_field.send_keys(otp_code)
     print(f"Entered OTP: '{otp_code}' successfully.")
 
+    try:
+        driver.hide_keyboard()
+        time.sleep(0.5)
+    except Exception:
+        pass
+
     # -------------------------------------------------------------
-    # Step 5: Click "Verify & Log In"
+    # Step 6: Click "Verify & Log In"
     # -------------------------------------------------------------
-    print("\n[Step 5] Clicking 'Verify & Log In' button...")
+    print("\n[Step 6] Clicking 'Verify & Log In' button...")
     verify_btn = wait.until(
         EC.presence_of_element_located((
             AppiumBy.XPATH,
@@ -229,9 +315,9 @@ try:
     time.sleep(4)
 
     # -------------------------------------------------------------
-    # Step 6: Verify User Home Screen is Loaded
+    # Step 7: Verify User Home Screen is Loaded
     # -------------------------------------------------------------
-    print("\n[Step 6] Verifying User Home Screen...")
+    print("\n[Step 7] Verifying User Home Screen...")
     home_indicator = wait.until(
         EC.presence_of_element_located((
             AppiumBy.XPATH,
@@ -258,5 +344,8 @@ except Exception as e:
 
 finally:
     time.sleep(2)
-    driver.quit()
+    try:
+        driver.quit()
+    except Exception:
+        pass
     print("Appium session ended.")

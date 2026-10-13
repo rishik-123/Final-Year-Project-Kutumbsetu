@@ -1,3 +1,4 @@
 cd C:\Users\Abcom\AppData\Local\Android\Sdk\platform-tools
 .\adb devices
 .\adb -s <device_ID> reverse tcp:5000 tcp:5000
+#these are commands to execute the port

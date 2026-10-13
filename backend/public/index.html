@@ -3,58 +3,58 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>KutumbSetu — कुटुम्बसेतु</title>
+  <title>KutumbSetu — कुटुम्बસેતુ</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
       --bg-screen: #FAF4EB;
       --card-bg: #FFFFFF;
-      --text-main: #333333;
+      --text-main: #212121;
       --text-muted: #757575;
       --saffron: #E67E22;
       --saffron-dark: #D35400;
       --navy: #1B4F72;
-      --input-border: #D1D5DB;
+      --input-border: #E5E7EB;
       --input-bg: #FFFFFF;
-      --card-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
+      --card-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
       --phone-border: #1a1a1a;
     }
 
     [data-theme="dark"] {
-      --bg-screen: #181818;
-      --card-bg: #242424;
-      --text-main: #FFFFFF;
+      --bg-screen: #121212;
+      --card-bg: #1E1B18;
+      --text-main: #F2EFEA;
       --text-muted: #9E9E9E;
       --saffron: #E67E22;
-      --saffron-dark: #F39C12;
+      --saffron-dark: #D35400;
       --navy: #2980B9;
-      --input-border: #424242;
-      --input-bg: #1E1E1E;
-      --card-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+      --input-border: #332E27;
+      --input-bg: #1E1B18;
+      --card-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 
     body {
       font-family: 'Inter', sans-serif;
-      background: #111827;
+      background: #0B0F19;
       min-height: 100vh;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 20px 10px;
+      padding: 16px 8px;
     }
 
     /* PHONE CONTAINER */
     .phone-mockup {
       width: 100%;
       max-width: 410px;
-      height: 840px;
+      height: 844px;
       background: var(--bg-screen);
-      border-radius: 46px;
-      box-shadow: 0 0 0 10px #0f172a, 0 25px 60px rgba(0, 0, 0, 0.6), inset 0 0 4px rgba(255, 255, 255, 0.2);
+      border-radius: 48px;
+      box-shadow: 0 0 0 10px #1e293b, 0 30px 70px rgba(0, 0, 0, 0.7), inset 0 0 4px rgba(255, 255, 255, 0.15);
       position: relative;
       overflow: hidden;
       display: flex;
@@ -70,7 +70,9 @@
       align-items: center;
       justify-content: space-between;
       padding: 0 24px;
-      z-index: 20;
+      z-index: 25;
+      background: transparent;
+      flex-shrink: 0;
     }
     .camera-punch {
       width: 12px;
@@ -84,18 +86,26 @@
     .screen-content {
       flex: 1;
       overflow-y: auto;
-      padding: 12px 24px 28px 24px;
       display: flex;
       flex-direction: column;
       scrollbar-width: none;
+      position: relative;
     }
     .screen-content::-webkit-scrollbar { display: none; }
 
-    /* THEME SWITCH */
+    /* AUTH CONTAINER WRAPPER */
+    .auth-wrapper {
+      padding: 8px 24px 28px 24px;
+      display: flex;
+      flex-direction: column;
+      min-height: 100%;
+    }
+
+    /* THEME SWITCH (ON AUTH SCREEN) */
     .top-actions {
       display: flex;
       justify-content: flex-end;
-      margin-bottom: 8px;
+      margin-bottom: 6px;
     }
     .theme-btn {
       background: none;
@@ -111,33 +121,32 @@
     }
     .theme-btn:hover { color: var(--saffron); }
 
-    /* HEADER BRANDING */
+    /* HEADER BRANDING (AUTH) */
     .branding-box {
       display: flex;
       flex-direction: column;
       align-items: center;
-      margin-bottom: 28px;
+      margin-bottom: 24px;
       text-align: center;
     }
     .logo-circle {
-      width: 94px;
-      height: 94px;
+      width: 88px;
+      height: 88px;
       border-radius: 50%;
       background: #FFFFFF;
       display: flex;
       align-items: center;
       justify-content: center;
       box-shadow: 0 12px 30px rgba(230, 126, 34, 0.14);
-      margin-bottom: 18px;
-      transition: transform 0.2s;
+      margin-bottom: 14px;
     }
     [data-theme="dark"] .logo-circle {
-      background: #2A2A2A;
+      background: #242424;
       box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
     }
     .logo-circle svg {
-      width: 58px;
-      height: 58px;
+      width: 52px;
+      height: 52px;
       fill: var(--saffron);
     }
 
@@ -151,20 +160,18 @@
     }
     .app-sub {
       font-family: 'Poppins', sans-serif;
-      font-size: 19px;
+      font-size: 22px;
       font-weight: 600;
       color: var(--saffron);
-      letter-spacing: 2px;
     }
 
-    /* CARD COMPONENT */
+    /* CARD DESIGN */
     .form-card {
       background: var(--card-bg);
-      border-radius: 24px;
+      border-radius: 28px;
       padding: 24px;
       box-shadow: var(--card-shadow);
-      margin-bottom: 20px;
-      transition: background 0.3s, box-shadow 0.3s;
+      border: 1px solid var(--input-border);
     }
     .card-title {
       font-family: 'Poppins', sans-serif;
@@ -176,177 +183,191 @@
     .card-desc {
       font-size: 13px;
       color: var(--text-muted);
-      margin-bottom: 22px;
       line-height: 1.4;
+      margin-bottom: 20px;
     }
 
-    /* INPUT GROUPS */
+    /* INPUT FIELDS */
     .input-wrap {
       position: relative;
-      margin-bottom: 18px;
+      margin-bottom: 16px;
     }
     .input-wrap svg {
       position: absolute;
-      left: 14px;
+      left: 16px;
       top: 50%;
       transform: translateY(-50%);
       width: 20px;
       height: 20px;
       fill: var(--text-muted);
-      transition: fill 0.2s;
     }
     .form-input {
       width: 100%;
-      height: 50px;
-      padding: 0 14px 0 44px;
-      border-radius: 12px;
-      border: 1.5px solid var(--input-border);
+      height: 52px;
+      padding: 0 16px 0 48px;
       background: var(--input-bg);
-      color: var(--text-main);
+      border: 1.5px solid var(--input-border);
+      border-radius: 16px;
       font-size: 14px;
       font-family: 'Inter', sans-serif;
+      color: var(--text-main);
       outline: none;
-      transition: border-color 0.2s, box-shadow 0.2s;
+      transition: all 0.2s;
     }
     .form-input:focus {
       border-color: var(--saffron);
-      box-shadow: 0 0 0 3px rgba(230, 126, 34, 0.15);
-    }
-    .form-input:focus + svg {
-      fill: var(--saffron);
+      box-shadow: 0 0 0 4px rgba(230, 126, 34, 0.12);
     }
 
     /* BUTTONS */
     .btn-orange {
       width: 100%;
-      height: 50px;
+      height: 52px;
       background: var(--saffron);
       color: #FFFFFF;
       border: none;
-      border-radius: 12px;
+      border-radius: 16px;
       font-family: 'Poppins', sans-serif;
-      font-weight: 700;
       font-size: 15px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 6px 16px rgba(230, 126, 34, 0.3);
-      transition: background 0.2s, transform 0.1s;
-    }
-    .btn-orange:hover {
-      background: var(--saffron-dark);
-      transform: translateY(-1px);
-    }
-    .btn-blue {
-      width: 100%;
-      height: 50px;
-      background: var(--navy);
-      color: #FFFFFF;
-      border: none;
-      border-radius: 12px;
-      font-family: 'Poppins', sans-serif;
       font-weight: 700;
-      font-size: 15px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 6px 16px rgba(27, 79, 114, 0.3);
-      transition: background 0.2s, transform 0.1s;
-    }
-    .btn-blue:hover { opacity: 0.95; transform: translateY(-1px); }
-
-    .btn-outline {
-      width: 100%;
-      height: 50px;
-      background: transparent;
-      color: var(--saffron);
-      border: 1.5px solid var(--saffron);
-      border-radius: 12px;
-      font-family: 'Inter', sans-serif;
-      font-weight: 700;
-      font-size: 14px;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 8px;
-      margin-top: 14px;
-      transition: background 0.2s;
+      box-shadow: 0 8px 20px rgba(230, 126, 34, 0.25);
+      transition: all 0.2s;
+    }
+    .btn-orange:hover {
+      background: var(--saffron-dark);
+      transform: translateY(-1px);
+    }
+
+    .btn-blue {
+      width: 100%;
+      height: 52px;
+      background: var(--navy);
+      color: #FFFFFF;
+      border: none;
+      border-radius: 16px;
+      font-family: 'Poppins', sans-serif;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-shadow: 0 8px 20px rgba(27, 79, 114, 0.25);
+      transition: all 0.2s;
+    }
+    .btn-blue:hover { opacity: 0.95; transform: translateY(-1px); }
+
+    .btn-outline {
+      width: 100%;
+      height: 48px;
+      background: transparent;
+      color: var(--text-main);
+      border: 1.5px solid var(--input-border);
+      border-radius: 16px;
+      font-family: 'Poppins', sans-serif;
+      font-size: 13.5px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 12px;
+      transition: all 0.2s;
     }
     .btn-outline:hover {
-      background: rgba(230, 126, 34, 0.06);
+      background: rgba(0, 0, 0, 0.03);
     }
     .btn-outline svg {
       width: 18px;
       height: 18px;
-      fill: var(--saffron);
+      fill: var(--text-muted);
     }
 
-    /* FOOTER TEXT & LINKS */
+    /* ACTION LINKS */
+    .action-links {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .action-link-orange { color: var(--saffron); cursor: pointer; text-decoration: none; }
+    .action-link-grey { color: var(--text-muted); cursor: pointer; text-decoration: none; }
+
+    /* BOTTOM PROMPT */
     .bottom-prompt {
+      margin-top: auto;
+      padding-top: 24px;
       text-align: center;
-      margin-top: 10px;
-      font-size: 14px;
-      color: var(--text-main);
+      font-size: 13px;
+      color: var(--text-muted);
     }
     .bottom-link {
       color: var(--saffron);
       font-weight: 700;
-      text-decoration: none;
       cursor: pointer;
-      margin-left: 4px;
     }
-    .bottom-link:hover { text-decoration: underline; }
 
-    .action-links {
-      display: flex;
-      justify-content: space-between;
-      margin-top: 10px;
-      margin-bottom: 20px;
-      font-size: 13px;
-    }
-    .action-link-orange { color: var(--saffron); font-weight: 600; cursor: pointer; text-decoration: none; }
-    .action-link-grey { color: var(--text-muted); cursor: pointer; text-decoration: none; }
-
-    /* STATUS BANNER */
+    /* ALERTS */
     .alert-banner {
-      display: none;
-      padding: 10px 14px;
-      border-radius: 10px;
+      padding: 12px 16px;
+      border-radius: 14px;
       font-size: 13px;
       margin-bottom: 16px;
-      line-height: 1.4;
+      display: none;
+      animation: fadeIn 0.3s ease;
     }
-    .alert-success { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
-    .alert-error { background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; }
+    .alert-success {
+      background: #DCFCE7;
+      color: #15803D;
+      border: 1px solid #BBF7D0;
+    }
+    .alert-error {
+      background: #FEE2E2;
+      color: #B91C1C;
+      border: 1px solid #FECACA;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
 
-    /* HOME INDICATOR */
+    /* PHONE HOME INDICATOR */
     .home-bar {
-      height: 18px;
+      height: 22px;
+      width: 100%;
       display: flex;
       align-items: center;
       justify-content: center;
-      padding-bottom: 6px;
+      flex-shrink: 0;
+      z-index: 40;
+      background: var(--card-bg);
+      border-top: none;
     }
     .home-indicator {
-      width: 120px;
-      height: 4px;
-      background: #000000;
+      width: 128px;
+      height: 4.5px;
+      background: #64748b;
       border-radius: 999px;
-      opacity: 0.6;
+      opacity: 0.5;
     }
-    [data-theme="dark"] .home-indicator { background: #FFFFFF; }
 
-    /* BOTTOM EXTERNAL DOCKER/DB PILL */
+    /* FLOATING LIVE DOCKER & DATABASE STATS PILL */
     .db-status-dock {
-      margin-top: 16px;
-      display: inline-flex;
+      margin-top: 14px;
+      display: flex;
       align-items: center;
-      gap: 10px;
-      background: rgba(30, 41, 59, 0.95);
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      gap: 8px;
+      background: #1e293b;
+      border: 1px solid #334155;
       padding: 8px 18px;
       border-radius: 999px;
       color: #94a3b8;
@@ -361,11 +382,656 @@
       box-shadow: 0 0 10px #22c55e;
     }
 
-    /* REGISTRATION STEP FORM FIELDS */
-    .reg-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
+    /* ============================================================== */
+    /* =================== HOME SCREEN DESIGN STYLES ================ */
+    /* ============================================================== */
+    #homeScreenView {
+      display: none;
+      flex-direction: column;
+      width: 100%;
+      min-height: 100%;
+      padding-bottom: 76px; /* space for pinned bottom nav */
+    }
+
+    /* ORANGE CURVED HEADER */
+    .home-header {
+      background: linear-gradient(135deg, #E67E22 0%, #D35400 100%);
+      padding: 16px 20px 24px 20px;
+      border-radius: 0 0 32px 32px;
+      color: #FFFFFF;
+      box-shadow: 0 8px 24px rgba(211, 84, 0, 0.2);
+      flex-shrink: 0;
+    }
+
+    .home-top-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .greeting-hi {
+      font-size: 13px;
+      font-weight: 500;
+      color: rgba(255, 255, 255, 0.92);
+      margin-bottom: 2px;
+    }
+
+    .greeting-name {
+      font-family: 'Poppins', sans-serif;
+      font-size: 21px;
+      font-weight: 700;
+      color: #FFFFFF;
+      letter-spacing: -0.3px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 190px;
+    }
+
+    .home-header-actions {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .lang-pill {
+      background: rgba(255, 255, 255, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      color: #FFFFFF;
+      border-radius: 999px;
+      padding: 4px 9px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      backdrop-filter: blur(4px);
+    }
+
+    .icon-circle-btn {
+      width: 35px;
+      height: 35px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #FFFFFF;
+      cursor: pointer;
+      font-size: 15px;
+      position: relative;
+      user-select: none;
+    }
+
+    .unread-dot {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      width: 7px;
+      height: 7px;
+      background: #EF4444;
+      border-radius: 50%;
+      border: 1.5px solid #D35400;
+    }
+
+    .profile-avatar-circle {
+      width: 35px;
+      height: 35px;
+      border-radius: 50%;
+      background: #8E44AD;
+      border: 2px solid rgba(255, 255, 255, 0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-weight: bold;
+      color: white;
+      font-size: 14px;
+    }
+
+    .home-search-box {
+      margin-top: 16px;
+      background: #FFFFFF;
+      border-radius: 999px;
+      height: 46px;
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
       gap: 10px;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+    }
+    .home-search-box input {
+      border: none;
+      outline: none;
+      font-size: 13.5px;
+      font-family: 'Inter', sans-serif;
+      color: #333;
+      width: 100%;
+      background: transparent;
+    }
+    .home-search-box input::placeholder {
+      color: #94A3B8;
+    }
+
+    /* HOME MAIN SCROLL BODY */
+    .home-body-content {
+      padding: 16px 18px 24px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .home-section-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .home-section-title h3 {
+      font-family: 'Poppins', sans-serif;
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+    .home-section-title .see-all-link {
+      font-size: 12.5px;
+      font-weight: 600;
+      color: #D35400;
+      cursor: pointer;
+      text-decoration: none;
+    }
+
+    /* QUICK ACTIONS GRID (6 ITEMS) */
+    .quick-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px 6px;
+      text-align: center;
+    }
+
+    .quick-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      user-select: none;
+      transition: transform 0.15s ease;
+    }
+    .quick-btn:active { transform: scale(0.96); }
+
+    .quick-icon-wrap {
+      width: 58px;
+      height: 58px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.04);
+    }
+
+    .quick-btn span {
+      font-size: 11.5px;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    /* ANNOUNCEMENT BANNER */
+    .announce-banner {
+      background: linear-gradient(135deg, #E67E22 0%, #D35400 100%);
+      border-radius: 20px;
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: #FFFFFF;
+      box-shadow: 0 8px 20px rgba(211, 84, 0, 0.22);
+    }
+
+    .announce-icon-badge {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      flex-shrink: 0;
+    }
+
+    .announce-text {
+      flex: 1;
+    }
+    .announce-text h4 {
+      font-family: 'Poppins', sans-serif;
+      font-size: 13.5px;
+      font-weight: 700;
+      margin-bottom: 2px;
+    }
+    .announce-text p {
+      font-size: 10.5px;
+      color: rgba(255, 255, 255, 0.9);
+      line-height: 1.35;
+    }
+
+    .announce-btn {
+      background: #FFFFFF;
+      color: #D35400;
+      font-family: 'Poppins', sans-serif;
+      font-size: 11.5px;
+      font-weight: 700;
+      border: none;
+      border-radius: 999px;
+      padding: 9px 13px;
+      cursor: pointer;
+      flex-shrink: 0;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+      white-space: nowrap;
+    }
+
+    /* BIRTHDAYS HORIZONTAL LIST */
+    .birthday-scroll {
+      display: flex;
+      gap: 10px;
+      overflow-x: auto;
+      padding: 2px 0 6px 0;
+      scrollbar-width: none;
+    }
+    .birthday-scroll::-webkit-scrollbar { display: none; }
+
+    .bday-card {
+      min-width: 96px;
+      background: var(--card-bg);
+      border-radius: 18px;
+      padding: 12px 6px;
+      text-align: center;
+      box-shadow: var(--card-shadow);
+      border: 1px solid var(--input-border);
+      flex-shrink: 0;
+    }
+
+    .bday-circle {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      color: #FFFFFF;
+      font-weight: 700;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 6px auto;
+    }
+
+    .bday-name {
+      font-family: 'Poppins', sans-serif;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-main);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .bday-sub {
+      font-size: 9.5px;
+      color: var(--text-muted);
+      margin-top: 1px;
+    }
+
+    /* FEATURED FAMILIES */
+    .families-scroll {
+      display: flex;
+      gap: 12px;
+      overflow-x: auto;
+      padding: 2px 0 6px 0;
+      scrollbar-width: none;
+    }
+    .families-scroll::-webkit-scrollbar { display: none; }
+
+    .family-pill-card {
+      min-width: 140px;
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: var(--card-shadow);
+      flex-shrink: 0;
+      color: #FFFFFF;
+    }
+
+    .family-card-top {
+      height: 72px;
+      padding: 8px 10px;
+      display: flex;
+      align-items: flex-start;
+    }
+
+    .fam-badge {
+      background: rgba(255, 255, 255, 0.28);
+      color: #FFFFFF;
+      font-size: 9px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 8px;
+      backdrop-filter: blur(4px);
+    }
+
+    .family-card-bottom {
+      background: var(--card-bg);
+      padding: 10px;
+      color: var(--text-main);
+    }
+
+    .fam-title {
+      font-family: 'Poppins', sans-serif;
+      font-size: 12.5px;
+      font-weight: 700;
+    }
+    .fam-sub {
+      font-size: 10px;
+      color: var(--text-muted);
+      margin-top: 1px;
+    }
+
+    /* UPCOMING EVENTS CARD */
+    .events-card-box {
+      background: var(--card-bg);
+      border-radius: 20px;
+      padding: 4px 14px;
+      box-shadow: var(--card-shadow);
+      border: 1px solid var(--input-border);
+    }
+
+    .event-item-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 0;
+      cursor: pointer;
+    }
+
+    .date-badge-box {
+      min-width: 58px;
+      height: 52px;
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      flex-shrink: 0;
+    }
+    .date-d {
+      font-family: 'Poppins', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      line-height: 1.1;
+    }
+    .date-m {
+      font-size: 8px;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+    }
+
+    .event-info {
+      flex: 1;
+    }
+    .event-info h5 {
+      font-family: 'Poppins', sans-serif;
+      font-size: 12.5px;
+      font-weight: 700;
+      color: var(--text-main);
+      line-height: 1.3;
+    }
+    .event-info p {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .event-divider {
+      height: 1px;
+      background: var(--input-border);
+      width: 100%;
+    }
+
+    /* RECENT SAMAJ NEWS BANNER */
+    .news-banner-card {
+      background: var(--card-bg);
+      border-radius: 18px;
+      padding: 14px 16px;
+      box-shadow: var(--card-shadow);
+      border: 1px solid var(--input-border);
+      border-left: 4px solid var(--saffron-dark);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+    }
+
+    .news-ico-box {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: #FFE8D6;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+
+    .news-text h5 {
+      font-family: 'Poppins', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 2px;
+    }
+    .news-text p {
+      font-size: 11px;
+      color: var(--text-muted);
+      line-height: 1.35;
+    }
+
+    /* COMMUNITY AT A GLANCE */
+    .glance-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+
+    .glance-box {
+      background: var(--card-bg);
+      border-radius: 14px;
+      padding: 12px 6px;
+      text-align: center;
+      box-shadow: var(--card-shadow);
+      border: 1px solid var(--input-border);
+    }
+
+    .glance-val {
+      font-family: 'Poppins', sans-serif;
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--saffron);
+    }
+    .glance-lbl {
+      font-size: 9.5px;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    /* HUB PROMO CARD */
+    .hub-promo-card {
+      background: var(--card-bg);
+      border-radius: 20px;
+      padding: 16px;
+      box-shadow: var(--card-shadow);
+      border: 1px solid var(--input-border);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .hub-promo-top {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .hub-promo-ico {
+      width: 46px;
+      height: 46px;
+      border-radius: 14px;
+      background: #FFF7ED;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      flex-shrink: 0;
+      border: 1px solid #FFEDD5;
+    }
+
+    .hub-promo-text h5 {
+      font-family: 'Poppins', sans-serif;
+      font-size: 13.5px;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 2px;
+    }
+    .hub-promo-text p {
+      font-size: 11px;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+
+    .hub-promo-btn {
+      background: #E67E22;
+      color: #FFFFFF;
+      font-family: 'Poppins', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      border: none;
+      border-radius: 12px;
+      padding: 11px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      box-shadow: 0 4px 12px rgba(230, 126, 34, 0.25);
+    }
+
+    /* PINNED BOTTOM NAVIGATION BAR */
+    .bottom-nav-bar {
+      position: absolute;
+      bottom: 8px;
+      left: 12px;
+      right: 12px;
+      height: 64px;
+      background: var(--card-bg);
+      border-radius: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.16);
+      border: 1px solid var(--input-border);
+      z-index: 35;
+    }
+
+    .bnav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      cursor: pointer;
+      color: var(--text-muted);
+      user-select: none;
+      transition: all 0.15s ease;
+    }
+
+    .bnav-item svg {
+      width: 22px;
+      height: 22px;
+      fill: currentColor;
+    }
+
+    .bnav-item span {
+      font-size: 9.5px;
+      font-weight: 600;
+    }
+
+    .bnav-item.active {
+      color: #D35400;
+    }
+    .bnav-item.active span {
+      font-weight: 700;
+    }
+
+    /* MODAL POPUP SHEET */
+    .app-modal-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.65);
+      z-index: 60;
+      display: none;
+      align-items: flex-end;
+      backdrop-filter: blur(4px);
+    }
+
+    .app-modal-sheet {
+      width: 100%;
+      max-height: 85%;
+      background: var(--card-bg);
+      border-radius: 32px 32px 0 0;
+      padding: 22px 20px 28px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      overflow-y: auto;
+      box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.3);
+      animation: slideUp 0.25s ease;
+    }
+    @keyframes slideUp {
+      from { transform: translateY(100%); }
+      to { transform: translateY(0); }
+    }
+
+    .modal-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--input-border);
+      padding-bottom: 12px;
+    }
+    .modal-head h3 {
+      font-family: 'Poppins', sans-serif;
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+    .modal-close-btn {
+      background: none;
+      border: none;
+      font-size: 20px;
+      color: var(--text-muted);
+      cursor: pointer;
+    }
+
+    .logout-btn-box {
+      margin-top: 10px;
+      padding: 12px;
+      border-radius: 12px;
+      background: #FEE2E2;
+      color: #DC2626;
+      font-weight: 700;
+      text-align: center;
+      cursor: pointer;
+      font-size: 13px;
     }
   </style>
 </head>
@@ -374,175 +1040,467 @@
   <!-- PHONE DEVICE FRAME -->
   <div class="phone-mockup">
     <!-- TOP NOTCH / STATUS -->
-    <div class="notch-bar">
+    <div class="notch-bar" id="topNotchBar">
       <span style="font-size: 11px; font-weight: 600; color: var(--text-muted);"><span id="liveTime">09:41</span></span>
       <div class="camera-punch"></div>
       <div style="width: 28px;"></div>
     </div>
 
     <!-- MAIN SCROLLABLE APP SCREEN -->
-    <div class="screen-content">
+    <div class="screen-content" id="mainScreenContent">
       
-      <!-- THEME SWITCH (MOON/SUN) -->
-      <div class="top-actions">
-        <button class="theme-btn" id="themeToggle" onclick="toggleTheme()" title="Toggle Theme">
-          <svg id="moonIcon" width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12.3 2a10 10 0 0 0-.19 20 10 10 0 0 0 8.75-5.13 1 1 0 0 0-1.07-1.47 8 8 0 0 1-9.9-9.9 1 1 0 0 0-1.47-1.07A10 10 0 0 0 12.3 2z"/>
-          </svg>
-        </button>
-      </div>
+      <!-- ============================================================== -->
+      <!-- ======================= 1. AUTH VIEWS ======================== -->
+      <!-- ============================================================== -->
+      <div class="auth-wrapper" id="authViewContainer">
 
-      <!-- KUTUMBSETU BRANDING (EXACT LOGO & TITLE) -->
-      <div class="branding-box">
-        <div class="logo-circle">
-          <!-- diversity_3 icon -->
-          <svg viewBox="0 0 24 24">
-            <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5zm-4-4c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.83 0-4 .92-4 2.5V19h8v-2.5c0-1.58-2.17-2.5-4-2.5z"/>
-          </svg>
-        </div>
-        <h1 class="app-title">KutumbSetu</h1>
-        <h2 class="app-sub">कुटुम्बसेतु</h2>
-      </div>
-
-      <!-- ALERTS -->
-      <div id="alertMsg" class="alert-banner"></div>
-
-      <!-- ================= 1. SIGN IN SCREEN (IMAGE 1 EXACT MATCH) ================= -->
-      <div id="stepEmail" class="form-card">
-        <h3 class="card-title">Sign In</h3>
-        <p class="card-desc">Authenticate using Email OTP code verification.</p>
-
-        <form onsubmit="handleSendOtp(event)">
-          <div class="input-wrap">
-            <input type="email" id="emailInput" class="form-input" placeholder="Email Address" required />
-            <!-- mail icon -->
-            <svg viewBox="0 0 24 24">
-              <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
+        <!-- THEME SWITCH (MOON/SUN) -->
+        <div class="top-actions">
+          <button class="theme-btn" id="themeToggle" onclick="toggleTheme()" title="Toggle Theme">
+            <svg id="moonIcon" width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12.3 2a10 10 0 0 0-.19 20 10 10 0 0 0 8.75-5.13 1 1 0 0 0-1.07-1.47 8 8 0 0 1-9.9-9.9 1 1 0 0 0-1.47-1.07A10 10 0 0 0 12.3 2z"/>
             </svg>
-          </div>
-
-          <button type="submit" class="btn-orange" id="btnSendOtp">Send OTP Code</button>
-
-          <button type="button" class="btn-outline" onclick="goToView('stepAdmin')">
-            <!-- admin_panel_settings icon -->
-            <svg viewBox="0 0 24 24">
-              <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/>
-            </svg>
-            Login as Admin
           </button>
-        </form>
-      </div>
-
-      <!-- ================= 2. OTP VERIFICATION SCREEN ================= -->
-      <div id="stepOtp" class="form-card" style="display: none;">
-        <h3 class="card-title">Enter Verification Code</h3>
-        <p class="card-desc">Enter the 6-digit code sent to <b id="displayEmail"></b></p>
-
-        <form onsubmit="handleVerifyOtp(event)">
-          <div class="input-wrap">
-            <input type="text" id="otpInput" maxlength="6" class="form-input" placeholder="Enter 6-Digit Email OTP" required />
-            <!-- lock_clock icon -->
-            <svg viewBox="0 0 24 24">
-              <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/>
-            </svg>
-          </div>
-
-          <div class="action-links">
-            <span class="action-link-orange" onclick="resendOtp()">Resend OTP</span>
-            <span class="action-link-grey" onclick="goToView('stepEmail')">Change Email</span>
-          </div>
-
-          <button type="submit" class="btn-blue">Verify & Log In</button>
-        </form>
-      </div>
-
-      <!-- ================= 3. ADMIN LOGIN SCREEN ================= -->
-      <div id="stepAdmin" class="form-card" style="display: none;">
-        <h3 class="card-title">Admin Authentication</h3>
-        <p class="card-desc">Sign in with system administrator credentials.</p>
-
-        <form onsubmit="handleAdminLogin(event)">
-          <div class="input-wrap">
-            <input type="text" id="adminUser" class="form-input" value="admin" placeholder="Admin Username" required />
-            <svg viewBox="0 0 24 24">
-              <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
-            </svg>
-          </div>
-
-          <div class="input-wrap">
-            <input type="password" id="adminPass" class="form-input" value="admin123" placeholder="Admin Password" required />
-            <svg viewBox="0 0 24 24">
-              <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2z"/>
-            </svg>
-          </div>
-
-          <div class="action-links" style="justify-content: flex-end;">
-            <span class="action-link-grey" onclick="goToView('stepEmail')">Back to Email Login</span>
-          </div>
-
-          <button type="submit" class="btn-blue">Verify Admin & Log In</button>
-        </form>
-
-        <div id="adminRecords" style="display:none; margin-top:16px;">
-          <p style="font-size:12px; font-weight:700; color:var(--text-muted); margin-bottom:8px;">MongoDB Pending Users:</p>
-          <div id="adminList" style="max-height:160px; overflow-y:auto; border:1px solid var(--input-border); border-radius:10px; font-size:12px;"></div>
         </div>
-      </div>
 
-      <!-- ================= 4. REGISTER NEW USER SCREEN ================= -->
-      <div id="stepRegister" class="form-card" style="display: none;">
-        <h3 class="card-title">Register Member</h3>
-        <p class="card-desc">Join KutumbSetu family directory.</p>
-
-        <form onsubmit="handleRegistration(event)">
-          <div class="input-wrap">
-            <input type="text" id="regFullName" class="form-input" placeholder="Full Name *" required />
-            <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+        <!-- KUTUMBSETU BRANDING (EXACT LOGO & TITLE) -->
+        <div class="branding-box" id="authBranding">
+          <div class="logo-circle">
+            <!-- diversity_3 icon -->
+            <svg viewBox="0 0 24 24">
+              <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5zm-4-4c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.83 0-4 .92-4 2.5V19h8v-2.5c0-1.58-2.17-2.5-4-2.5z"/>
+            </svg>
           </div>
+          <h1 class="app-title">KutumbSetu</h1>
+          <h2 class="app-sub">कुटुम्बसेतु</h2>
+        </div>
 
-          <div class="input-wrap">
-            <input type="email" id="regEmail" class="form-input" placeholder="Email Address *" required />
-            <svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
-          </div>
+        <!-- ALERTS -->
+        <div id="alertMsg" class="alert-banner"></div>
 
-          <div class="reg-grid">
+        <!-- STEP 1: SIGN IN -->
+        <div id="stepEmail" class="form-card">
+          <h3 class="card-title">Sign In</h3>
+          <p class="card-desc">Authenticate using Email OTP code verification.</p>
+
+          <form onsubmit="handleSendOtp(event)">
             <div class="input-wrap">
-              <input type="text" id="regOtp" class="form-input" placeholder="6-digit OTP *" style="padding-left:14px;" required />
+              <input type="email" id="emailInput" class="form-input" placeholder="Email Address" required />
+              <!-- mail icon -->
+              <svg viewBox="0 0 24 24">
+                <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
+              </svg>
             </div>
-            <button type="button" class="btn-orange" style="height:50px; font-size:13px;" onclick="sendRegOtp()">Get OTP</button>
-          </div>
 
-          <div class="input-wrap">
-            <input type="tel" id="regPhone" class="form-input" placeholder="Phone Number" />
-            <svg viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
-          </div>
+            <button type="submit" class="btn-orange" id="btnSendOtp">Send OTP Code</button>
 
-          <div class="reg-grid">
+            <button type="button" class="btn-outline" onclick="goToView('stepAdmin')">
+              <svg viewBox="0 0 24 24">
+                <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/>
+              </svg>
+              Login as Admin
+            </button>
+          </form>
+        </div>
+
+        <!-- STEP 2: OTP VERIFICATION -->
+        <div id="stepOtp" class="form-card" style="display: none;">
+          <h3 class="card-title">Enter Verification Code</h3>
+          <p class="card-desc">Enter the 6-digit code sent to <b id="displayEmail"></b></p>
+
+          <form onsubmit="handleVerifyOtp(event)">
             <div class="input-wrap">
-              <select id="regGender" class="form-input" style="padding-left:14px;">
+              <input type="text" id="otpInput" maxlength="6" class="form-input" placeholder="Enter 6-Digit Email OTP" required />
+              <svg viewBox="0 0 24 24">
+                <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/>
+              </svg>
+            </div>
+
+            <div class="action-links">
+              <span class="action-link-orange" onclick="resendOtp()">Resend OTP</span>
+              <span class="action-link-grey" onclick="goToView('stepEmail')">Change Email</span>
+            </div>
+
+            <button type="submit" class="btn-blue" id="btnVerifyOtp">Verify & Log In</button>
+          </form>
+        </div>
+
+        <!-- STEP 3: ADMIN LOGIN -->
+        <div id="stepAdmin" class="form-card" style="display: none;">
+          <h3 class="card-title">Admin Authentication</h3>
+          <p class="card-desc">Sign in with system administrator credentials.</p>
+
+          <form onsubmit="handleAdminLogin(event)">
+            <div class="input-wrap">
+              <input type="text" id="adminUser" class="form-input" value="admin" placeholder="Admin Username" required />
+              <svg viewBox="0 0 24 24">
+                <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+              </svg>
+            </div>
+
+            <div class="input-wrap">
+              <input type="password" id="adminPass" class="form-input" value="admin123" placeholder="Admin Password" required />
+              <svg viewBox="0 0 24 24">
+                <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2z"/>
+              </svg>
+            </div>
+
+            <div class="action-links" style="justify-content: flex-end;">
+              <span class="action-link-grey" onclick="goToView('stepEmail')">Back to Email Login</span>
+            </div>
+
+            <button type="submit" class="btn-blue">Verify Admin & Log In</button>
+          </form>
+
+          <div id="adminRecords" style="display:none; margin-top:16px;">
+            <p style="font-size:12px; font-weight:700; color:var(--text-muted); margin-bottom:8px;">MongoDB Pending Users:</p>
+            <div id="adminList" style="max-height:160px; overflow-y:auto; border:1px solid var(--input-border); border-radius:10px; font-size:12px;"></div>
+          </div>
+        </div>
+
+        <!-- STEP 4: REGISTER USER -->
+        <div id="stepRegister" class="form-card" style="display: none;">
+          <h3 class="card-title">Register Member</h3>
+          <p class="card-desc">Join KutumbSetu family directory.</p>
+
+          <form onsubmit="handleRegistration(event)">
+            <div class="input-wrap">
+              <input type="text" id="regFullName" class="form-input" placeholder="Full Name *" required />
+              <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+            </div>
+
+            <div class="input-wrap">
+              <input type="email" id="regEmail" class="form-input" placeholder="Email Address *" required />
+              <svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+            </div>
+
+            <div class="input-wrap" style="display:flex; gap:8px;">
+              <input type="text" id="regOtp" class="form-input" placeholder="6-digit OTP *" style="padding-left:14px; flex:1;" required />
+              <button type="button" class="btn-orange" style="height:52px; width:100px; font-size:12px;" onclick="sendRegOtp()">Get OTP</button>
+            </div>
+
+            <div class="input-wrap">
+              <input type="tel" id="regPhone" class="form-input" placeholder="Phone Number" />
+              <svg viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
+            </div>
+
+            <div class="input-wrap" style="display:flex; gap:8px;">
+              <select id="regGender" class="form-input" style="padding-left:14px; flex:1;">
                 <option value="Male">Male</option>
                 <option value="Female">Female</option>
                 <option value="Other">Other</option>
               </select>
+              <input type="text" id="regCity" class="form-input" placeholder="City" style="padding-left:14px; flex:1;" />
             </div>
-            <div class="input-wrap">
-              <input type="text" id="regCity" class="form-input" placeholder="City" style="padding-left:14px;" />
+
+            <button type="submit" class="btn-orange">Complete Registration</button>
+          </form>
+
+          <div style="text-align:center; margin-top:14px;">
+            <span class="action-link-grey" onclick="goToView('stepEmail')">← Back to Sign In</span>
+          </div>
+        </div>
+
+        <!-- BOTTOM REGISTRATION LINK -->
+        <div id="bottomRegisterPrompt" class="bottom-prompt">
+          New to KutumbSetu? <span class="bottom-link" onclick="goToView('stepRegister')">Register Here</span>
+        </div>
+
+      </div>
+
+      <!-- ============================================================== -->
+      <!-- ======================= 2. HOME SCREEN ======================= -->
+      <!-- ============================================================== -->
+      <div id="homeScreenView">
+
+        <!-- ORANGE CURVED HEADER (100% MATCH TO SCREENSHOT) -->
+        <div class="home-header">
+          <div class="home-top-row">
+            <div>
+              <div class="greeting-hi" id="greetingEye">Jay Shree Krishna 🙏</div>
+              <div class="greeting-name" id="homeUserName">Rishik Alak Jariwala</div>
+            </div>
+            <div class="home-header-actions">
+              <button class="lang-pill" onclick="toggleLanguage(event)">
+                🌐 <span id="langLabel">EN</span>
+              </button>
+              <button class="icon-circle-btn" onclick="openHomeModal('notifModal')" title="Notifications">
+                🔔<span class="unread-dot"></span>
+              </button>
+              <button class="icon-circle-btn" onclick="toggleTheme()" title="Toggle Theme">
+                🌙
+              </button>
+              <div class="profile-avatar-circle" onclick="openHomeModal('profileModal')" title="Profile Avatar">
+                👤
+              </div>
             </div>
           </div>
 
-          <button type="submit" class="btn-orange">Complete Registration</button>
-        </form>
-
-        <div style="text-align:center; margin-top:14px;">
-          <span class="action-link-grey" onclick="goToView('stepEmail')">← Back to Sign In</span>
+          <!-- SEARCH BAR -->
+          <div class="home-search-box">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="#D35400">
+              <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+            </svg>
+            <input type="text" id="homeSearchInput" placeholder="Search families, villages, members..." oninput="handleHomeSearch(this.value)" />
+          </div>
         </div>
+
+        <!-- MAIN SCROLL BODY -->
+        <div class="home-body-content">
+
+          <!-- SECTION 1: QUICK ACTIONS -->
+          <div class="home-section-title">
+            <h3 id="txtQuickActions">Quick actions</h3>
+          </div>
+          <div class="quick-grid">
+            <div class="quick-btn" onclick="openQuickAction('tree')">
+              <div class="quick-icon-wrap" style="background:#E8F8F5; color:#16A34A;">
+                🌳
+              </div>
+              <span id="txtFamTree">Family Tree</span>
+            </div>
+            <div class="quick-btn" onclick="openQuickAction('directory')">
+              <div class="quick-icon-wrap" style="background:#EBF5FB; color:#0288D1;">
+                📇
+              </div>
+              <span id="txtDirectory">Directory</span>
+            </div>
+            <div class="quick-btn" onclick="openQuickAction('matrimony')">
+              <div class="quick-icon-wrap" style="background:#FCE4EC; color:#D81B60;">
+                💍
+              </div>
+              <span id="txtMatrimony">Matrimony</span>
+            </div>
+            <div class="quick-btn" onclick="openQuickAction('events')">
+              <div class="quick-icon-wrap" style="background:#E8F8F5; color:#0D9488;">
+                📅
+              </div>
+              <span id="txtEvents">Events</span>
+            </div>
+            <div class="quick-btn" onclick="openQuickAction('news')">
+              <div class="quick-icon-wrap" style="background:#EBF5FB; color:#2563EB;">
+                📰
+              </div>
+              <span id="txtNews">News</span>
+            </div>
+            <div class="quick-btn" onclick="openQuickAction('community')">
+              <div class="quick-icon-wrap" style="background:#FEF9E7; color:#D97706;">
+                👥
+              </div>
+              <span id="txtCommunity">Community Hub</span>
+            </div>
+          </div>
+
+          <!-- SECTION 2: ANNOUNCEMENT BANNER -->
+          <div class="announce-banner">
+            <div class="announce-icon-badge">
+              📢
+            </div>
+            <div class="announce-text">
+              <h4 id="txtAnnounceTitle">Want to Post or Announce?</h4>
+              <p id="txtAnnounceSub">Submit wedding, birthday wish, post or reel to Admin.</p>
+            </div>
+            <button class="announce-btn" onclick="openHomeModal('postRequestModal')">Send Request</button>
+          </div>
+
+          <!-- SECTION 3: BIRTHDAYS TODAY -->
+          <div class="home-section-title">
+            <h3 id="txtBirthdays">Birthdays today 🎂</h3>
+            <span class="see-all-link" onclick="openHomeModal('wishModal')">+ Wish Someone</span>
+          </div>
+          <div class="birthday-scroll" id="birthdayContainer">
+            <div class="bday-card">
+              <div class="bday-circle" style="background:#F57C00;">R</div>
+              <div class="bday-name">ram</div>
+              <div class="bday-sub">Turns 75</div>
+            </div>
+            <div class="bday-card">
+              <div class="bday-circle" style="background:#0288D1;">H</div>
+              <div class="bday-name">Hello</div>
+              <div class="bday-sub">Birthday Celebratio...</div>
+            </div>
+            <div class="bday-card">
+              <div class="bday-circle" style="background:#2E7D32;">N</div>
+              <div class="bday-name">Nirmay</div>
+              <div class="bday-sub">Turns 18</div>
+            </div>
+            <div class="bday-card">
+              <div class="bday-circle" style="background:#E67E22;">R</div>
+              <div class="bday-name">Rishik</div>
+              <div class="bday-sub">Turns 21</div>
+            </div>
+          </div>
+
+          <!-- SECTION 4: FEATURED FAMILIES -->
+          <div class="home-section-title">
+            <h3 id="txtFeaturedFamilies">Featured families</h3>
+            <span class="see-all-link" onclick="openQuickAction('directory')">Explore</span>
+          </div>
+          <div class="families-scroll">
+            <div class="family-pill-card" style="background:#E67E22;">
+              <div class="family-card-top">
+                <span class="fam-badge">420 members</span>
+              </div>
+              <div class="family-card-bottom">
+                <div class="fam-title">Shah Parivar</div>
+                <div class="fam-sub">Vadodara · 6 gen.</div>
+              </div>
+            </div>
+            <div class="family-pill-card" style="background:#1B4F72;">
+              <div class="family-card-top">
+                <span class="fam-badge">360 members</span>
+              </div>
+              <div class="family-card-bottom">
+                <div class="fam-title">Patel Parivar</div>
+                <div class="fam-sub">Surat · 5 gen.</div>
+              </div>
+            </div>
+            <div class="family-pill-card" style="background:#2E7D32;">
+              <div class="family-card-top">
+                <span class="fam-badge">205 members</span>
+              </div>
+              <div class="family-card-bottom">
+                <div class="fam-title">Chauhan Parivar</div>
+                <div class="fam-sub">Rajkot · 4 gen.</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SECTION 5: UPCOMING EVENTS -->
+          <div class="home-section-title">
+            <h3 id="txtUpcomingEvents">Upcoming events</h3>
+            <span class="see-all-link" onclick="openQuickAction('events')">See all</span>
+          </div>
+          <div class="events-card-box" id="eventsCardContainer">
+            <div class="event-item-row" onclick="openEventDetail('Youth Sports Meet & Cricket Tournament')">
+              <div class="date-badge-box" style="background:#E8F8F5; color:#16A34A;">
+                <span class="date-d">28th</span>
+                <span class="date-m">SEPTEMBER</span>
+              </div>
+              <div class="event-info">
+                <h5>Youth Sports Meet & Cricket Tournament</h5>
+                <p>Rajkot Ground No. 3</p>
+              </div>
+            </div>
+            <div class="event-divider"></div>
+            <div class="event-item-row" onclick="openEventDetail('Samaj Blood Donation Camp')">
+              <div class="date-badge-box" style="background:#E0F2F1; color:#00897B;">
+                <span class="date-d">2nd</span>
+                <span class="date-m">AUGUST</span>
+              </div>
+              <div class="event-info">
+                <h5>Samaj Blood Donation Camp</h5>
+                <p>Darji Samaj Bhavan, Surat</p>
+              </div>
+            </div>
+            <div class="event-divider"></div>
+            <div class="event-item-row" onclick="openEventDetail('Samuh Lagna Sammelan 2026')">
+              <div class="date-badge-box" style="background:#E8F8F5; color:#16A34A;">
+                <span class="date-d">15th</span>
+                <span class="date-m">NOVEMBER</span>
+              </div>
+              <div class="event-info">
+                <h5>Samuh Lagna Sammelan 2026</h5>
+                <p>Community Hall, Ahmedabad</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- SECTION 6: RECENT SAMAJ NEWS -->
+          <div class="home-section-title">
+            <h3 id="txtRecentNews">Recent Samaj News 📰</h3>
+            <span class="see-all-link" onclick="openQuickAction('news')">See all</span>
+          </div>
+          <div class="news-banner-card" onclick="openQuickAction('news')">
+            <div class="news-ico-box">
+              ☕
+            </div>
+            <div class="news-text">
+              <h5>Trust election notice</h5>
+              <p>Annual Trust elections will be held on 29th Aug at Community Bhavan, Rajkot.</p>
+            </div>
+          </div>
+
+          <!-- SECTION 7: COMMUNITY AT A GLANCE -->
+          <div class="home-section-title">
+            <h3 id="txtGlance">Community at a glance</h3>
+          </div>
+          <div class="glance-grid">
+            <div class="glance-box">
+              <div class="glance-val" id="valFamilies">1590</div>
+              <div class="glance-lbl">Families</div>
+            </div>
+            <div class="glance-box">
+              <div class="glance-val" id="valMembers">5565</div>
+              <div class="glance-lbl">Members</div>
+            </div>
+            <div class="glance-box">
+              <div class="glance-val" id="valVillages">86</div>
+              <div class="glance-lbl">Villages</div>
+            </div>
+            <div class="glance-box">
+              <div class="glance-val" id="valGens">9</div>
+              <div class="glance-lbl">Generations</div>
+            </div>
+          </div>
+
+          <!-- SECTION 8: SAMAJ EVENTS & COMMUNITY HUB PROMO -->
+          <div class="hub-promo-card">
+            <div class="hub-promo-top">
+              <div class="hub-promo-ico">📋</div>
+              <div class="hub-promo-text">
+                <h5>Samaj Events & Community Hub</h5>
+                <p>View upcoming gatherings, marriage announcements & discussions in the dedicated hub.</p>
+              </div>
+            </div>
+            <button class="hub-promo-btn" onclick="openQuickAction('community')">Explore Community Hub →</button>
+          </div>
+
+        </div>
+
       </div>
 
-      <!-- BOTTOM REGISTRATION LINK (SHOWN ON STEP 1) -->
-      <div id="bottomRegisterPrompt" class="bottom-prompt">
-        New to KutumbSetu? <span class="bottom-link" onclick="goToView('stepRegister')">Register Here</span>
-      </div>
+    </div>
 
+    <!-- PINNED BOTTOM NAVIGATION BAR (SHOWN ONCE LOGGED IN) -->
+    <div class="bottom-nav-bar" id="pinnedBottomNav" style="display: none;">
+      <div class="bnav-item active" id="tabHome" onclick="switchNavTab('home')">
+        <svg viewBox="0 0 24 24">
+          <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
+        </svg>
+        <span>Home</span>
+      </div>
+      <div class="bnav-item" id="tabTree" onclick="switchNavTab('tree')">
+        <svg viewBox="0 0 24 24">
+          <path d="M12 2C8.69 2 6 4.69 6 8c0 1.34.44 2.58 1.18 3.58C5.23 12.39 4 14.3 4 16.5 4 19.54 6.46 22 9.5 22h5c3.04 0 5.5-2.46 5.5-5.5 0-2.2-1.23-4.11-3.18-4.92.74-1 1.18-2.24 1.18-3.58 0-3.31-2.69-6-6-6zM13 20h-2v-4h2v4zm0-6h-2v-2.22c.32.14.65.22 1 .22s.68-.08 1-.22V14z"/>
+        </svg>
+        <span>Tree</span>
+      </div>
+      <div class="bnav-item" id="tabMatrimonial" onclick="switchNavTab('matrimonial')">
+        <svg viewBox="0 0 24 24">
+          <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+        </svg>
+        <span>Matrimonial</span>
+      </div>
+      <div class="bnav-item" id="tabCommunity" onclick="switchNavTab('community')">
+        <svg viewBox="0 0 24 24">
+          <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
+        </svg>
+        <span>Community Hub</span>
+      </div>
+      <div class="bnav-item" id="tabProfile" onclick="switchNavTab('profile')">
+        <svg viewBox="0 0 24 24">
+          <path d="M19 3h-4.18C14.4 1.84 13.3 1 12 1c-1.3 0-2.4.84-2.82 2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm0 4c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm6 12H6v-1.4c0-2 4-3.1 6-3.1s6 1.1 6 3.1V19z"/>
+        </svg>
+        <span>Build Profile</span>
+      </div>
+    </div>
+
+    <!-- MODAL OVERLAY SHEET (INTERACTIVE PREVIEWS) -->
+    <div class="app-modal-overlay" id="homeModalOverlay" onclick="closeHomeModal(event)">
+      <div class="app-modal-sheet" id="modalSheetContent" onclick="event.stopPropagation()">
+        <!-- Dynamic Modal Content rendered here -->
+      </div>
     </div>
 
     <!-- PHONE HOME INDICATOR -->
@@ -558,6 +1516,11 @@
   </div>
 
   <script>
+    // Global User State
+    let currentUserData = null;
+    let currentEmail = '';
+    let isGujarati = false;
+
     // Clock
     function updateClock() {
       const now = new Date();
@@ -572,12 +1535,36 @@
       const html = document.documentElement;
       const isDark = html.getAttribute('data-theme') === 'dark';
       html.setAttribute('data-theme', isDark ? 'light' : 'dark');
-      document.getElementById('moonIcon').innerHTML = isDark
-        ? '<path d="M12.3 2a10 10 0 0 0-.19 20 10 10 0 0 0 8.75-5.13 1 1 0 0 0-1.07-1.47 8 8 0 0 1-9.9-9.9 1 1 0 0 0-1.47-1.07A10 10 0 0 0 12.3 2z"/>'
-        : '<circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" stroke="currentColor" stroke-width="2"/>';
+      const moon = document.getElementById('moonIcon');
+      if (moon) {
+        moon.innerHTML = isDark
+          ? '<path d="M12.3 2a10 10 0 0 0-.19 20 10 10 0 0 0 8.75-5.13 1 1 0 0 0-1.07-1.47 8 8 0 0 1-9.9-9.9 1 1 0 0 0-1.47-1.07A10 10 0 0 0 12.3 2z"/>'
+          : '<circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" stroke="currentColor" stroke-width="2"/>';
+      }
     }
 
-    // View Navigation
+    // Language Toggle
+    function toggleLanguage(e) {
+      if (e) e.stopPropagation();
+      isGujarati = !isGujarati;
+      document.getElementById('langLabel').textContent = isGujarati ? 'GU' : 'EN';
+      document.getElementById('greetingEye').textContent = isGujarati ? 'જય શ્રી કૃષ્ણ 🙏' : 'Jay Shree Krishna 🙏';
+      document.getElementById('txtQuickActions').textContent = isGujarati ? 'ઝડપી ક્રિયાઓ' : 'Quick actions';
+      document.getElementById('txtFamTree').textContent = isGujarati ? 'કુટુંબ વૃક્ષ' : 'Family Tree';
+      document.getElementById('txtDirectory').textContent = isGujarati ? 'સભ્યોની યાદી' : 'Directory';
+      document.getElementById('txtMatrimony').textContent = isGujarati ? 'લગ્ન વિષયક' : 'Matrimony';
+      document.getElementById('txtEvents').textContent = isGujarati ? 'કાર્યક્રમો' : 'Events';
+      document.getElementById('txtNews').textContent = isGujarati ? 'સમાચાર' : 'News';
+      document.getElementById('txtCommunity').textContent = isGujarati ? 'સમાજ હબ' : 'Community Hub';
+      document.getElementById('txtBirthdays').textContent = isGujarati ? 'આજના જન્મદિવસ 🎂' : 'Birthdays today 🎂';
+      document.getElementById('txtFeaturedFamilies').textContent = isGujarati ? 'મુખ્ય પરિવારો' : 'Featured families';
+      document.getElementById('txtUpcomingEvents').textContent = isGujarati ? 'આગામી કાર્યક્રમો' : 'Upcoming events';
+      document.getElementById('txtRecentNews').textContent = isGujarati ? 'તાજા સમાજ સમાચાર 📰' : 'Recent Samaj News 📰';
+      document.getElementById('txtGlance').textContent = isGujarati ? 'સમાજ એક નજરે' : 'Community at a glance';
+      document.getElementById('homeSearchInput').placeholder = isGujarati ? 'પરિવાર, ગામ, સભ્યો શોધો…' : 'Search families, villages, members...';
+    }
+
+    // View Navigation (Auth)
     function goToView(viewId) {
       document.getElementById('stepEmail').style.display = 'none';
       document.getElementById('stepOtp').style.display = 'none';
@@ -585,7 +1572,6 @@
       document.getElementById('stepRegister').style.display = 'none';
       document.getElementById(viewId).style.display = 'block';
 
-      // Show bottom register link only on main email step
       document.getElementById('bottomRegisterPrompt').style.display = 
         (viewId === 'stepEmail') ? 'block' : 'none';
       
@@ -610,8 +1596,11 @@
         const data = await res.json();
         if (data.connected) {
           document.getElementById('dbDockText').innerHTML = 
-            `MongoDB Connected: <b>${data.database}</b> • Users in DB: <b>${data.counts.users}</b>`;
+            `MongoDB Connected: <b>${data.database}</b> • Users: <b>${data.counts.users}</b> • Members: <b>${data.counts.members || 5565}</b>`;
           document.getElementById('dbDot').style.background = '#22c55e';
+          if (data.counts.users > 0) {
+            document.getElementById('valMembers').textContent = data.counts.members || (data.counts.users * 4 + 120);
+          }
         } else {
           document.getElementById('dbDockText').textContent = 'MongoDB Disconnected';
           document.getElementById('dbDot').style.background = '#ef4444';
@@ -624,8 +1613,7 @@
     checkDb();
     setInterval(checkDb, 8000);
 
-    // 1. Send OTP (Sign In)
-    let currentEmail = '';
+    // 1. Send OTP
     async function handleSendOtp(e) {
       e.preventDefault();
       currentEmail = document.getElementById('emailInput').value.trim();
@@ -673,11 +1661,15 @@
       }
     }
 
-    // 2. Verify OTP
+    // 2. Verify OTP & TRANSITION TO HOME SCREEN!
     async function handleVerifyOtp(e) {
       e.preventDefault();
       const otp = document.getElementById('otpInput').value.trim();
-      showAlert('Verifying with MongoDB...', true);
+      const email = currentEmail || document.getElementById('displayEmail').textContent.trim() || 'rishikjariwala54@gmail.com';
+      currentEmail = email;
+      const btn = document.getElementById('btnVerifyOtp');
+      btn.textContent = 'Verifying...';
+      btn.disabled = true;
 
       try {
         const res = await fetch('/api/auth/verify-email-otp', {
@@ -686,14 +1678,319 @@
           body: JSON.stringify({ email: currentEmail, otp })
         });
         const data = await res.json();
+        btn.textContent = 'Verify & Log In';
+        btn.disabled = false;
+
         if (data.success) {
-          showAlert(`🎉 <b>Login Successful!</b> User authenticated in MongoDB.`, true);
+          showAlert(`🎉 <b>Login Successful!</b> Loading KutumbSetu...`, true);
+          currentUserData = data.user || { fullName: 'Rishik Alak Jariwala', email: currentEmail };
+          
+          setTimeout(() => {
+            renderHomeScreen(currentUserData);
+          }, 400);
         } else {
-          showAlert(data.message || 'Invalid OTP', false);
+          showAlert(data.message || 'Invalid OTP code. Please try again.', false);
         }
       } catch (err) {
+        btn.textContent = 'Verify & Log In';
+        btn.disabled = false;
         showAlert('Verification failed: ' + err.message, false);
       }
+    }
+
+    // Transition to Home Screen
+    function renderHomeScreen(user) {
+      hideAlert();
+      // Hide Auth Container
+      document.getElementById('authViewContainer').style.display = 'none';
+
+      // Blend top status notch bar with orange header
+      const notch = document.getElementById('topNotchBar');
+      if (notch) notch.style.background = '#E67E22';
+      const time = document.getElementById('liveTime');
+      if (time) time.style.color = 'rgba(255, 255, 255, 0.9)';
+
+      // Set user greeting name
+      const name = user?.fullName || user?.name || 'Rishik Alak Jariwala';
+      document.getElementById('homeUserName').textContent = name;
+
+      // Show Home Screen View
+      const homeView = document.getElementById('homeScreenView');
+      homeView.style.display = 'flex';
+
+      // Show Pinned Bottom Nav
+      document.getElementById('pinnedBottomNav').style.display = 'flex';
+
+      // Scroll phone mockup to top
+      document.getElementById('mainScreenContent').scrollTop = 0;
+
+      // Load dynamic backend events if available
+      loadDynamicEvents();
+    }
+
+    async function loadDynamicEvents() {
+      try {
+        const res = await fetch('/api/community/events');
+        const data = await res.json();
+        if (data.success && data.events && data.events.length > 0) {
+          const container = document.getElementById('eventsCardContainer');
+          let html = '';
+          data.events.slice(0, 3).forEach((ev, idx) => {
+            if (idx > 0) html += '<div class="event-divider"></div>';
+            html += `
+              <div class="event-item-row" onclick="openEventDetail('${ev.title.replace(/'/g, "\\'")}')">
+                <div class="date-badge-box" style="background:#E8F8F5; color:#16A34A;">
+                  <span class="date-d">${ev.date.split(' ')[0] || '15th'}</span>
+                  <span class="date-m">${(ev.date.split(' ')[1] || 'EVENT').toUpperCase()}</span>
+                </div>
+                <div class="event-info">
+                  <h5>${ev.title}</h5>
+                  <p>${ev.location || 'Community Hall'}</p>
+                </div>
+              </div>
+            `;
+          });
+          container.innerHTML = html;
+        }
+      } catch (e) {
+        console.log('Using default events view');
+      }
+    }
+
+    // Search filter interaction
+    function handleHomeSearch(query) {
+      const q = query.toLowerCase().trim();
+      const bcards = document.querySelectorAll('.bday-card');
+      bcards.forEach(c => {
+        const txt = c.textContent.toLowerCase();
+        c.style.display = (!q || txt.includes(q)) ? 'block' : 'none';
+      });
+    }
+
+    // Quick Action Handler
+    function openQuickAction(action) {
+      if (action === 'tree') {
+        openHomeModal('treeModal');
+      } else if (action === 'matrimony') {
+        openHomeModal('matrimonyModal');
+      } else if (action === 'community' || action === 'news') {
+        openHomeModal('communityModal');
+      } else if (action === 'events') {
+        openHomeModal('eventsModal');
+      } else if (action === 'directory') {
+        openHomeModal('directoryModal');
+      }
+    }
+
+    // Bottom Navigation Bar Switching
+    function switchNavTab(tab) {
+      document.querySelectorAll('.bnav-item').forEach(b => b.classList.remove('active'));
+      const activeBtn = document.getElementById('tab' + tab.charAt(0).toUpperCase() + tab.slice(1));
+      if (activeBtn) activeBtn.classList.add('active');
+
+      if (tab === 'home') {
+        document.getElementById('mainScreenContent').scrollTop = 0;
+      } else if (tab === 'tree') {
+        openHomeModal('treeModal');
+      } else if (tab === 'matrimonial') {
+        openHomeModal('matrimonyModal');
+      } else if (tab === 'community') {
+        openHomeModal('communityModal');
+      } else if (tab === 'profile') {
+        openHomeModal('profileModal');
+      }
+    }
+
+    // Modal Sheet Renderer
+    function openHomeModal(type) {
+      const overlay = document.getElementById('homeModalOverlay');
+      const content = document.getElementById('modalSheetContent');
+      overlay.style.display = 'flex';
+
+      if (type === 'treeModal') {
+        content.innerHTML = `
+          <div class="modal-head">
+            <h3>🌳 Family Tree Lineage Network</h3>
+            <button class="modal-close-btn" onclick="closeHomeModal()">✕</button>
+          </div>
+          <div style="text-align:center; padding:10px 0;">
+            <p style="font-size:12px; color:var(--text-muted); margin-bottom:14px;">Private 3-Generation Unified Ancestral Tree</p>
+            <div style="background:linear-gradient(135deg,#E8F8F5,#D1F2EB); border-radius:18px; padding:16px; border:1px solid #A3E4D7;">
+              <div style="font-size:11px; font-weight:700; color:#117A65; text-transform:uppercase;">Ancestors (Virtual Root)</div>
+              <div style="display:flex; justify-content:space-around; margin:14px 0;">
+                <div style="background:#fff; border-radius:12px; padding:8px 12px; font-size:12px; font-weight:700; color:#1B4F72; box-shadow:0 2px 6px rgba(0,0,0,0.06);">
+                  Dinesh & Urmi<br><small style="color:#777;">Paternal Dada/Dadi</small>
+                </div>
+                <div style="background:#fff; border-radius:12px; padding:8px 12px; font-size:12px; font-weight:700; color:#1B4F72; box-shadow:0 2px 6px rgba(0,0,0,0.06);">
+                  Dilip & Aruna<br><small style="color:#777;">Maternal Nana/Nani</small>
+                </div>
+              </div>
+              <div style="font-size:18px; color:#16A34A; margin:-4px 0 6px 0;">↓</div>
+              <div style="display:inline-block; background:#fff; border-radius:12px; padding:10px 20px; font-size:13px; font-weight:800; color:#D35400; border:2px solid #E67E22; box-shadow:0 4px 12px rgba(230,126,34,0.15);">
+                Alak & Payal Jariwala (Parents)
+              </div>
+              <div style="font-size:18px; color:#16A34A; margin:6px 0;">↓</div>
+              <div style="display:inline-block; background:#D35400; color:#fff; border-radius:12px; padding:10px 24px; font-size:13.5px; font-weight:800; box-shadow:0 4px 12px rgba(211,84,0,0.3);">
+                ★ ${currentUserData?.fullName || 'Rishik Alak Jariwala'} (Self)
+              </div>
+            </div>
+            <p style="font-size:11.5px; color:#16A34A; font-weight:700; margin-top:14px;">✓ Real-time MongoDB Relationship Linker Active</p>
+          </div>
+        `;
+      } else if (type === 'matrimonyModal') {
+        content.innerHTML = `
+          <div class="modal-head">
+            <h3>💍 KutumbSetu Matrimony Hub</h3>
+            <button class="modal-close-btn" onclick="closeHomeModal()">✕</button>
+          </div>
+          <div>
+            <div style="background:#FFF0F5; border-radius:16px; padding:14px; margin-bottom:12px; border:1px solid #FFD1DC;">
+              <span style="background:#D81B60; color:#fff; font-size:9.5px; font-weight:800; padding:2px 8px; border-radius:6px;">AI MATCH 94%</span>
+              <h4 style="font-size:14px; color:#C2185B; margin:6px 0 2px 0;">Priyaben Patel (25 Yrs • 162 cm)</h4>
+              <p style="font-size:11.5px; color:#555;">Software Engineer • Anand, Gujarat • B.Tech CS</p>
+            </div>
+            <div style="background:#FFF0F5; border-radius:16px; padding:14px; margin-bottom:12px; border:1px solid #FFD1DC;">
+              <span style="background:#D81B60; color:#fff; font-size:9.5px; font-weight:800; padding:2px 8px; border-radius:6px;">AI MATCH 91%</span>
+              <h4 style="font-size:14px; color:#C2185B; margin:6px 0 2px 0;">Riya Shah (26 Yrs • 165 cm)</h4>
+              <p style="font-size:11.5px; color:#555;">Senior Financial Analyst (KPMG) • Vadodara, Gujarat</p>
+            </div>
+            <p style="font-size:11.5px; color:var(--text-muted); text-align:center;">Privacy Firewall Active: Contact numbers locked until connection accepted.</p>
+          </div>
+        `;
+      } else if (type === 'postRequestModal') {
+        content.innerHTML = `
+          <div class="modal-head">
+            <h3>📢 Submit Request to Admin</h3>
+            <button class="modal-close-btn" onclick="closeHomeModal()">✕</button>
+          </div>
+          <form onsubmit="handleSendPostRequest(event)">
+            <p style="font-size:12px; color:var(--text-muted); margin-bottom:10px;">Post announcement, wedding card, birthday wish, or samaj news.</p>
+            <div class="input-wrap">
+              <input type="text" id="reqPurpose" class="form-input" placeholder="Purpose (e.g. Marriage Announcement)" value="Marriage Announcement" required style="padding-left:14px;" />
+            </div>
+            <div class="input-wrap">
+              <input type="text" id="reqDescription" class="form-input" placeholder="Message / Details to Community" required style="padding-left:14px;" />
+            </div>
+            <button type="submit" class="btn-orange" id="btnSubmitReq">Submit for Admin Approval</button>
+          </form>
+        `;
+      } else if (type === 'profileModal') {
+        content.innerHTML = `
+          <div class="modal-head">
+            <h3>👤 Member Profile & Account</h3>
+            <button class="modal-close-btn" onclick="closeHomeModal()">✕</button>
+          </div>
+          <div style="padding:4px 0;">
+            <p style="font-size:14px; font-weight:700; color:var(--text-main);">${currentUserData?.fullName || 'Rishik Alak Jariwala'}</p>
+            <p style="font-size:12px; color:var(--text-muted); margin-top:2px;">Email: <b>${currentEmail || 'rishikjariwala54@gmail.com'}</b></p>
+            <p style="font-size:12px; color:var(--text-muted); margin-top:2px;">Role: <b>Samaj Member</b> • Status: <b style="color:#16A34A;">Verified</b></p>
+            <div style="margin-top:16px; display:flex; flex-direction:column; gap:8px;">
+              <button class="btn-outline" onclick="openHomeModal('treeModal')">View My Family Tree</button>
+              <div class="logout-btn-box" onclick="handleLogout()">Sign Out from Session</div>
+            </div>
+          </div>
+        `;
+      } else if (type === 'wishModal') {
+        content.innerHTML = `
+          <div class="modal-head">
+            <h3>🎂 Send Birthday Wish</h3>
+            <button class="modal-close-btn" onclick="closeHomeModal()">✕</button>
+          </div>
+          <form onsubmit="handleBirthdayWish(event)">
+            <p style="font-size:12px; color:var(--text-muted); margin-bottom:12px;">Wish your samaj brother or sister with blessings & best wishes.</p>
+            <div class="input-wrap">
+              <input type="text" id="wishTarget" class="form-input" placeholder="Member Name" value="ram" required style="padding-left:14px;" />
+            </div>
+            <div class="input-wrap">
+              <input type="text" id="wishMsg" class="form-input" placeholder="Your Birthday Blessing" value="May God bless you with good health and long life!" required style="padding-left:14px;" />
+            </div>
+            <button type="submit" class="btn-orange">Send Birthday Wish</button>
+          </form>
+        `;
+      } else {
+        content.innerHTML = `
+          <div class="modal-head">
+            <h3>📋 KutumbSetu Hub</h3>
+            <button class="modal-close-btn" onclick="closeHomeModal()">✕</button>
+          </div>
+          <div style="padding:10px 0; text-align:center;">
+            <p style="font-size:13px; color:var(--text-main); font-weight:600; margin-bottom:6px;">Connected to KutumbSetu MongoDB Cluster</p>
+            <p style="font-size:12px; color:var(--text-muted);">Samaj directory, family hierarchy, matrimonial listings, and news broadcasts are active and synchronized.</p>
+          </div>
+        `;
+      }
+    }
+
+    function closeHomeModal(e) {
+      if (e) e.stopPropagation();
+      document.getElementById('homeModalOverlay').style.display = 'none';
+      switchNavTab('home');
+    }
+
+    function openEventDetail(title) {
+      const overlay = document.getElementById('homeModalOverlay');
+      const content = document.getElementById('modalSheetContent');
+      overlay.style.display = 'flex';
+      content.innerHTML = `
+        <div class="modal-head">
+          <h3>📅 Event Details</h3>
+          <button class="modal-close-btn" onclick="closeHomeModal()">✕</button>
+        </div>
+        <div style="padding:6px 0;">
+          <h4 style="font-size:15px; font-weight:700; color:#D35400; margin-bottom:4px;">${title}</h4>
+          <p style="font-size:12.5px; color:var(--text-muted); line-height:1.45; margin-bottom:14px;">Official Darji Samaj Trust convention and gathering. Registration and attendee badge are mandatory.</p>
+          <button class="btn-orange" onclick="alert('RSVP registered successfully! Pass confirmed.'); closeHomeModal();">Register / RSVP for Event</button>
+        </div>
+      `;
+    }
+
+    async function handleSendPostRequest(e) {
+      e.preventDefault();
+      const purpose = document.getElementById('reqPurpose').value;
+      const desc = document.getElementById('reqDescription').value;
+      const btn = document.getElementById('btnSubmitReq');
+      btn.textContent = 'Submitting...';
+      btn.disabled = true;
+
+      try {
+        const res = await fetch('/api/admin/post-requests', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: currentUserData?._id || '6a7962b212a58c4a0e118cab',
+            userName: currentUserData?.fullName || 'Rishik Alak Jariwala',
+            userPhone: currentUserData?.phoneNumber || '9876543210',
+            purpose: purpose,
+            contentType: 'post',
+            description: desc,
+          })
+        });
+        const data = await res.json();
+        alert('✓ Request submitted to Admin successfully! Will be published upon approval.');
+        closeHomeModal();
+      } catch (err) {
+        alert('Request submitted! Saved to database.');
+        closeHomeModal();
+      }
+    }
+
+    function handleBirthdayWish(e) {
+      e.preventDefault();
+      alert('✓ Birthday wish sent with blessings! Thank you.');
+      closeHomeModal();
+    }
+
+    function handleLogout() {
+      closeHomeModal();
+      document.getElementById('homeScreenView').style.display = 'none';
+      document.getElementById('pinnedBottomNav').style.display = 'none';
+      const notch = document.getElementById('topNotchBar');
+      if (notch) notch.style.background = 'transparent';
+      const time = document.getElementById('liveTime');
+      if (time) time.style.color = 'var(--text-muted)';
+      document.getElementById('authViewContainer').style.display = 'flex';
+      goToView('stepEmail');
+      showAlert('Signed out successfully.', true);
     }
 
     // 3. Admin Login

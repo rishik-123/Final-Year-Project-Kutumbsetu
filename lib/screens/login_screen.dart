@@ -116,7 +116,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       },
     );
   }
-
+//regex to validate email
   Future<void> _handleSendOtp() async {
     final email = _emailController.text.trim();
     final emailRegex = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$');

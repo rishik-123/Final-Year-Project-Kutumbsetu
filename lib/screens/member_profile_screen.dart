@@ -10,7 +10,8 @@ import '../constants/app_colors.dart';
 import '../models/member_model.dart';
 import '../providers/member_providers.dart';
 import '../community/community_feed.dart';
-
+/*this is the main widget that is used for fetching the data of the profile
+and showing it in the form of a list*/
 class MemberProfileScreen extends ConsumerStatefulWidget {
   final String memberId;
   final Member? member;
@@ -58,6 +59,7 @@ class _MemberProfileScreenState extends ConsumerState<MemberProfileScreen> {
     }
   }
 
+//helpper function to show lightweight messages at bottom of the screen//
   void _showSnackBar(BuildContext context, String message) {
     ScaffoldMessenger.of(context).hideCurrentSnackBar();
     ScaffoldMessenger.of(context).showSnackBar(

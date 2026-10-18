@@ -4,7 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import '../api_config.dart';
 import '../community/community_feed.dart';
-
+/*this is the main widget that is used for fetching the data of the post
+  */
 class PostDetailScreen extends ConsumerStatefulWidget {
   final String postId;
 

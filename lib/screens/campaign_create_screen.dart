@@ -12,7 +12,8 @@ import '../constants/app_colors.dart';
 import '../models/campaign_model.dart';
 import '../providers/auth_provider.dart';
 import '../providers/campaign_providers.dart';
-
+/*this is the main widget that is used for creating the 
+campaign from the admin side*/
 class CampaignCreateScreen extends ConsumerStatefulWidget {
   const CampaignCreateScreen({super.key});
 

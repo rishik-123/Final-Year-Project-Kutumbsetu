@@ -8,7 +8,7 @@ final themeModeProvider =
 
 class ThemeModeNotifier extends StateNotifier<ThemeMode> {
   ThemeModeNotifier() : super(ThemeMode.light);
-
+  //this is the main function that is used to toggle the theme
   void toggleTheme() {
     state = state == ThemeMode.light ? ThemeMode.dark : ThemeMode.light;
   }

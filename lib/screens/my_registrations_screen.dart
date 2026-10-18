@@ -12,7 +12,9 @@ import '../providers/auth_provider.dart';
 import '../providers/campaign_providers.dart';
 import '../widgets/app_bottom_nav_bar.dart';
 import '../widgets/campaign_status_badge.dart';
-
+/*this is the main widget that is used for fetching the data of the registrations
+and cancelling them
+*/
 class MyRegistrationsScreen extends ConsumerWidget {
   const MyRegistrationsScreen({super.key});
 

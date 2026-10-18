@@ -8,7 +8,8 @@ import '../models/user_model.dart';
 abstract class MemberRepository {
   Future<List<Member>> getMembers();
 }
-
+/*this is the main widget that is used for fetching the data of the 
+members from the database and showing them in the form of a list*/
 class LocalMemberRepository implements MemberRepository {
   List<Member>? _cachedMembers;
 

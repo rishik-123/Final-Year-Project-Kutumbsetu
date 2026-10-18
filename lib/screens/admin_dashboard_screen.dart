@@ -8,7 +8,10 @@ import 'package:image_picker/image_picker.dart';
 import '../../api_config.dart';
 import '../../providers/auth_provider.dart';
 import 'admin_registrations_screen.dart';
-
+/*this is the main widget that is used for fetching the data of the 
+admin dashboard like pending user registrations, user post/reel/marriage requests, 
+matrimonial requests, profiles moderation, surname analytics and events
+from the admin side*/
 class AdminDashboardScreen extends ConsumerStatefulWidget {
   const AdminDashboardScreen({super.key});
 

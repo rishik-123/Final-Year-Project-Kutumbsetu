@@ -1,4 +1,4 @@
-//file for build profile section//
+//file for posting the posts//
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
@@ -10,14 +10,15 @@ import '../api_config.dart';
 import '../providers/auth_provider.dart';
 import '../providers/theme_provider.dart';
 import 'package:image_picker/image_picker.dart';
-
+/*We use ConsumerStatefulWidget becuase it provides us 
+with the ability to use the ref variabes globally*/
 class ProfileCompletionScreen extends ConsumerStatefulWidget {
   const ProfileCompletionScreen({super.key});
 
   @override
   ConsumerState<ProfileCompletionScreen> createState() => _ProfileCompletionScreenState();
 }
-
+//this is the main function that is used to build the profile completion screen
 class _ProfileCompletionScreenState extends ConsumerState<ProfileCompletionScreen> {
   final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;

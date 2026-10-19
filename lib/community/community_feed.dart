@@ -14,6 +14,7 @@ import '../models/campaign_model.dart';
 import '../providers/auth_provider.dart';
 import '../providers/theme_provider.dart';
 
+/*This page is for community posts feed*/
 // --- DESIGN TOKENS ---
 const Color kSaffron = Color(0xFFF57C00);
 const Color kSaffronTint = Color(0xFFFFE3C2);

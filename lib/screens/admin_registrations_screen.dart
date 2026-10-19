@@ -10,6 +10,8 @@ import '../constants/app_colors.dart';
 import '../models/campaign_registration_model.dart';
 import '../providers/campaign_providers.dart';
 import '../widgets/campaign_status_badge.dart';
+/*this is the main widget that is used for fetching the data of the 
+registrations and updating them from the admin side*/
 
 class AdminRegistrationsScreen extends ConsumerStatefulWidget {
   final String campaignId;

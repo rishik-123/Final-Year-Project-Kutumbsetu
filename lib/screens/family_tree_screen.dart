@@ -126,7 +126,7 @@ class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
               }
               if (focalChildNode == null) {
                 for (var n in _nodesMap.values) {
-                  if (n.relation.toLowerCase().trim() == 'self') {
+                  if (n.relation.toLowerCase().trim() == 'self' || n.isSelf) {
                     focalChildNode = n;
                     break;
                   }
@@ -320,6 +320,9 @@ class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
     final r2 = rel2.toLowerCase().trim();
     if (r1 == 'self' && (r2 == 'wife' || r2 == 'husband' || r2 == 'spouse')) return true;
     if (r2 == 'self' && (r1 == 'wife' || r1 == 'husband' || r1 == 'spouse')) return true;
+    if (r1 == 'husband' && r2 == 'wife') return true;
+    if (r2 == 'husband' && r1 == 'wife') return true;
+    if (r1 == 'spouse' || r2 == 'spouse') return true;
     if (r1 == 'grandfather' && r2 == 'grandmother') return true;
     if (r2 == 'grandfather' && r1 == 'grandmother') return true;
     if (r1 == 'nana' && r2 == 'nani') return true;
@@ -333,7 +336,9 @@ class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
 
   Color _getRelationColor(String relation) {
     final rel = relation.toLowerCase().trim();
-    if (rel == 'husband' || rel == 'wife' || rel == 'spouse') {
+    if (rel == 'self') {
+      return const Color(0xFFD35400); // KutumbSetu Primary Orange
+    } else if (rel == 'husband' || rel == 'wife' || rel == 'spouse') {
       return const Color(0xFF2980B9); // Blue
     } else if (rel == 'father' || rel == 'mother') {
       return const Color(0xFF27AE60); // Green
@@ -723,12 +728,78 @@ class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
     );
   }
 
+  FamilyTreeNode? _findFatherInTree() {
+    for (var n in _nodesMap.values) {
+      final r = n.relation.toLowerCase().trim();
+      if (r == 'father') return n;
+    }
+    for (var n in _nodesMap.values) {
+      final r = n.relation.toLowerCase().trim();
+      if (r == 'husband') return n;
+    }
+    for (var n in _nodesMap.values) {
+      final r = n.relation.toLowerCase().trim();
+      if (r == 'self') {
+        final hasWife = _nodesMap.values.any((o) => o.relation.toLowerCase().trim() == 'wife');
+        if (hasWife) return n;
+      }
+    }
+    return null;
+  }
+
+  FamilyTreeNode? _findMotherInTree() {
+    for (var n in _nodesMap.values) {
+      final r = n.relation.toLowerCase().trim();
+      if (r == 'mother') return n;
+    }
+    for (var n in _nodesMap.values) {
+      final r = n.relation.toLowerCase().trim();
+      if (r == 'wife') return n;
+    }
+    for (var n in _nodesMap.values) {
+      final r = n.relation.toLowerCase().trim();
+      if (r == 'self') {
+        final hasHusband = _nodesMap.values.any((o) => o.relation.toLowerCase().trim() == 'husband');
+        if (hasHusband) return n;
+      }
+    }
+    return null;
+  }
+
   FamilyTreeNode getFatherOf(FamilyTreeNode node) {
     final rel = node.relation.toLowerCase().trim();
-    if (rel == 'self' || rel == 'son' || rel == 'daughter' || rel == 'child' || rel == 'brother' || rel == 'sister') {
+    final father = _findFatherInTree();
+    final mother = _findMotherInTree();
+
+    final bool isFather = (father != null && node.id == father.id) || rel == 'father' || rel == 'husband';
+    final bool isMother = (mother != null && node.id == mother.id) || rel == 'mother' || rel == 'wife';
+
+    if (isFather) {
       for (var n in _nodesMap.values) {
-        if (n.relation.toLowerCase().trim() == 'father') return n;
+        if (n.relation.toLowerCase().trim() == 'grandfather') return n;
       }
+      return FamilyTreeNode(
+        id: '${node.id}-grandfather',
+        name: node.name.isNotEmpty ? "${node.name}'s Father" : 'Grandfather',
+        photo: '',
+        relation: 'Grandfather',
+        isDeceased: true,
+        children: [],
+      );
+    } else if (isMother) {
+      for (var n in _nodesMap.values) {
+        if (n.relation.toLowerCase().trim() == 'nana') return n;
+      }
+      return FamilyTreeNode(
+        id: '${node.id}-nana',
+        name: node.name.isNotEmpty ? "${node.name}'s Father" : 'Nana',
+        photo: '',
+        relation: 'Nana',
+        isDeceased: true,
+        children: [],
+      );
+    } else {
+      if (father != null) return father;
       return FamilyTreeNode(
         id: '${node.id}-father',
         name: 'Father',
@@ -737,74 +808,35 @@ class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
         isDeceased: false,
         children: [],
       );
-    } else if (rel == 'father') {
-      for (var n in _nodesMap.values) {
-        if (n.relation.toLowerCase().trim() == 'grandfather') return n;
-      }
-      return FamilyTreeNode(
-        id: '${node.id}-father',
-        name: node.name.isNotEmpty ? "${node.name}'s Father" : 'Grandfather',
-        photo: '',
-        relation: 'Grandfather',
-        isDeceased: true,
-        children: [],
-      );
-    } else if (rel == 'mother') {
-      for (var n in _nodesMap.values) {
-        if (n.relation.toLowerCase().trim() == 'nana') return n;
-      }
-      return FamilyTreeNode(
-        id: '${node.id}-father',
-        name: node.name.isNotEmpty ? "${node.name}'s Father" : 'Nana',
-        photo: '',
-        relation: 'Nana',
-        isDeceased: true,
-        children: [],
-      );
-    } else {
-      return FamilyTreeNode(
-        id: '${node.id}-father',
-        name: node.name.isNotEmpty ? "${node.name}'s Father" : 'Ancestors',
-        photo: '',
-        relation: 'Ancestors',
-        isDeceased: true,
-        children: [],
-      );
     }
   }
 
   FamilyTreeNode getMotherOf(FamilyTreeNode node) {
     final rel = node.relation.toLowerCase().trim();
-    if (rel == 'self' || rel == 'son' || rel == 'daughter' || rel == 'child' || rel == 'brother' || rel == 'sister') {
-      for (var n in _nodesMap.values) {
-        if (n.relation.toLowerCase().trim() == 'mother') return n;
-      }
-      return FamilyTreeNode(
-        id: '${node.id}-mother',
-        name: 'Mother',
-        photo: '',
-        relation: 'Mother',
-        isDeceased: false,
-        children: [],
-      );
-    } else if (rel == 'father') {
+    final father = _findFatherInTree();
+    final mother = _findMotherInTree();
+
+    final bool isFather = (father != null && node.id == father.id) || rel == 'father' || rel == 'husband';
+    final bool isMother = (mother != null && node.id == mother.id) || rel == 'mother' || rel == 'wife';
+
+    if (isFather) {
       for (var n in _nodesMap.values) {
         if (n.relation.toLowerCase().trim() == 'grandmother') return n;
       }
       return FamilyTreeNode(
-        id: '${node.id}-mother',
+        id: '${node.id}-grandmother',
         name: node.name.isNotEmpty ? "${node.name}'s Mother" : 'Grandmother',
         photo: '',
         relation: 'Grandmother',
         isDeceased: true,
         children: [],
       );
-    } else if (rel == 'mother') {
+    } else if (isMother) {
       for (var n in _nodesMap.values) {
         if (n.relation.toLowerCase().trim() == 'nani') return n;
       }
       return FamilyTreeNode(
-        id: '${node.id}-mother',
+        id: '${node.id}-nani',
         name: node.name.isNotEmpty ? "${node.name}'s Mother" : 'Nani',
         photo: '',
         relation: 'Nani',
@@ -812,12 +844,13 @@ class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
         children: [],
       );
     } else {
+      if (mother != null) return mother;
       return FamilyTreeNode(
         id: '${node.id}-mother',
-        name: node.name.isNotEmpty ? "${node.name}'s Mother" : 'Ancestors',
+        name: 'Mother',
         photo: '',
-        relation: 'Ancestors',
-        isDeceased: true,
+        relation: 'Mother',
+        isDeceased: false,
         children: [],
       );
     }
@@ -845,7 +878,7 @@ class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
           top: 155,
           child: _buildNavigationArrow(
             icon: Icons.arrow_upward_rounded,
-            tooltip: 'Navigate to Father\'s lineage',
+            tooltip: fatherNode.isSelf ? 'Navigate to your parents (Paternal)' : 'Navigate to Father\'s lineage',
             onPressed: () {
               setState(() {
                 _focusPath.add(fatherNode);
@@ -862,7 +895,7 @@ class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
           top: 155,
           child: _buildNavigationArrow(
             icon: Icons.arrow_upward_rounded,
-            tooltip: 'Navigate to Mother\'s lineage',
+            tooltip: motherNode.isSelf ? 'Navigate to your parents (Maternal)' : 'Navigate to Mother\'s lineage',
             onPressed: () {
               setState(() {
                 _focusPath.add(motherNode);

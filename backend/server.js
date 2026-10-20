@@ -1446,16 +1446,49 @@ app.get('/api/family/my-tree', async (req, res) => {
     const userEmail = req.headers['x-user-email'];
 
     let profile = null;
+    let member = null;
+
     if (userEmail) {
-      const user = await User.findOne({ email: userEmail.toLowerCase().trim() });
+      const cleanEmail = userEmail.toLowerCase().trim();
+      const user = await User.findOne({ email: cleanEmail });
       if (user) {
         profile = await Profile.findOne({ userId: user._id }).populate('userId');
+        member = await Member.findOne({ userId: user._id });
       }
+      if (!member) member = await Member.findOne({ email: cleanEmail });
     } else if (userPhone) {
-      profile = await Profile.findOne({ phoneNumber: userPhone.replace(/\s+/g, '').trim() }).populate('userId');
+      const cleanPhone = userPhone.replace(/\s+/g, '').trim();
+      const normPhone = cleanPhone.slice(-10);
+      profile = await Profile.findOne({ phoneNumber: cleanPhone }).populate('userId');
+      member = await Member.findOne({
+        $or: [
+          { phoneNumber: cleanPhone },
+          { phoneNumber: new RegExp(`${normPhone}$`) }
+        ]
+      });
     }
 
-    if (!profile || !isProfileComplete(profile)) {
+    if (!profile && member) {
+      if (member.memberId) {
+        profile = await Profile.findOne({ memberId: member.memberId });
+      }
+      if (!profile) {
+        profile = {
+          memberId: member.memberId,
+          firstName: member.firstName || (member.fullName ? member.fullName.split(' ')[0] : ''),
+          middleName: member.middleName || '',
+          lastName: member.lastName || (member.fullName ? member.fullName.split(' ').slice(1).join(' ') : ''),
+          gender: member.gender || 'male',
+          relationshipStatus: member.maritalStatus || 'Married',
+          email: member.email || userEmail,
+          phoneNumber: member.phoneNumber || userPhone,
+          fatherName: member.fatherName || '',
+          motherName: member.motherName || '',
+        };
+      }
+    }
+
+    if ((!profile && !member) || !isProfileComplete(profile, member)) {
       return res.status(400).json({
         success: false,
         profileIncomplete: true,

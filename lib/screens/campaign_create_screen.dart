@@ -12,8 +12,14 @@ import '../constants/app_colors.dart';
 import '../models/campaign_model.dart';
 import '../providers/auth_provider.dart';
 import '../providers/campaign_providers.dart';
-/*this is the main widget that is used for creating the 
-campaign from the admin side*/
+/// Administrator Campaign & Event Creation Screen.
+/// Provides a comprehensive form builder to launch new community initiatives:
+/// 1. General Campaign Details: Title, Description, Category, Start/End dates.
+/// 2. Multimedia: Multipart file upload for high-resolution campaign banner graphics.
+/// 3. Financial Goals: Target funding amount & objective description.
+/// 4. Organizer Contacts: Contact names, phone numbers, and emergency coordinates.
+/// 5. Dynamic Form Builder: Organizers can configure custom questions
+///    (Text, Number, Dropdown, Radio, Checkbox, Date) required for registration.
 class CampaignCreateScreen extends ConsumerStatefulWidget {
   const CampaignCreateScreen({super.key});
 

@@ -11,8 +11,18 @@ import '../models/campaign_model.dart';
 import '../providers/auth_provider.dart';
 import '../providers/campaign_providers.dart';
 
+/// Dynamic Registration & Ticketing Form for Samaj Campaigns and Events.
+/// Features:
+/// 1. Displays pre-filled registrant credentials from authenticated session.
+/// 2. Role selection: Register as Attendee/Participant or as a Community Volunteer.
+/// 3. Attendee headcount selector, emergency contact person & special needs inputs.
+/// 4. Dynamic Custom Question Renderer: Dynamically generates input fields based on
+///    the organizer's schema (Text, Dropdown, Radio, Checkboxes, Date picker).
+/// 5. Submits registration to POST /api/campaign-registrations and forwards user to RegistrationSuccessScreen.
 class CampaignRegistrationScreen extends ConsumerStatefulWidget {
+  /// Unique ID of the campaign the user is enrolling in.
   final String campaignId;
+  /// Optional preloaded campaign instance.
   final Campaign? campaign;
 
   const CampaignRegistrationScreen({

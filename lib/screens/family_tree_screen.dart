@@ -337,6 +337,8 @@ class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
     return positions;
   }
 
+  /// Determines if two relation tags represent a marital/spouse couple.
+  /// Used by layout logic to pair married partners side-by-side at the same generational level.
   static bool isSpouseRelation(String rel1, String rel2) {
     final r1 = rel1.toLowerCase().trim();
     final r2 = rel2.toLowerCase().trim();
@@ -356,18 +358,20 @@ class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
     return false;
   }
 
+  /// Returns a curated color token according to the family relationship type.
+  /// Used for node borders, badges, and detail dialogues.
   Color _getRelationColor(String relation) {
     final rel = relation.toLowerCase().trim();
     if (rel == 'self') {
-      return const Color(0xFFD35400); // KutumbSetu Primary Orange
+      return const Color(0xFFD35400); // KutumbSetu Primary Orange (Identifies logged-in user)
     } else if (rel == 'husband' || rel == 'wife' || rel == 'spouse') {
-      return const Color(0xFF2980B9); // Blue
+      return const Color(0xFF2980B9); // Blue (Spouses)
     } else if (rel == 'father' || rel == 'mother') {
-      return const Color(0xFF27AE60); // Green
+      return const Color(0xFF27AE60); // Green (Parents)
     } else if (rel == 'brother' || rel == 'sister') {
-      return const Color(0xFFE67E22); // Orange
+      return const Color(0xFFE67E22); // Orange (Siblings)
     } else if (rel == 'grandfather' || rel == 'grandmother' || rel == 'nana' || rel == 'nani' || rel == 'ancestors') {
-      return const Color(0xFF1B4F72); // Dark Blue
+      return const Color(0xFF1B4F72); // Dark Blue (Grandparents & Ancestors)
     } else if (rel == 'uncle' || rel == 'aunt') {
       return const Color(0xFF8E44AD); // Purple
     } else if (rel == 'cousin') {

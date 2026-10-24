@@ -1,5 +1,21 @@
 const mongoose = require('mongoose');
 
+/**
+ * @typedef {Object} ProfileSchema
+ * @property {mongoose.Schema.Types.ObjectId} userId - Reference to primary User account
+ * @property {'Male'|'Female'|'Other'} gender - Member gender
+ * @property {string} dateOfBirth - ISO birthdate string (YYYY-MM-DD)
+ * @property {string} phoneNumber - Verified contact phone number
+ * @property {string} bloodGroup - Member blood group (A+, B+, O+, AB+, etc.)
+ * @property {boolean} willingToDonateBlood - Emergency blood donor registry flag
+ * @property {string} village - Native ancestral village
+ * @property {string} city - Current residential city
+ * @property {string} qualification - Highest degree or educational qualification
+ * @property {string} profession - Current occupation or business
+ * @property {string} [memberId] - Unique community Member ID
+ * @property {string} [fatherId] - Father's Member ID for Vanshavali hierarchy
+ * @property {string} [motherId] - Mother's Member ID for Vanshavali hierarchy
+ */
 const profileSchema = new mongoose.Schema({
   userId: {
     type: mongoose.Schema.Types.ObjectId,

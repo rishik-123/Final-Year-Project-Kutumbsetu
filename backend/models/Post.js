@@ -1,5 +1,17 @@
 const mongoose = require('mongoose');
 
+/**
+ * @typedef {Object} PostSchema
+ * @property {mongoose.Schema.Types.ObjectId} userId - Author member user ID
+ * @property {string} authorName - Display name of post creator
+ * @property {string} [avatarText] - Initials for circular avatar
+ * @property {string} content - Post body text / announcement
+ * @property {string} [mediaUrl] - Image attachment URL or base64 storage path
+ * @property {mongoose.Schema.Types.ObjectId[]} likes - Array of user IDs who liked the post
+ * @property {Object[]} comments - Threaded comments with likes and replies
+ * @property {number} sharesCount - Count of shares across external apps
+ * @property {Date} createdAt - Timestamp of post publication
+ */
 const postSchema = new mongoose.Schema({
   userId: {
     type: mongoose.Schema.Types.ObjectId,

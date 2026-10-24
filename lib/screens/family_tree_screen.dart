@@ -460,6 +460,8 @@ class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
     );
   }
 
+  /// Form dialog to add a new relative directly attached to [parentNode].
+  /// Sends a POST request to /api/family/add-member and reloads the tree on success.
   void _showAddRelationDialog(FamilyTreeNode parentNode) {
     final nameController = TextEditingController();
     String chosenRelation = 'Son';
@@ -608,12 +610,15 @@ class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
     );
   }
 
+  /// Builds the circular profile avatar for a family member.
+  /// Handles base64 data URIs, remote network URLs, and female/male vector icons as fallbacks.
   Widget _buildAvatarWidget(FamilyTreeNode node, double radius) {
     final relColor = _getRelationColor(node.relation);
     final photo = node.photo.trim();
     final isFemale = ['mother', 'grandmother', 'nani', 'wife', 'daughter', 'sister'].contains(node.relation.toLowerCase().trim()) ||
         photo.contains('female');
 
+    // 1. Base64 decoded image format
     if (photo.startsWith('data:image') || photo.length > 200) {
       try {
         return CircleAvatar(
@@ -622,6 +627,7 @@ class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
         );
       } catch (_) {}
     } else if (photo.startsWith('http') || photo.startsWith('/uploads')) {
+      // 2. Network image URL from server uploads
       final imgUrl = photo.startsWith('/uploads')
           ? '${ApiConfig.baseUrl.replaceAll('/api', '')}$photo'
           : photo;
@@ -632,7 +638,7 @@ class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
       );
     }
 
-    // Default icon/initial styling
+    // 3. Fallback gender-specific vector avatar
     return CircleAvatar(
       radius: radius,
       backgroundColor: isFemale ? const Color(0xFFFCE4EC) : const Color(0xFFE1F5FE),

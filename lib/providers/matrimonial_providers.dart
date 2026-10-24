@@ -108,6 +108,7 @@ class MatrimonialService {
   }
 
   // 4. Send interest request
+  //future is used so that async functions can be handled
   Future<bool> sendRequest(String senderId, String receiverId) async {
     final uri = Uri.parse('$baseUrl/matrimonial/request');
     try {

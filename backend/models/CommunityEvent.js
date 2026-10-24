@@ -1,12 +1,26 @@
 const mongoose = require('mongoose');
 
+/**
+ * @typedef {Object} CommunityEventSchema
+ * @property {string} title - Event title
+ * @property {'Samuh Lagna'|'Blood Donation'|'Youth Sports Meet'|'Trust Election'|'Festival'|'General'} category - Samaj event category
+ * @property {string} date - Event date string
+ * @property {string} [time] - Event scheduled time
+ * @property {string} location - Physical venue or address
+ * @property {string} description - Comprehensive event description
+ * @property {string} [bannerUrl] - Graphic banner asset URL
+ * @property {number} registeredCount - Total confirmed attendees
+ * @property {number} capacity - Maximum capacity threshold
+ * @property {boolean} isPublishedByAdmin - Moderation and display status
+ * @property {Date} createdAt - Event creation timestamp
+ */
 const communityEventSchema = new mongoose.Schema({
   title: {
     type: String,
     required: true,
   },
   category: {
-    type: String, // 'Samuh Lagna', 'Blood Donation', 'Youth Sports Meet', 'Trust Election', 'Festival', 'General'
+    type: String,
     default: 'General',
   },
   date: {

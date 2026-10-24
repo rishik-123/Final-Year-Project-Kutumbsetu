@@ -1,5 +1,15 @@
 const mongoose = require('mongoose');
 
+/**
+ * @typedef {Object} NotificationSchema
+ * @property {mongoose.Schema.Types.ObjectId|null} [userId] - Recipient user ID (null for broadcast to all samaj members)
+ * @property {string} title - Notification alert header
+ * @property {string} message - Notification message body
+ * @property {'CAMPAIGN_ANNOUNCEMENT'|'CAMPAIGN_ACTIVE'|'CAMPAIGN_COMPLETED'|'REGISTRATION_CONFIRMATION'|'REGISTRATION_CANCELLED'|'SYSTEM'} type - Category
+ * @property {string} [referenceId] - Associated entity ID for deep linking
+ * @property {boolean} isRead - Read status indicator
+ * @property {Date} createdAt - Notification dispatch timestamp
+ */
 const notificationSchema = new mongoose.Schema({
   userId: {
     type: mongoose.Schema.Types.ObjectId,

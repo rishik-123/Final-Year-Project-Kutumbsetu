@@ -6,7 +6,7 @@ import '../models/campaign_model.dart';
 import '../models/campaign_registration_model.dart';
 import '../models/notification_model.dart';
 import 'auth_provider.dart';
-
+//provides list of caampaigns with some by default and some user defined"
 // State Filter Providers
 final selectedCategoryProvider = StateProvider<String>((ref) => 'All');
 final selectedStatusTabProvider = StateProvider<String>((ref) => 'All');

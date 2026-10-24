@@ -30,7 +30,7 @@ class FamilyTreeNode {
 
   factory FamilyTreeNode.fromJson(Map<String, dynamic> json) {
     var childrenJson = json['children'] as List? ?? [];
-    List<FamilyTreeNode> childrenList = childrenJson
+    List<FamilyTreeNode> childrenList = childrenJson//in one node many objects
         .map((c) => FamilyTreeNode.fromJson(c as Map<String, dynamic>))
         .toList();
     return FamilyTreeNode(

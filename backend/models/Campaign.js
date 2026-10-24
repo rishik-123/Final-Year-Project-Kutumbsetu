@@ -1,5 +1,14 @@
 const mongoose = require('mongoose');
 
+/**
+ * @typedef {Object} DynamicFieldSchema
+ * @property {string} fieldName - Technical identifier for the custom field
+ * @property {string} label - Human-readable label displayed on the signup form
+ * @property {'text'|'number'|'dropdown'|'radio'|'checkbox'|'date'} type - Input widget type
+ * @property {boolean} required - Mandatory input flag
+ * @property {string[]} [options] - Options list for dropdown/radio/checkbox
+ * @property {number} order - Ordering index in the form layout
+ */
 const dynamicFieldSchema = new mongoose.Schema({
   fieldName: { type: String, required: true, trim: true },
   label: { type: String, required: true, trim: true },
@@ -14,6 +23,16 @@ const dynamicFieldSchema = new mongoose.Schema({
   order: { type: Number, default: 0 },
 });
 
+/**
+ * @typedef {Object} CampaignSchema
+ * @property {string} title - Title of the campaign or event
+ * @property {string} description - Detailed objective and instructions
+ * @property {string} category - Category tag (e.g. Health, Education, Cultural, Relief)
+ * @property {'Draft'|'Upcoming'|'Active'|'Completed'|'Cancelled'} status - Lifecycle status
+ * @property {number} targetAmount - Target fundraising goal (if applicable)
+ * @property {number} amountRaised - Accumulated donations
+ * @property {DynamicFieldSchema[]} dynamicFields - Custom signup questions designed by organizers
+ */
 const campaignSchema = new mongoose.Schema(
   {
     title: {

@@ -8,6 +8,13 @@ import '../providers/campaign_providers.dart';
 import '../widgets/app_bottom_nav_bar.dart';
 import '../widgets/campaign_card.dart';
 
+/// Community Campaigns, Welfare Drives & Events Exploration Screen.
+/// Provides:
+/// 1. Comprehensive directory of community initiatives, charity drives, and camps.
+/// 2. Category filter chips (e.g. Health, Education, Relief, Cultural).
+/// 3. Status segmented tabs: All, Active, Upcoming, Completed.
+/// 4. Search bar querying titles and campaign descriptions.
+/// 5. Quick admin action button to launch CampaignCreateScreen.
 class CampaignListingScreen extends ConsumerStatefulWidget {
   const CampaignListingScreen({super.key});
 
@@ -17,7 +24,6 @@ class CampaignListingScreen extends ConsumerStatefulWidget {
 
 class _CampaignListingScreenState extends ConsumerState<CampaignListingScreen> {
   final TextEditingController _searchController = TextEditingController();
-// Frees up device memory by destroying the controller when this screen is closed
 
   @override
   void dispose() {

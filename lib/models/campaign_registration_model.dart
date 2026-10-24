@@ -40,6 +40,7 @@ class CampaignRegistration {
 
   bool get isCancelled => registrationStatus == 'Cancelled';
 
+//factory keyword is used so that claass doesn't create brand new instance evreytime
   factory CampaignRegistration.fromJson(Map<String, dynamic> json) {
     Campaign? c;
     if (json['campaignId'] is Map) {
@@ -63,7 +64,7 @@ class CampaignRegistration {
     if (json['submittedData'] != null && json['submittedData'] is Map) {
       subData = Map<String, dynamic>.from(json['submittedData'] as Map);
     }
-
+//takes data from db and prints on screen
     return CampaignRegistration(
       id: json['_id'] as String? ?? json['id'] as String? ?? '',
       campaignId: cId,

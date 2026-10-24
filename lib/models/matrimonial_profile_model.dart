@@ -181,7 +181,7 @@ class MatrimonialProfileModel {
     if (videoUrl.startsWith('/uploads')) {
       videoUrl = '${ApiConfig.baseUrl.replaceAll('/api', '')}$videoUrl';
     }
-
+//converts raw json to flutter UI//
     return MatrimonialProfileModel(
       id: json['_id'] as String? ?? json['id'] as String? ?? '',
       userId: extractedUserId,
@@ -223,7 +223,7 @@ class MatrimonialProfileModel {
       connectionStatus: json['connectionStatus'] as String? ?? 'None',
     );
   }
-
+//converts input data to json to send to mongodb//
   Map<String, dynamic> toJson() {
     return {
       '_id': id,

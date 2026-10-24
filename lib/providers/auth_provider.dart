@@ -3,7 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import '../api_config.dart';
 import '../models/user_model.dart';
-
+/*it handles logging the user in via their phone number, 
+keeping track of whether they are an Admin or a regular user, 
+updating their roles, and securely caching their profile
+ details so other features  can access them instantly.*/
 // StateProvider used by the Directory, Matrimonial, and Family Tree features
 final currentUserProvider = StateProvider<UserModel?>((ref) => null);
 

@@ -6,6 +6,12 @@ import '../../providers/auth_provider.dart';
 import '../../providers/matrimonial_providers.dart';
 import '../../models/matrimonial_profile_model.dart';
 
+/// Central Hub Dashboard for KutumbSetu Matrimonial Services.
+/// Features:
+/// 1. Candidate Biodata completion tracker (0-100% progress score).
+/// 2. Fast navigation to Candidate Profiles, Biodata Builder, and Connection Requests.
+/// 3. Community Marriage Events (Samuh Lagna, Melas) and Success Stories.
+/// 4. Premium benefits showcase and administrator moderation shortcut.
 class MatrimonialHubScreen extends ConsumerStatefulWidget {
   const MatrimonialHubScreen({super.key});
 
@@ -14,6 +20,8 @@ class MatrimonialHubScreen extends ConsumerStatefulWidget {
 }
 
 class _MatrimonialHubScreenState extends ConsumerState<MatrimonialHubScreen> {
+  /// Computes a weighted 0-100% completion score based on 5 core profile sections:
+  /// Personal Details, Education/Career, Family Background, Lifestyle, and Partner Preferences.
   int calculateCompletionPercentage(MatrimonialProfileModel? profile) {
     if (profile == null) return 0;
     int score = 0;

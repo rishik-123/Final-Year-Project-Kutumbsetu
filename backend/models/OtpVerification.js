@@ -1,5 +1,15 @@
 const mongoose = require('mongoose');
 
+/**
+ * @typedef {Object} OtpVerificationSchema
+ * @property {string} [email] - Target email address receiving the OTP code
+ * @property {string} [phone] - Target phone number receiving the SMS OTP
+ * @property {string} otp - 6-digit one-time password code
+ * @property {number} attempts - Verification attempt counter to mitigate brute-force attacks
+ * @property {number} resends - Frequency of resend requests
+ * @property {Date} createdAt - Generation timestamp
+ * @property {Date} expiresAt - Absolute expiry deadline (automatically pruned by MongoDB TTL index)
+ */
 const otpVerificationSchema = new mongoose.Schema({
   email: {
     type: String,

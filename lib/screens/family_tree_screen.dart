@@ -194,6 +194,9 @@ class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
   }
 
   // Layout mapping algorithm
+// ALGORITHM: Traverses the family tree up to 5 generations deep.
+// It uses a Breadth-First search strategy to separate generations into clean vertical levels (0 to 4),
+// while ensuring partners/spouses stay locked horizontally on the exact same level plane.
   Map<String, Offset> _calculatePositions(FamilyTreeNode root) {
     final Map<String, Offset> positions = {};
     final List<List<FamilyTreeNode>> levels = List.generate(5, (_) => []);

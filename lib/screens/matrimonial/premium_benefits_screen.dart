@@ -2,7 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../providers/theme_provider.dart';
-//premium benefits screen added for future scope
+/// Matrimonial Premium Membership Showcase Screen.
+/// Outlines community premium perks:
+/// 1. Unlimited Profile Views & Contact Unlocks.
+/// 2. Top Priority in Samaj candidate search recommendations.
+/// 3. Real-time Profile Visitor tracking analytics.
+/// 4. Golden Verified trust badge.
+/// 5. Advanced Kundali/Gotra & career lifestyle filters.
 class PremiumBenefitsScreen extends ConsumerWidget {
   const PremiumBenefitsScreen({super.key});
 

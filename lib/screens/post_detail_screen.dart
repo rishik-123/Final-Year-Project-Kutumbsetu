@@ -4,9 +4,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import '../api_config.dart';
 import '../community/community_feed.dart';
-/*this is the main widget that is used for fetching the data of the post
-  */
+
+/// Screen dedicated to displaying a single community post in KutumbSetu.
+/// Typically navigated to from push notifications, deep links, or bookmark lists.
 class PostDetailScreen extends ConsumerStatefulWidget {
+  /// The unique MongoDB ObjectId of the post to fetch and display.
   final String postId;
 
   const PostDetailScreen({super.key, required this.postId});
@@ -16,16 +18,21 @@ class PostDetailScreen extends ConsumerStatefulWidget {
 }
 
 class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
+  // Raw post data deserialized from the backend response
   dynamic _post;
+  // State flag tracking whether the post is actively being fetched from the server
   bool _isLoading = true;
+  // Stores error message in case of network failures or removed posts
   String? _error;
 
   @override
   void initState() {
     super.initState();
+    // Trigger initial post fetch when the screen is loaded
     _fetchPost();
   }
 
+  /// Fetches post data from GET /api/community/posts/:postId
   Future<void> _fetchPost() async {
     if (!mounted) return;
     setState(() {
@@ -76,7 +83,9 @@ class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
         foregroundColor: Colors.white,
       ),
       body: _isLoading
+          // Loading indicator while waiting for server response
           ? const Center(child: CircularProgressIndicator())
+          // Error state with retry button
           : _error != null
               ? Center(
                   child: Padding(
@@ -110,6 +119,7 @@ class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
                     ),
                   ),
                 )
+              // Pull-to-refresh wrapper displaying the community PostCard
               : RefreshIndicator(
                   onRefresh: _fetchPost,
                   child: SingleChildScrollView(

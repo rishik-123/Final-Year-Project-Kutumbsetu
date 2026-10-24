@@ -16,6 +16,18 @@ import '../community/community_feed.dart';
 import 'package:http/http.dart' as http;
 import '../api_config.dart';
 
+/// Main Dashboard / Home Screen of KutumbSetu (કુટુંબસેતુ).
+/// Acts as the central community portal connecting members with:
+/// 1. Dynamic Community Feed: Community posts, stories, announcements, and short video reels.
+/// 2. Live Community Highlights:
+///    - Auto-scrolling Birthday Greetings ticker (`/api/community/birthdays`).
+///    - Upcoming Samaj Events & Camps (`/api/community/events`).
+///    - Featured Families & Vanshavali spotlights (`/api/community/featured-families`).
+/// 3. Real-Time Relationship & Connection Alerts:
+///    - Matrimonial interest requests and match celebrations.
+///    - Directory follow/connect requests and acceptance notifications.
+/// 4. Quick Access Hub: Family Tree (Vanshavali), Matrimonial Hub, Member Directory, Campaigns, Blood Donation.
+/// 5. Notification Center modal with unread badges and Gujarati/English localization.
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
@@ -24,15 +36,20 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
+  // Current bottom navigation bar tab index
   int _currentIndex = 0;
+  // Scroll controller for the auto-scrolling community birthday ticker
   final ScrollController _birthdayScrollController = ScrollController();
+  // Timer for background polling of connection requests
   Timer? _approvalPollTimer;
 
-  // Dynamic Home Feed Data
+  // Dynamic Home Feed State Lists
   List<dynamic> _dynamicBirthdays = [];
   List<dynamic> _dynamicEvents = [];
   List<dynamic> _dynamicFeaturedFamilies = [];
   int _communityTotalMembers = 1240;
+
+  // Flags to prevent repetitive alert dialog popups during a single session
   bool _checkedMatrimonialAlerts = false;
   bool _checkedDirectoryAlerts = false;
   bool _checkedAcceptedAlerts = false;
@@ -41,6 +58,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    // Fetch all dynamic community sections from the backend
     _fetchHomeDynamicData();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Future.delayed(const Duration(milliseconds: 600), () {

@@ -14,6 +14,13 @@ import '../widgets/sort_modal_sheet.dart';
 import '../widgets/sticky_alphabet_index.dart';
 import '../widgets/app_bottom_nav_bar.dart';
 
+/// Interactive Community Member Directory Screen.
+/// Displays all verified samaj members with:
+/// 1. Debounced real-time search across names, villages, and professions.
+/// 2. Multi-category filter bottom sheet (Village, Shakha, Blood Group, Marital Status, Education, Profession).
+/// 3. Sort options (A-Z, Z-A, Profession, Village, Age, Recently Joined).
+/// 4. Sticky A-Z alphabet fast-scroll index on the right edge.
+/// 5. Direct navigation to MemberProfileScreen.
 class MemberDirectoryScreen extends ConsumerStatefulWidget {
   const MemberDirectoryScreen({super.key});
 
@@ -24,16 +31,21 @@ class MemberDirectoryScreen extends ConsumerStatefulWidget {
 
 class _MemberDirectoryScreenState
     extends ConsumerState<MemberDirectoryScreen> {
+  // Controller for programmatic scrolling to specific alphabetical sections
   final ScrollController _scrollController = ScrollController();
+  // Global keys assigned to each letter header widget for Scrollable.ensureVisible
   final Map<String, GlobalKey> _letterKeys = {};
+  // Currently highlighted letter in the sticky A-Z scroller
   String _activeLetter = 'A';
 
   @override
   void initState() {
     super.initState();
+    // Initialize global keys for each alphabet letter (A-Z)
     for (final letter in AppConstants.alphabetIndex) {
       _letterKeys[letter] = GlobalKey();
     }
+    // Load current user's connection status after the first frame renders
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final user = ref.read(currentUserProvider);
       if (user != null) {
@@ -48,6 +60,7 @@ class _MemberDirectoryScreenState
     super.dispose();
   }
 
+  /// Scrolls the member list smoothly to the chosen alphabet section header.
   void _scrollToLetter(String letter) {
     setState(() {
       _activeLetter = letter;
@@ -63,6 +76,7 @@ class _MemberDirectoryScreenState
     }
   }
 
+  /// Opens the multi-category filter modal bottom sheet.
   void _openFilterModal([String category = 'Village']) {
     showModalBottomSheet(
       context: context,
@@ -72,6 +86,7 @@ class _MemberDirectoryScreenState
     );
   }
 
+  /// Opens the sort modal bottom sheet.
   void _openSortModal() {
     showModalBottomSheet(
       context: context,

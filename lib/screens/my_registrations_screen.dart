@@ -12,12 +12,17 @@ import '../providers/auth_provider.dart';
 import '../providers/campaign_providers.dart';
 import '../widgets/app_bottom_nav_bar.dart';
 import '../widgets/campaign_status_badge.dart';
-/*this is the main widget that is used for fetching the data of the registrations
-and cancelling them
-*/
+
+/// Screen displaying all community campaigns and events registered by the currently logged-in user.
+/// Allows the user to:
+/// 1. View all active and past campaign registrations.
+/// 2. Inspect full registration details via a bottom sheet modal.
+/// 3. Cancel an active registration via PATCH /api/campaign-registrations/:id/cancel.
 class MyRegistrationsScreen extends ConsumerWidget {
   const MyRegistrationsScreen({super.key});
 
+  /// Displays a confirmation dialog and triggers cancellation of the specified registration.
+  /// Sends PATCH request to /api/campaign-registrations/:id/cancel and invalidates the Riverpod provider.
   Future<void> _cancelRegistration(BuildContext context, WidgetRef ref, CampaignRegistration reg) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -63,6 +68,7 @@ class MyRegistrationsScreen extends ConsumerWidget {
       final data = jsonDecode(response.body);
 
       if (response.statusCode == 200 && data['success'] == true) {
+        // Invalidate provider to automatically refresh registration list
         ref.invalidate(myRegistrationsProvider);
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -85,6 +91,8 @@ class MyRegistrationsScreen extends ConsumerWidget {
     }
   }
 
+  /// Displays a comprehensive bottom sheet containing all submitted registration data,
+  /// including custom dynamic form responses and emergency contacts.
   void _showRegistrationDetailsModal(BuildContext context, CampaignRegistration reg) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final dateFormat = DateFormat('MMMM d, yyyy — hh:mm a');
@@ -129,6 +137,7 @@ class MyRegistrationsScreen extends ConsumerWidget {
                 _buildDetailItem('Special Requirements', reg.specialRequirements),
               _buildDetailItem('Registered Date', dateFormat.format(reg.registeredAt)),
 
+              // Display custom form responses if submitted during campaign signup
               if (reg.submittedData.isNotEmpty) ...[
                 const SizedBox(height: 12),
                 Text('Additional Responses:', style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 13)),
@@ -161,6 +170,7 @@ class MyRegistrationsScreen extends ConsumerWidget {
     );
   }
 
+  /// Helper row widget for clean key-value formatting inside the details modal.
   Widget _buildDetailItem(String label, String value) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8.0),
@@ -184,6 +194,7 @@ class MyRegistrationsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    // Watch reactive state of the user's registrations from Riverpod
     final registrationsAsync = ref.watch(myRegistrationsProvider);
     final dateFormat = DateFormat('MMM d, yyyy');
 
@@ -191,13 +202,16 @@ class MyRegistrationsScreen extends ConsumerWidget {
       appBar: AppBar(
         title: Text('My Registered Campaigns', style: GoogleFonts.poppins(fontWeight: FontWeight.bold)),
       ),
+      // Pull-to-refresh invalidates the provider cache and reloads from server
       body: RefreshIndicator(
         onRefresh: () async => ref.invalidate(myRegistrationsProvider),
         child: registrationsAsync.when(
           data: (registrations) {
+            // Empty state when user has not yet registered for any campaign
             if (registrations.isEmpty) {
               return _buildEmptyState(context);
             }
+            // List of registered campaigns
             return ListView.builder(
               padding: const EdgeInsets.all(16),
               itemCount: registrations.length,
@@ -226,7 +240,7 @@ class MyRegistrationsScreen extends ConsumerWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Top Row: Registration ID & Status Badge
+                        // Top Row: Registration ID Chip & Status Badge
                         Row(
                           children: [
                             Container(
@@ -257,6 +271,7 @@ class MyRegistrationsScreen extends ConsumerWidget {
                         ),
                         const SizedBox(height: 4),
 
+                        // Campaign Category
                         Text(
                           'Category: ${campaign?.category ?? 'General'}',
                           style: TextStyle(
@@ -266,6 +281,7 @@ class MyRegistrationsScreen extends ConsumerWidget {
                         ),
                         const SizedBox(height: 10),
 
+                        // Registration Date
                         Row(
                           children: [
                             const Icon(Icons.event_rounded, size: 14, color: AppColors.accentBlue),
@@ -294,6 +310,7 @@ class MyRegistrationsScreen extends ConsumerWidget {
                               ),
                             ),
                             const Spacer(),
+                            // Only show cancel action if the registration is currently active
                             if (!reg.isCancelled)
                               TextButton.icon(
                                 onPressed: () => _cancelRegistration(context, ref, reg),
@@ -317,6 +334,7 @@ class MyRegistrationsScreen extends ConsumerWidget {
     );
   }
 
+  /// Empty state placeholder rendered when the user has zero campaign registrations.
   Widget _buildEmptyState(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Center(

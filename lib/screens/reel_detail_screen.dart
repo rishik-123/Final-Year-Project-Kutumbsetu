@@ -5,7 +5,10 @@ import 'package:http/http.dart' as http;
 import '../api_config.dart';
 import '../community/community_feed.dart';
 
+/// Screen dedicated to displaying a single short video/reel in KutumbSetu.
+/// Typically navigated to from deep links, notifications, or direct shares.
 class ReelDetailScreen extends ConsumerStatefulWidget {
+  /// The unique MongoDB ObjectId of the reel to display.
   final String reelId;
 
   const ReelDetailScreen({super.key, required this.reelId});
@@ -15,16 +18,21 @@ class ReelDetailScreen extends ConsumerStatefulWidget {
 }
 
 class _ReelDetailScreenState extends ConsumerState<ReelDetailScreen> {
+  // Raw reel data received from the backend JSON response
   dynamic _reel;
+  // Indicates if API call is currently fetching the reel data
   bool _isLoading = true;
+  // Stores error message if fetching fails or reel is removed
   String? _error;
 
   @override
   void initState() {
     super.initState();
+    // Fetch reel details as soon as the widget is inserted into the tree
     _fetchReel();
   }
 
+  /// Fetches the reel by ID from GET /api/community/reels/:reelId
   Future<void> _fetchReel() async {
     if (!mounted) return;
     setState(() {
@@ -66,7 +74,7 @@ class _ReelDetailScreenState extends ConsumerState<ReelDetailScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: Colors.black, // Dark aesthetic matching media players
       appBar: AppBar(
         title: const Text('Community Reel'),
         backgroundColor: Colors.black,
@@ -74,7 +82,9 @@ class _ReelDetailScreenState extends ConsumerState<ReelDetailScreen> {
         elevation: 0,
       ),
       body: _isLoading
+          // Loading spinner while API request completes
           ? const Center(child: CircularProgressIndicator())
+          // Error state with retry action
           : _error != null
               ? Center(
                   child: Padding(
@@ -108,6 +118,7 @@ class _ReelDetailScreenState extends ConsumerState<ReelDetailScreen> {
                     ),
                   ),
                 )
+              // Renders using the Instagram-style full-screen video player component
               : InstagramStyleReel(
                   reel: _reel,
                   onRefresh: _fetchReel,

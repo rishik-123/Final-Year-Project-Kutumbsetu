@@ -10,10 +10,18 @@ import '../constants/app_colors.dart';
 import '../models/member_model.dart';
 import '../providers/member_providers.dart';
 import '../community/community_feed.dart';
-/*this is the main widget that is used for fetching the data of the profile
-and showing it in the form of a list*/
+/// Screen displaying comprehensive profile details of a single community member.
+/// Features:
+/// 1. Parallax SliverAppBar with animated Hero avatar initials and verified badge.
+/// 2. Direct communication triggers: Phone call (`tel:`), WhatsApp (`wa.me`), SMS (`sms:`), Email (`mailto:`).
+/// 3. Native system share sheet (`Share.share`) for member profile details.
+/// 4. Favorite member toggle persisted in Riverpod state.
+/// 5. Grouped detail cards: Professional Details, Personal Information, Skills, Languages.
+/// 6. Feeds of all community posts uploaded by this specific member.
 class MemberProfileScreen extends ConsumerStatefulWidget {
+  /// The unique member ID (User ID) of the profile to display.
   final String memberId;
+  /// Optional preloaded member object passed via navigation routing.
   final Member? member;
 
   const MemberProfileScreen({
@@ -27,15 +35,19 @@ class MemberProfileScreen extends ConsumerStatefulWidget {
 }
 
 class _MemberProfileScreenState extends ConsumerState<MemberProfileScreen> {
+  // List of community posts authored by this member
   List<dynamic> _posts = [];
+  // Loading flag while fetching the member's community posts
   bool _isLoadingContent = true;
 
   @override
   void initState() {
     super.initState();
+    // Fetch this member's authored community posts on startup
     _fetchUserContent();
   }
 
+  /// Fetches all community feed posts authored by this member from GET /api/community/posts/user/:memberId
   Future<void> _fetchUserContent() async {
     if (!mounted) return;
     setState(() => _isLoadingContent = true);
@@ -59,7 +71,7 @@ class _MemberProfileScreenState extends ConsumerState<MemberProfileScreen> {
     }
   }
 
-//helpper function to show lightweight messages at bottom of the screen//
+  /// Helper function to display floating SnackBar notifications.
   void _showSnackBar(BuildContext context, String message) {
     ScaffoldMessenger.of(context).hideCurrentSnackBar();
     ScaffoldMessenger.of(context).showSnackBar(
@@ -72,6 +84,7 @@ class _MemberProfileScreenState extends ConsumerState<MemberProfileScreen> {
     );
   }
 
+  /// Initiates a telephone call using the device's native dialer (tel: scheme).
   Future<void> _makeCall(BuildContext context, String phoneNumber) async {
     final Uri uri = Uri(scheme: 'tel', path: phoneNumber.replaceAll(' ', ''));
     try {
@@ -87,6 +100,7 @@ class _MemberProfileScreenState extends ConsumerState<MemberProfileScreen> {
     }
   }
 
+  /// Opens WhatsApp with a pre-filled greeting message, falling back to SMS if WhatsApp is not installed.
   Future<void> _sendMessage(BuildContext context, Member member) async {
     String cleanPhone = member.mobileNumber.replaceAll(RegExp(r'[^\d]'), '');
     if (cleanPhone.length == 10) {
@@ -115,6 +129,7 @@ class _MemberProfileScreenState extends ConsumerState<MemberProfileScreen> {
     }
   }
 
+  /// Formats member details and opens the device's native sharing sheet.
   Future<void> _shareProfile(BuildContext context, Member member) async {
     final String shareText = '''
 === KutumbSetu Member Profile ===
@@ -132,6 +147,7 @@ Contact: ${member.mobileNumber}
     }
   }
 
+  /// Opens the default email client with a mailto: URI targeting the member's email address.
   Future<void> _sendEmail(BuildContext context, String email) async {
     final Uri uri = Uri(scheme: 'mailto', path: email);
     try {

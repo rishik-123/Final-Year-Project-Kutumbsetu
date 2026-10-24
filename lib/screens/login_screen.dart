@@ -9,6 +9,15 @@ import '../models/user_model.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+/// Authentication & Login Screen for KutumbSetu.
+/// Supports:
+/// 1. Passwordless Email OTP Login for community members:
+///    - Step 1: Email entry & validation -> POST /api/auth/send-email-otp
+///    - Step 2: 6-digit OTP verification -> POST /api/auth/verify-email-otp
+///    - Redirects existing members to /home, and newly verified emails to /register.
+/// 2. Direct Administrator Login:
+///    - Admin credentials verification -> POST /api/auth/admin-login
+///    - Redirects admins to /admin.
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
@@ -19,15 +28,17 @@ class LoginScreen extends ConsumerStatefulWidget {
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
 
+  /// Helper getter to determine whether the app is currently in Dark Mode
   bool get isDarkMode => ref.watch(themeModeProvider) == ThemeMode.dark;
 
-  // State Variables
-  String _currentStep = 'email'; // 'email' or 'otp'
+  // Authentication Flow State Variables
+  String _currentStep = 'email'; // Controls the active step: 'email' or 'otp'
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _otpController = TextEditingController();
   final TextEditingController _adminUsernameController = TextEditingController();
   final TextEditingController _adminPasswordController = TextEditingController();
 
+  // Progress indicators for network operations
   bool _isSendingOtp = false;
   bool _isVerifyingOtp = false;
   String? _developmentOtp;
@@ -35,6 +46,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   @override
   void initState() {
     super.initState();
+    // Ensure all input fields are reset when returning to the login screen
     _emailController.clear();
     _otpController.clear();
     _adminUsernameController.clear();
@@ -116,7 +128,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       },
     );
   }
-//regex to validate email
+  /// Validates the entered email and sends a 6-digit OTP code to the user's Gmail.
+  /// Calls POST /api/auth/send-email-otp.
   Future<void> _handleSendOtp() async {
     final email = _emailController.text.trim();
     final emailRegex = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$');
@@ -161,6 +174,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
   }
 
+  /// Verifies the entered 6-digit OTP code with the backend via POST /api/auth/verify-email-otp.
+  /// If the account exists, fetches profile via AuthService and routes to /home.
+  /// If this is a new verified email, routes to /register.
   Future<void> _handleVerifyOtp() async {
     final enteredOtp = _otpController.text.trim();
     if (enteredOtp.length != 6) {
@@ -188,7 +204,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
       if (response.statusCode == 200 && data['success'] == true) {
         if (data['userExists'] == true) {
-          // Registered user profile
+          // Registered user profile found -> fetch full profile and set state
           final userModel = await AuthService.fetchUserProfile(email);
           setState(() {
             _isVerifyingOtp = false;
@@ -202,7 +218,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             _showErrorSnackBar('Failed to fetch user profile details.');
           }
         } else {
-          // Email verified but not registered
+          // Email verified but not yet registered -> redirect to registration
           setState(() {
             _isVerifyingOtp = false;
           });
@@ -223,6 +239,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
   }
 
+  /// Authenticates an administrator using username and password credentials.
+  /// Calls POST /api/auth/admin-login and directs to /admin on success.
   Future<void> _handleAdminLogin() async {
     final username = _adminUsernameController.text.trim();
     final password = _adminPasswordController.text;

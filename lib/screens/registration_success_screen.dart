@@ -1,11 +1,14 @@
-//file for registration success for coampaigns and events
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../widgets/campaign_status_badge.dart';
 
+/// Screen displayed immediately after a user successfully registers for a community campaign or event.
+/// Generates a digital confirmation ticket card containing the unique registration ID,
+/// participation details, emergency contact, and direct navigation actions.
 class RegistrationSuccessScreen extends StatelessWidget {
+  /// Map containing registration details returned from the campaign registration API response.
   final Map<String, dynamic> registrationData;
 
   const RegistrationSuccessScreen({
@@ -19,6 +22,7 @@ class RegistrationSuccessScreen extends StatelessWidget {
     const saffronColor = Color(0xFFE67E22);
     const darkNavy = Color(0xFF1B4F72);
 
+    // Extract fields safely with fallbacks
     final regNum = registrationData['registrationNumber'] as String? ?? 'REG-2026-00001';
     final campaignTitle = registrationData['campaignTitle'] as String? ?? 'Campaign';
     final campaignDate = registrationData['campaignDate'] as String? ?? '';
@@ -29,6 +33,7 @@ class RegistrationSuccessScreen extends StatelessWidget {
     final emergencyContactNumber = registrationData['emergencyContactNumber'] as String? ?? '';
     final regStatus = registrationData['registrationStatus'] as String? ?? 'Registered';
 
+    // Parse and format the registration timestamp
     DateTime regDate = DateTime.now();
     if (registrationData['registeredAt'] != null) {
       regDate = DateTime.tryParse(registrationData['registeredAt'].toString()) ?? DateTime.now();
@@ -133,6 +138,7 @@ class RegistrationSuccessScreen extends StatelessWidget {
                       const Divider(),
                       const SizedBox(height: 12),
 
+                      // Key ticket details
                       _buildTicketRow('Campaign Name', campaignTitle, isDark),
                       if (campaignDate.isNotEmpty) ...[
                         const SizedBox(height: 10),
@@ -154,6 +160,7 @@ class RegistrationSuccessScreen extends StatelessWidget {
                       _buildTicketRow('Registration Date', formattedDate, isDark),
                       const SizedBox(height: 12),
 
+                      // Status Badge display
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -166,7 +173,7 @@ class RegistrationSuccessScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 28),
 
-                // Primary [ DONE ] Button
+                // Primary [ DONE ] Button - returns user to main campaigns listing
                 ElevatedButton(
                   onPressed: () => context.go('/campaigns'),
                   style: ElevatedButton.styleFrom(
@@ -187,7 +194,7 @@ class RegistrationSuccessScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
 
-                // Secondary [ VIEW MY REGISTRATIONS ] Button
+                // Secondary [ VIEW MY REGISTRATIONS ] Button - opens user's registration history
                 OutlinedButton.icon(
                   onPressed: () => context.push('/my-registrations'),
                   icon: const Icon(Icons.assignment_turned_in_rounded, size: 18),
@@ -207,6 +214,7 @@ class RegistrationSuccessScreen extends StatelessWidget {
     );
   }
 
+  /// Helper row widget for clean key-value formatting inside the digital ticket card.
   Widget _buildTicketRow(String label, String value, bool isDark) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,

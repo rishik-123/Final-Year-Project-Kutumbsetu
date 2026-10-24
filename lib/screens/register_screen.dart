@@ -10,6 +10,13 @@ import 'package:intl/intl.dart';
 import '../api_config.dart';
 import '../providers/theme_provider.dart';
 
+/// Member Registration Screen for KutumbSetu.
+/// Handles member onboarding with:
+/// 1. Profile image capture via camera or gallery picker (compressed & encoded to Base64).
+/// 2. Personal demographic data: First, Middle, and Last name, Gender, Date of Birth with auto-calculated age.
+/// 3. Contact information: Mobile phone number, Email address, Residential address.
+/// 4. Email verification via 6-digit OTP code (POST /api/auth/send-email-otp).
+/// 5. Account creation request submitted to POST /api/users/register (pending admin verification).
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
 
@@ -20,9 +27,10 @@ class RegisterScreen extends ConsumerStatefulWidget {
 class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
 
+  /// Helper getter to determine whether the app is currently in Dark Mode
   bool get isDarkMode => ref.watch(themeModeProvider) == ThemeMode.dark;
 
-  // Form Field Controllers
+  // Form Field Text Editing Controllers
   final TextEditingController _firstNameController = TextEditingController();
   final TextEditingController _middleNameController = TextEditingController();
   final TextEditingController _lastNameController = TextEditingController();
@@ -42,7 +50,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   String? _profilePhotoBase64;
   final ImagePicker _imagePicker = ImagePicker();
 
-  // OTP & Submission State
+  // OTP Verification & Submission State
   bool _isOtpSent = false;
   bool _isSendingOtp = false;
   bool _isSubmitting = false;
@@ -62,7 +70,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     super.dispose();
   }
 
-  // Calculate age based on picked Date of Birth
+  /// Calculates age dynamically in years from the selected birth date.
   void _calculateAge(DateTime birthDate) {
     final today = DateTime.now();
     int age = today.year - birthDate.year;
@@ -72,7 +80,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     _ageController.text = age >= 0 ? age.toString() : '0';
   }
 
-  // Date of Birth Picker
+  /// Displays the date picker modal and synchronizes the selected date with the age controller.
   Future<void> _selectDateOfBirth() async {
     final now = DateTime.now();
     final initial = _selectedDob ?? DateTime(now.year - 22, now.month, now.day);
@@ -112,7 +120,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     }
   }
 
-  // Image Picker (Camera or Gallery)
+  /// Captures an image from Camera or Gallery, compresses it, and encodes it into Base64 format for the backend.
   Future<void> _pickImage(ImageSource source) async {
     try {
       final XFile? pickedFile = await _imagePicker.pickImage(

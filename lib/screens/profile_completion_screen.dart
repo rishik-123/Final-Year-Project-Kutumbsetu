@@ -1,4 +1,3 @@
-//file for posting the posts//
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
@@ -10,22 +9,35 @@ import '../api_config.dart';
 import '../providers/auth_provider.dart';
 import '../providers/theme_provider.dart';
 import 'package:image_picker/image_picker.dart';
-/*We use ConsumerStatefulWidget becuase it provides us 
-with the ability to use the ref variabes globally*/
+
+/// Screen responsible for comprehensive profile completion and editing.
+/// Captures:
+/// 1. Personal & Contact Info: Phone, Date of Birth, Gender, Blood Group, Blood Donation willingness.
+/// 2. Location & Address: Native Village, Current City, State, Residential Address.
+/// 3. Education & Profession: Highest Qualification, College, Occupation/Business.
+/// 4. Family Lineage & Vanshavali Links:
+///    - Parents: Father (name & ID), Mother (name & ID).
+///    - Paternal Grandparents: Dada & Dadi (names & IDs).
+///    - Maternal Grandparents: Nana & Nani (names & IDs).
+///    - Spouse: Name & ID.
+///    - Family Head: Relationship to Head, Family Head Phone, Family ID.
+/// 5. Submits profile data to POST /api/users/profile and updates global Riverpod state.
 class ProfileCompletionScreen extends ConsumerStatefulWidget {
   const ProfileCompletionScreen({super.key});
 
   @override
   ConsumerState<ProfileCompletionScreen> createState() => _ProfileCompletionScreenState();
 }
-//this is the main function that is used to build the profile completion screen
+
 class _ProfileCompletionScreenState extends ConsumerState<ProfileCompletionScreen> {
   final _formKey = GlobalKey<FormState>();
+  // Tracks submission loading state
   bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
+    // Prefill form controllers with existing user profile data from Riverpod
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _prefillFields();
     });
@@ -204,6 +216,7 @@ class _ProfileCompletionScreenState extends ConsumerState<ProfileCompletionScree
 
 
 
+  /// Populates all input controllers and selection state from the active user model stored in Riverpod.
   void _prefillFields() {
     final user = ref.read(currentUserProvider);
     if (user != null) {
@@ -344,6 +357,9 @@ class _ProfileCompletionScreenState extends ConsumerState<ProfileCompletionScree
     }
   }
 
+  /// Validates all form inputs, serializes demographic, lineage, and address data,
+  /// and sends an update request to POST /api/users/profile.
+  /// On success, refreshes Riverpod profile cache and redirects to /home.
   Future<void> _submitProfile() async {
     if (!_formKey.currentState!.validate()) {
       return;

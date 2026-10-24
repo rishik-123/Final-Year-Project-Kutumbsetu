@@ -650,6 +650,8 @@ class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
     );
   }
 
+  /// Builds the 220x80 pixel node card displayed at coordinate [pos] on the canvas.
+  /// Shows the member's avatar, full name, relation badge, deceased status, and a 'YOU' chip if isSelf.
   Widget _buildFocalNodeCard(FamilyTreeNode node, Offset pos, {required bool isFocal}) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final relColor = _getRelationColor(node.relation);
@@ -669,7 +671,7 @@ class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: node.isSelf
-                  ? const Color(0xFFD35400)
+                  ? const Color(0xFFD35400) // Orange highlight for logged-in user
                   : (isFocal ? const Color(0xFF27AE60) : relColor),
               width: (node.isSelf || isFocal) ? 2.5 : 1.5,
             ),
@@ -725,6 +727,7 @@ class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
                             ),
                           ),
                         ),
+                        // 'YOU' chip badge indicating the currently logged-in account
                         if (node.isSelf) ...[
                           const SizedBox(width: 4),
                           Container(
@@ -762,6 +765,11 @@ class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
     );
   }
 
+  /// Locates the Father/Husband figure in the currently loaded family tree.
+  /// Dynamically handles:
+  /// 1. Node with relation 'Father' (when Child logs in)
+  /// 2. Node with relation 'Husband' (when Mother logs in)
+  /// 3. Node with relation 'Self' whose spouse is 'Wife' (when Father logs in)
   FamilyTreeNode? _findFatherInTree() {
     for (var n in _nodesMap.values) {
       final r = n.relation.toLowerCase().trim();
@@ -781,6 +789,11 @@ class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
     return null;
   }
 
+  /// Locates the Mother/Wife figure in the currently loaded family tree.
+  /// Dynamically handles:
+  /// 1. Node with relation 'Mother' (when Child logs in)
+  /// 2. Node with relation 'Wife' (when Father logs in)
+  /// 3. Node with relation 'Self' whose spouse is 'Husband' (when Mother logs in)
   FamilyTreeNode? _findMotherInTree() {
     for (var n in _nodesMap.values) {
       final r = n.relation.toLowerCase().trim();
@@ -800,6 +813,10 @@ class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
     return null;
   }
 
+  /// Returns the father or paternal ancestor of [node]:
+  /// - If [node] is the Child: returns the Father.
+  /// - If [node] is the Father: returns Paternal Grandfather ('Grandfather').
+  /// - If [node] is the Mother: returns Maternal Grandfather ('Nana').
   FamilyTreeNode getFatherOf(FamilyTreeNode node) {
     final rel = node.relation.toLowerCase().trim();
     final father = _findFatherInTree();
@@ -809,6 +826,7 @@ class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
     final bool isMother = (mother != null && node.id == mother.id) || rel == 'mother' || rel == 'wife';
 
     if (isFather) {
+      // Upward paternal navigation -> Paternal Grandfather
       for (var n in _nodesMap.values) {
         if (n.relation.toLowerCase().trim() == 'grandfather') return n;
       }
@@ -821,6 +839,7 @@ class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
         children: [],
       );
     } else if (isMother) {
+      // Upward maternal navigation -> Maternal Grandfather (Nana)
       for (var n in _nodesMap.values) {
         if (n.relation.toLowerCase().trim() == 'nana') return n;
       }
@@ -833,6 +852,7 @@ class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
         children: [],
       );
     } else {
+      // Base view navigation -> Father of the Child
       if (father != null) return father;
       return FamilyTreeNode(
         id: '${node.id}-father',
@@ -845,6 +865,10 @@ class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
     }
   }
 
+  /// Returns the mother or maternal ancestor of [node]:
+  /// - If [node] is the Child: returns the Mother.
+  /// - If [node] is the Father: returns Paternal Grandmother ('Grandmother').
+  /// - If [node] is the Mother: returns Maternal Grandmother ('Nani').
   FamilyTreeNode getMotherOf(FamilyTreeNode node) {
     final rel = node.relation.toLowerCase().trim();
     final father = _findFatherInTree();
@@ -854,6 +878,7 @@ class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
     final bool isMother = (mother != null && node.id == mother.id) || rel == 'mother' || rel == 'wife';
 
     if (isFather) {
+      // Upward paternal navigation -> Paternal Grandmother
       for (var n in _nodesMap.values) {
         if (n.relation.toLowerCase().trim() == 'grandmother') return n;
       }
@@ -866,6 +891,7 @@ class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
         children: [],
       );
     } else if (isMother) {
+      // Upward maternal navigation -> Maternal Grandmother (Nani)
       for (var n in _nodesMap.values) {
         if (n.relation.toLowerCase().trim() == 'nani') return n;
       }
@@ -878,6 +904,7 @@ class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
         children: [],
       );
     } else {
+      // Base view navigation -> Mother of the Child
       if (mother != null) return mother;
       return FamilyTreeNode(
         id: '${node.id}-mother',

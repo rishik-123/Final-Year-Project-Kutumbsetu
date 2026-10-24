@@ -12,7 +12,7 @@ import '../models/campaign_model.dart';
 import '../providers/auth_provider.dart';
 import '../providers/campaign_providers.dart';
 import '../widgets/campaign_status_badge.dart';
-
+//page to list all caampaigns
 class CampaignDetailScreen extends ConsumerStatefulWidget {
   final String campaignId;
   final Campaign? initialCampaign;

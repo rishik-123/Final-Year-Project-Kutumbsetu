@@ -12,9 +12,18 @@ import '../models/campaign_model.dart';
 import '../providers/auth_provider.dart';
 import '../providers/campaign_providers.dart';
 import '../widgets/campaign_status_badge.dart';
-//page to list all caampaigns
+/// Detailed Overview & Signup Screen for a Single Community Campaign or Event.
+/// Features:
+/// 1. Parallax banner header with category and dynamic status badges.
+/// 2. Date/time schedules, venue location, and organizer contact information.
+/// 3. Fundraising target progress meter (if campaign includes financial goals).
+/// 4. Direct participation registration CTA button (navigating to CampaignRegistrationScreen).
+/// 5. Native share sheet integration (`Share.share`) to circulate event info.
+/// 6. Administrator controls: Update campaign lifecycle status (Active, Completed, Cancelled).
 class CampaignDetailScreen extends ConsumerStatefulWidget {
+  /// Unique ID of the campaign to inspect.
   final String campaignId;
+  /// Optional preloaded campaign instance from listing screen.
   final Campaign? initialCampaign;
 
   const CampaignDetailScreen({

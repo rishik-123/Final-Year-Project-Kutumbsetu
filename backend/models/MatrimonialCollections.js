@@ -1,6 +1,14 @@
 const mongoose = require('mongoose');
 
-// Schema for interest/connection requests
+/**
+ * @typedef {Object} MatrimonialRequestSchema
+ * @property {mongoose.Schema.Types.ObjectId} senderId - User sending the interest proposal
+ * @property {mongoose.Schema.Types.ObjectId} receiverId - Candidate receiving the interest
+ * @property {'Pending'|'Accepted'|'Rejected'} status - State of proposal
+ * @property {boolean} isPendingAlertSeenByReceiver - Flag for unread incoming request modal
+ * @property {boolean} isAcceptedAlertSeenBySender - Flag for match celebration dialog
+ * @property {Date} createdDate - Proposal submission timestamp
+ */
 const matrimonialRequestSchema = new mongoose.Schema({
   senderId: {
     type: mongoose.Schema.Types.ObjectId,

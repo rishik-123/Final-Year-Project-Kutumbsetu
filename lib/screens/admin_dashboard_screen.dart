@@ -8,10 +8,16 @@ import 'package:image_picker/image_picker.dart';
 import '../../api_config.dart';
 import '../../providers/auth_provider.dart';
 import 'admin_registrations_screen.dart';
-/*this is the main widget that is used for fetching the data of the 
-admin dashboard like pending user registrations, user post/reel/marriage requests, 
-matrimonial requests, profiles moderation, surname analytics and events
-from the admin side*/
+/// Comprehensive Central Administration & Moderation Command Center.
+/// An 8-tab operational board for Samaj trust administrators:
+/// 1. Tab 0: Pending User Registrations - Verification & Approval queue.
+/// 2. Tab 1: Community Content Requests - Moderating user posts, reels & marriage notices.
+/// 3. Tab 2: Campaign Registrations - Attendee tracking for events & welfare drives.
+/// 4. Tab 3: Matrimonial Approvals - Verifying candidate biodatas & issuing verified badges.
+/// 5. Tab 4: Community Events Publisher - Scheduling Samuh Lagna, elections & camps.
+/// 6. Tab 5: Matrimonial Requests - Monitoring community connection proposals.
+/// 7. Tab 6: Member Profile Moderation - Deleting spam and enforcing community standards.
+/// 8. Tab 7: Surname Analytics - Demographic breakdown across Shakhas and families.
 class AdminDashboardScreen extends ConsumerStatefulWidget {
   const AdminDashboardScreen({super.key});
 

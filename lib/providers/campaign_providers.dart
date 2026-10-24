@@ -1,3 +1,15 @@
+/// ============================================================================
+/// KutumbSetu - Campaign & Event Riverpod State Providers
+/// ============================================================================
+/// Manages reactive data streams and filter states for community campaigns,
+/// charity drives, social events, user registrations, and notifications:
+/// - Real-time filtering by category, execution status, and search keywords.
+/// - Dynamic category resolution from backend with offline fallback presets.
+/// - Campaign detail resolution with auto-dispose family caching.
+/// - User-specific registration tracking and administrative rosters.
+/// - In-app notification feeds with custom user header binding.
+/// ============================================================================
+
 import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
@@ -6,13 +18,18 @@ import '../models/campaign_model.dart';
 import '../models/campaign_registration_model.dart';
 import '../models/notification_model.dart';
 import 'auth_provider.dart';
-//provides list of caampaigns with some by default and some user defined"
-// State Filter Providers
+
+/// State provider holding the currently selected campaign category filter (or 'All').
 final selectedCategoryProvider = StateProvider<String>((ref) => 'All');
+
+/// State provider holding the active lifecycle status filter tab ('All', 'Upcoming', 'Ongoing', 'Completed').
 final selectedStatusTabProvider = StateProvider<String>((ref) => 'All');
+
+/// State provider storing live user search input for matching campaign titles, descriptions, and locations.
 final campaignSearchQueryProvider = StateProvider<String>((ref) => '');
 
-// Categories Provider (Extensible DB loaded from /api/categories)
+/// Asynchronous provider fetching dynamic event and campaign categories from `/categories`.
+/// Automatically supplies standard community fallback categories if network loading fails.
 final campaignCategoriesProvider = FutureProvider<List<CampaignCategory>>((ref) async {
   try {
     final response = await http
@@ -30,7 +47,7 @@ final campaignCategoriesProvider = FutureProvider<List<CampaignCategory>>((ref) 
     }
   } catch (_) {}
 
-  // Fallback default categories if server loading is delayed
+  // Fallback default categories if server loading is delayed or offline
   return const [
     CampaignCategory(id: '1', name: 'Blood Donation', slug: 'blood-donation', icon: 'water_drop'),
     CampaignCategory(id: '2', name: 'Education', slug: 'education', icon: 'school'),
@@ -43,7 +60,7 @@ final campaignCategoriesProvider = FutureProvider<List<CampaignCategory>>((ref) 
   ];
 });
 
-// Campaigns List Provider
+/// Future provider fetching community campaigns matching active category, status, and search filters.
 final campaignsListProvider = FutureProvider<List<Campaign>>((ref) async {
   final category = ref.watch(selectedCategoryProvider);
   final status = ref.watch(selectedStatusTabProvider);
@@ -72,7 +89,7 @@ final campaignsListProvider = FutureProvider<List<Campaign>>((ref) async {
   return const [];
 });
 
-// Single Campaign Detail Provider
+/// Family provider resolving detailed data for a specific campaign by its unique [id].
 final campaignDetailProvider = FutureProvider.family<Campaign?, String>((ref, id) async {
   if (id.isEmpty) return null;
   try {
@@ -90,7 +107,7 @@ final campaignDetailProvider = FutureProvider.family<Campaign?, String>((ref, id
   return null;
 });
 
-// My Registrations Provider
+/// Future provider fetching all event registrations submitted by the currently authenticated user.
 final myRegistrationsProvider = FutureProvider<List<CampaignRegistration>>((ref) async {
   final auth = ref.watch(authProvider);
   final userId = auth.user?.id;
@@ -117,7 +134,7 @@ final myRegistrationsProvider = FutureProvider<List<CampaignRegistration>>((ref)
   return const [];
 });
 
-// Admin Registrations for Campaign Provider
+/// Administrative family provider retrieving registrations across all campaigns or for a specific [campaignId].
 final campaignRegistrationsAdminProvider =
     FutureProvider.family<List<CampaignRegistration>, String>((ref, campaignId) async {
   try {
@@ -140,7 +157,7 @@ final campaignRegistrationsAdminProvider =
   return const [];
 });
 
-// User Notifications Provider
+/// Asynchronous provider fetching in-app notifications and alerts targeted at the active user.
 final notificationsProvider = FutureProvider<List<AppNotification>>((ref) async {
   final auth = ref.watch(authProvider);
   final userId = auth.user?.id;
@@ -165,3 +182,4 @@ final notificationsProvider = FutureProvider<List<AppNotification>>((ref) async 
 
   return const [];
 });
+

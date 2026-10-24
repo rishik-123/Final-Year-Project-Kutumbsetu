@@ -3,8 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../providers/matrimonial_providers.dart';
-/*saample success stories
-//for now they are hardcoded but for future scoep dynamic*/
+/// Samaj Community Success Stories & Testimonials Screen.
+/// Displays celebrated matrimonial unions formed through KutumbSetu,
+/// showcasing couple details, anniversary dates, and inspiring community testimonials.
 class SuccessStoriesScreen extends ConsumerWidget {
   const SuccessStoriesScreen({super.key});
 

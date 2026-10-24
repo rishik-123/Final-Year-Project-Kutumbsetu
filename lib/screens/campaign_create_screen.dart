@@ -24,6 +24,7 @@ class CampaignCreateScreen extends ConsumerStatefulWidget {
 class _CampaignCreateScreenState extends ConsumerState<CampaignCreateScreen> {
   final _formKey = GlobalKey<FormState>();
 
+// Private controller that captures and manages the user's input text safely inside this file
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
   final TextEditingController _targetAmountController = TextEditingController();

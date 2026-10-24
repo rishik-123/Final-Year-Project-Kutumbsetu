@@ -1,22 +1,51 @@
+/// ============================================================================
+/// KutumbSetu - Member Directory Providers & State Management
+/// ============================================================================
+/// Provides state containers and computed streams for the Community Member Directory:
+/// - Full-text search and multi-facet filtering (village, city, profession, etc.)
+/// - Configurable multi-attribute sorting (A-Z, newest, verified-first, etc.)
+/// - Member bookmarking and persistent favorites.
+/// - Alphabetical grouping for index-based list navigation.
+/// - Real-time follow/connect request workflow and connection status tracking.
+/// ============================================================================
+
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../api_config.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/member_model.dart';
 import '../repository/member_repository.dart';
-//provides fixed set of constant options
-  enum SortOption {
-    nameAZ,
-    nameZA,
-    profession,
-    city,
-    village,
-    newestJoined,
-    oldestJoined,
-    verifiedFirst,
-  }
-//allows to add custom features and methods
+
+/// Available sorting options for ordering community directory members.
+enum SortOption {
+  /// Sort alphabetically ascending by member full name.
+  nameAZ,
+
+  /// Sort alphabetically descending by member full name.
+  nameZA,
+
+  /// Sort alphabetically by profession.
+  profession,
+
+  /// Sort alphabetically by city.
+  city,
+
+  /// Sort alphabetically by native village.
+  village,
+
+  /// Show newest registered members first.
+  newestJoined,
+
+  /// Show oldest registered members first.
+  oldestJoined,
+
+  /// Prioritize verified badge holders at the top.
+  verifiedFirst,
+}
+
+/// Extension providing user-facing display labels for [SortOption].
 extension SortOptionExtension on SortOption {
+  /// Formatted localized label displayed in bottom sheets and dropdown menus.
   String get label {
     switch (this) {
       case SortOption.nameAZ:
@@ -39,15 +68,34 @@ extension SortOptionExtension on SortOption {
   }
 }
 
+
+/// Holds active multi-criteria filters for refining community member search results.
 class MemberFilterState {
+  /// Filter by specific native villages.
   final Set<String> selectedVillages;
+
+  /// Filter by current residential or business cities.
   final Set<String> selectedCities;
+
+  /// Filter by occupational titles or professions.
   final Set<String> selectedProfessions;
+
+  /// Filter by highest degree or educational qualifications.
   final Set<String> selectedEducations;
+
+  /// Filter by business categories / industry types.
   final Set<String> selectedBusinessCategories;
+
+  /// Filter by ABO/Rh blood groups.
   final Set<String> selectedBloodGroups;
+
+  /// Filter by gender (e.g. Male, Female).
   final Set<String> selectedGenders;
+
+  /// When true, only verified profiles are displayed.
   final bool? isVerifiedOnly;
+
+  /// When true, only active members are displayed.
   final bool? isActiveOnly;
 
   const MemberFilterState({
@@ -62,6 +110,7 @@ class MemberFilterState {
     this.isActiveOnly,
   });
 
+  /// Indicates whether all filter facets are empty (default reset state).
   bool get isEmpty =>
       selectedVillages.isEmpty &&
       selectedCities.isEmpty &&
@@ -73,6 +122,7 @@ class MemberFilterState {
       isVerifiedOnly == null &&
       isActiveOnly == null;
 
+  /// Total count of active filter chips across all facets.
   int get activeFilterCount {
     int count = 0;
     count += selectedVillages.length;
@@ -87,6 +137,7 @@ class MemberFilterState {
     return count;
   }
 
+  /// Returns a clone of [MemberFilterState] with optional replacements.
   MemberFilterState copyWith({
     Set<String>? selectedVillages,
     Set<String>? selectedCities,
@@ -116,8 +167,10 @@ class MemberFilterState {
   }
 }
 
+/// [StateNotifier] managing directory filter chips and toggle operations.
 class MemberFilterNotifier extends StateNotifier<MemberFilterState> {
   MemberFilterNotifier() : super(const MemberFilterState());
+
 
   void toggleVillage(String village) {
     final updated = Set<String>.from(state.selectedVillages);
@@ -210,9 +263,11 @@ class MemberFilterNotifier extends StateNotifier<MemberFilterState> {
   }
 }
 
+/// [StateNotifier] managing user's local bookmarked / starred member IDs.
 class FavoriteNotifier extends StateNotifier<Set<String>> {
   FavoriteNotifier() : super({});
 
+  /// Toggles favorite status for a given [memberId].
   void toggleFavorite(String memberId) {
     final updated = Set<String>.from(state);
     if (updated.contains(memberId)) {
@@ -224,46 +279,56 @@ class FavoriteNotifier extends StateNotifier<Set<String>> {
   }
 }
 
-// Providers definition
+/// Provider supplying the [MemberRepository] abstraction for fetching member records.
 final memberRepositoryProvider = Provider<MemberRepository>((ref) {
   return LocalMemberRepository();
 });
 
+/// Future provider fetching the unfiltered raw directory member records from the backend.
 final rawMemberListProvider = FutureProvider<List<Member>>((ref) async {
   final repo = ref.watch(memberRepositoryProvider);
   return repo.getMembers();
 });
 
+/// State provider holding the current active search bar query string.
 final searchQueryProvider = StateProvider<String>((ref) => '');
 
+/// State notifier provider tracking the currently selected sorting option.
 final sortOptionProvider =
     StateNotifierProvider<SortNotifier, SortOption>((ref) {
   return SortNotifier();
 });
 
+/// State notifier managing active sorting criteria for the directory list.
 class SortNotifier extends StateNotifier<SortOption> {
   SortNotifier() : super(SortOption.nameAZ);
 
+  /// Updates active sort criteria.
   void setSortOption(SortOption option) {
     state = option;
   }
 }
 
+/// State notifier provider holding all active filter chip selections.
 final activeFiltersProvider =
     StateNotifierProvider<MemberFilterNotifier, MemberFilterState>((ref) {
   return MemberFilterNotifier();
 });
 
+/// State notifier provider storing set of bookmarked/favorite member IDs.
 final favoriteMemberIdsProvider =
     StateNotifierProvider<FavoriteNotifier, Set<String>>((ref) {
   return FavoriteNotifier();
 });
 
+/// Computed provider applying active search queries, facet filters, and sorting
+/// to produce the final filtered list of community members.
 final filteredMembersProvider = Provider<AsyncValue<List<Member>>>((ref) {
   final rawAsync = ref.watch(rawMemberListProvider);
   final query = ref.watch(searchQueryProvider).trim().toLowerCase();
   final filters = ref.watch(activeFiltersProvider);
   final sortOption = ref.watch(sortOptionProvider);
+
 
   return rawAsync.whenData((members) {
     List<Member> result = List.from(members);
@@ -372,8 +437,7 @@ final filteredMembersProvider = Provider<AsyncValue<List<Member>>>((ref) {
 
     return result;
   });
-});
-
+/// Groups the filtered members by their primary uppercase initial character for fast alphabetical navigation.
 final groupedMembersProvider =
     Provider<AsyncValue<Map<String, List<Member>>>>((ref) {
   final filteredAsync = ref.watch(filteredMembersProvider);
@@ -388,10 +452,16 @@ final groupedMembersProvider =
   });
 });
 
-// Directory Connected / Followed Members State Management
+
+/// Represents the connection/follow state between the authenticated user and other directory members.
 class DirectoryConnectionState {
+  /// Set of member IDs currently mutually connected or followed.
   final Set<String> connectedMemberIds;
+
+  /// Set of member IDs to whom follow requests have been dispatched and are awaiting approval.
   final Set<String> pendingRequestMemberIds;
+
+  /// True during active network operations.
   final bool isLoading;
 
   const DirectoryConnectionState({
@@ -400,6 +470,7 @@ class DirectoryConnectionState {
     this.isLoading = false,
   });
 
+  /// Returns a clone of [DirectoryConnectionState] with optional overrides.
   DirectoryConnectionState copyWith({
     Set<String>? connectedMemberIds,
     Set<String>? pendingRequestMemberIds,
@@ -413,9 +484,11 @@ class DirectoryConnectionState {
   }
 }
 
+/// [StateNotifier] managing user connections, outgoing follow requests, and responses.
 class DirectoryConnectionNotifier extends StateNotifier<DirectoryConnectionState> {
   DirectoryConnectionNotifier() : super(const DirectoryConnectionState());
 
+  /// Loads confirmed connections and pending outgoing requests for the given [userId].
   Future<void> loadUserConnections(String userId) async {
     if (userId.isEmpty) return;
     try {
@@ -436,6 +509,7 @@ class DirectoryConnectionNotifier extends StateNotifier<DirectoryConnectionState
     } catch (_) {}
   }
 
+  /// Sends a follow or connection request to [targetMember].
   Future<bool> sendFollowRequest({
     required String senderId,
     required String senderName,
@@ -466,6 +540,7 @@ class DirectoryConnectionNotifier extends StateNotifier<DirectoryConnectionState
     return false;
   }
 
+  /// Responds to an incoming connection request with either 'accepted' or 'rejected'.
   Future<bool> respondToRequest(String requestId, String status) async {
     try {
       final res = await http.post(
@@ -482,17 +557,23 @@ class DirectoryConnectionNotifier extends StateNotifier<DirectoryConnectionState
     }
   }
 
+  /// Locally confirms an accepted connection request without re-fetching all connections.
   void acceptFollowRequest(String memberId) {
     final pending = Set<String>.from(state.pendingRequestMemberIds)..remove(memberId);
     final connected = Set<String>.from(state.connectedMemberIds)..add(memberId);
     state = state.copyWith(connectedMemberIds: connected, pendingRequestMemberIds: pending);
   }
 
+  /// Returns true if a mutual connection exists with [memberId].
   bool isConnected(String memberId) => state.connectedMemberIds.contains(memberId);
+
+  /// Returns true if an outgoing request to [memberId] is still pending.
   bool isPending(String memberId) => state.pendingRequestMemberIds.contains(memberId);
 }
 
+/// Global provider for managing directory member connections and follow status.
 final directoryConnectionProvider = StateNotifierProvider<DirectoryConnectionNotifier, DirectoryConnectionState>((ref) {
   return DirectoryConnectionNotifier();
 });
+
 

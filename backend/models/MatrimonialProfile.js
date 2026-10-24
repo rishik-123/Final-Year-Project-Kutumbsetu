@@ -1,5 +1,24 @@
 const mongoose = require('mongoose');
 
+/**
+ * @typedef {Object} MatrimonialProfileSchema
+ * @property {mongoose.Schema.Types.ObjectId} userId - Reference to associated User account
+ * @property {string} name - Candidate full name
+ * @property {'Male'|'Female'} gender - Candidate gender
+ * @property {Date} dob - Candidate date of birth
+ * @property {number} heightCm - Height in centimeters
+ * @property {number} weightKg - Weight in kilograms
+ * @property {string} bloodGroup - Blood group
+ * @property {string} maritalStatus - Marital status (Never Married, Divorced, Widowed)
+ * @property {string} education - Qualification degree
+ * @property {string} occupation - Current job/profession
+ * @property {number} annualIncome - Annual compensation in INR
+ * @property {string} village - Native village/gam
+ * @property {string} city - Current residence city
+ * @property {Object} familyInformation - Lineage details (Parents, Dada/Dadi, Nana/Nani)
+ * @property {Object} privacySettings - Field-level privacy and contact number visibility
+ * @property {boolean} isVerified - Samaj verification approval badge
+ */
 const matrimonialProfileSchema = new mongoose.Schema({
   userId: {
     type: mongoose.Schema.Types.ObjectId,

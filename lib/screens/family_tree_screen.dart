@@ -917,13 +917,21 @@ class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
     }
   }
 
+  /// Constructs the list of positioned widget cards and navigation controls for the active view.
+  /// - Base View (_focusPath.length == 1):
+  ///     Child at bottom center (800, 460).
+  ///     Father at top-left (660, 240) with an Up Arrow to navigate to paternal ancestors.
+  ///     Mother at top-right (940, 240) with an Up Arrow to navigate to maternal ancestors.
+  /// - Navigated View (_focusPath.length > 1):
+  ///     Focal Parent at bottom center (800, 460) with a Down Arrow to return to descendants.
+  ///     Paternal or Maternal Grandparents at top level (660, 240) and (940, 240).
   List<Widget> _buildNodeWidgets() {
     if (_focusPath.isEmpty) return [];
 
     final List<Widget> widgets = [];
 
     if (_focusPath.length == 1) {
-      // Base view: Self at bottom, Father & Mother at top
+      // Base view: Child at bottom, Father & Mother at top
       final selfNode = _focusPath[0];
       final fatherNode = getFatherOf(selfNode);
       final motherNode = getMotherOf(selfNode);
@@ -932,7 +940,7 @@ class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
       widgets.add(_buildFocalNodeCard(fatherNode, _positions[fatherNode.id]!, isFocal: false));
       widgets.add(_buildFocalNodeCard(motherNode, _positions[motherNode.id]!, isFocal: false));
 
-      // Up arrow above Father
+      // Up arrow above Father: navigates up to Paternal Grandparents
       widgets.add(
         Positioned(
           left: 660 - 20,
@@ -949,7 +957,7 @@ class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
         ),
       );
 
-      // Up arrow above Mother
+      // Up arrow above Mother: navigates up to Maternal Grandparents (Nana & Nani)
       widgets.add(
         Positioned(
           left: 940 - 20,
@@ -975,7 +983,7 @@ class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
       widgets.add(_buildFocalNodeCard(grandfatherNode, _positions[grandfatherNode.id]!, isFocal: false));
       widgets.add(_buildFocalNodeCard(grandmotherNode, _positions[grandmotherNode.id]!, isFocal: false));
 
-      // Down arrow above focalParent
+      // Down arrow above focalParent: pops the focus stack and returns to the lower generation
       widgets.add(
         Positioned(
           left: 800 - 20,
@@ -996,6 +1004,7 @@ class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
     return widgets;
   }
 
+  /// Builds a floating circular navigation arrow icon with elevation and tooltip.
   Widget _buildNavigationArrow({
     required IconData icon,
     required String tooltip,
@@ -1023,6 +1032,7 @@ class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
+    // 1. Loading State
     if (_isLoading) {
       return Scaffold(
         backgroundColor: Colors.transparent,
@@ -1042,6 +1052,7 @@ class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
       );
     }
 
+    // 2. Profile Incomplete State: Prompts user to complete profile details first
     if (_isProfileIncomplete) {
       return Scaffold(
         backgroundColor: Colors.transparent,
@@ -1153,6 +1164,7 @@ class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
       );
     }
 
+    // 3. Error State
     if (_errorMessage != null) {
       return Scaffold(
         backgroundColor: Colors.transparent,
@@ -1191,6 +1203,7 @@ class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
       );
     }
 
+    // 4. Empty State
     if (_rootNode == null) {
       return Scaffold(
         backgroundColor: Colors.transparent,
@@ -1203,7 +1216,7 @@ class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
       );
     }
 
-    // Pre-calculate positions map here to keep CustomPaint and node widgets completely in sync
+    // 5. Active Tree Canvas: Pre-calculate screen coordinates for nodes
     final Map<String, Offset> localPositions = {};
     if (_focusPath.isNotEmpty) {
       if (_focusPath.length == 1) {
@@ -1211,22 +1224,24 @@ class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
         final fatherNode = getFatherOf(selfNode);
         final motherNode = getMotherOf(selfNode);
 
-        localPositions[selfNode.id] = const Offset(800, 460);
-        localPositions[fatherNode.id] = const Offset(660, 240);
-        localPositions[motherNode.id] = const Offset(940, 240);
+        // Fixed 3-generation canvas coordinates for base view
+        localPositions[selfNode.id] = const Offset(800, 460); // Child at bottom
+        localPositions[fatherNode.id] = const Offset(660, 240); // Father at top-left
+        localPositions[motherNode.id] = const Offset(940, 240); // Mother at top-right
       } else {
         final focalParent = _focusPath.last;
         final grandfatherNode = getFatherOf(focalParent);
         final grandmotherNode = getMotherOf(focalParent);
 
-        localPositions[focalParent.id] = const Offset(800, 460);
-        localPositions[grandfatherNode.id] = const Offset(660, 240);
-        localPositions[grandmotherNode.id] = const Offset(940, 240);
+        // Fixed 3-generation canvas coordinates for navigated grandparent view
+        localPositions[focalParent.id] = const Offset(800, 460); // Focal parent at bottom
+        localPositions[grandfatherNode.id] = const Offset(660, 240); // Grandfather at top-left
+        localPositions[grandmotherNode.id] = const Offset(940, 240); // Grandmother at top-right
       }
     }
     _positions = localPositions;
 
-    // Interactive custom zoom/pinch/pan view canvas
+    // Interactive custom zoom/pinch/pan canvas view
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
@@ -1255,15 +1270,16 @@ class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
       ),
       body: InteractiveViewer(
         transformationController: _transformationController,
-        constrained: false,
+        constrained: false, // Allows unbounded canvas area larger than the screen
         boundaryMargin: const EdgeInsets.all(200),
-        minScale: 0.2,
-        maxScale: 2.0,
+        minScale: 0.2, // Minimum zoom-out level
+        maxScale: 2.0, // Maximum zoom-in level
         child: SizedBox(
           width: 1600,
           height: 1000,
           child: Stack(
             children: [
+              // Custom line painter drawing spouse connectors and parent-child stems
               CustomPaint(
                 size: const Size(1600, 1000),
                 painter: FamilyTreeLinePainter(
@@ -1273,6 +1289,7 @@ class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
                   getMotherOf: getMotherOf,
                 ),
               ),
+              // Positioned interactive node cards and arrows
               ..._buildNodeWidgets(),
             ],
           ),
@@ -1282,7 +1299,11 @@ class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
   }
 }
 
-// Line drawing custom painter
+/// Custom painter responsible for rendering relationship connector lines.
+/// Renders:
+/// 1. Horizontal blue line connecting spouses (Parents or Grandparents).
+/// 2. Small circle at the midpoint of the spouse line.
+/// 3. Vertical green line connecting the descendant child to the parents' midpoint.
 class FamilyTreeLinePainter extends CustomPainter {
   final List<FamilyTreeNode> focusPath;
   final Map<String, Offset> positions;
@@ -1307,6 +1328,7 @@ class FamilyTreeLinePainter extends CustomPainter {
     final focalNode = focusPath.last;
 
     if (focusPath.length == 1) {
+      // Base view connector lines: between Father and Mother, down to Child
       final selfNode = focalNode;
       final fatherNode = getFatherOf(selfNode);
       final motherNode = getMotherOf(selfNode);
@@ -1316,7 +1338,7 @@ class FamilyTreeLinePainter extends CustomPainter {
       final motherPos = positions[motherNode.id];
 
       if (selfPos != null && fatherPos != null && motherPos != null) {
-        // 1. Draw spouse line between Father and Mother
+        // 1. Draw horizontal blue spouse line between Father and Mother
         paint.color = const Color(0xFF2980B9);
         paint.strokeWidth = 2.5;
         canvas.drawLine(
@@ -1325,11 +1347,11 @@ class FamilyTreeLinePainter extends CustomPainter {
           paint,
         );
 
-        // Midpoint circle
+        // 2. Draw small decorative midpoint circle
         final midX = (fatherPos.dx + motherPos.dx) / 2;
         canvas.drawCircle(Offset(midX, fatherPos.dy), 4.0, paint..style = PaintingStyle.fill);
 
-        // 2. Draw vertical line from Self to the midpoint
+        // 3. Draw vertical green lineage line from Child to the parents' midpoint
         paint.color = const Color(0xFF27AE60);
         paint.strokeWidth = 2.0;
         paint.style = PaintingStyle.stroke;
@@ -1340,6 +1362,7 @@ class FamilyTreeLinePainter extends CustomPainter {
         );
       }
     } else {
+      // Navigated view connector lines: between Grandparents, down to Focal Parent
       final focalParent = focalNode;
       final grandfatherNode = getFatherOf(focalParent);
       final grandmotherNode = getMotherOf(focalParent);
@@ -1349,7 +1372,7 @@ class FamilyTreeLinePainter extends CustomPainter {
       final grandmotherPos = positions[grandmotherNode.id];
 
       if (focalPos != null && grandfatherPos != null && grandmotherPos != null) {
-        // 1. Draw spouse line between Grandfather and Grandmother at top level
+        // 1. Draw horizontal blue spouse line between Grandfather and Grandmother
         paint.color = const Color(0xFF2980B9);
         paint.strokeWidth = 2.5;
         canvas.drawLine(
@@ -1358,11 +1381,11 @@ class FamilyTreeLinePainter extends CustomPainter {
           paint,
         );
 
-        // Midpoint circle
+        // 2. Draw small decorative midpoint circle
         final midX = (grandfatherPos.dx + grandmotherPos.dx) / 2;
         canvas.drawCircle(Offset(midX, grandfatherPos.dy), 4.0, paint..style = PaintingStyle.fill);
 
-        // 2. Draw vertical line from focalParent to the midpoint of Grandfather/Grandmother
+        // 3. Draw vertical green lineage line from Focal Parent to Grandparents' midpoint
         paint.color = const Color(0xFF27AE60);
         paint.strokeWidth = 2.0;
         paint.style = PaintingStyle.stroke;

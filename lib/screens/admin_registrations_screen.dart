@@ -56,6 +56,7 @@ class _AdminRegistrationsScreenState extends ConsumerState<AdminRegistrationsScr
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
+          //snackBar is a temp message popup
           SnackBar(content: Text('Failed to update status: $e'), backgroundColor: Colors.redAccent),
         );
       }

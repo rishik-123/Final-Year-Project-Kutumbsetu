@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-
+//site for admin panel to see the matrimonial matches
 class MatrimonialAdminScreen extends ConsumerStatefulWidget {
   const MatrimonialAdminScreen({super.key});
 

@@ -3,7 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../providers/matrimonial_providers.dart';
-
+/*saample success stories
+//for now they are hardcoded but for future scoep dynamic*/
 class SuccessStoriesScreen extends ConsumerWidget {
   const SuccessStoriesScreen({super.key});
 

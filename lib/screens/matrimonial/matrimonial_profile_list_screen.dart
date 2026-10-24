@@ -6,7 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/matrimonial_providers.dart';
 import '../../models/matrimonial_profile_model.dart';
-
+//lists the profiles
 class MatrimonialProfileListScreen extends ConsumerStatefulWidget {
   final bool showShortlistedOnly;
   final bool showRecommendationsOnly;

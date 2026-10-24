@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../models/campaign_model.dart';
 import '../../providers/matrimonial_providers.dart';
-
+//maariage events screen on matrimnoail feature//
 class MarriageEventsScreen extends ConsumerStatefulWidget {
   const MarriageEventsScreen({super.key});
 
@@ -21,7 +21,7 @@ class _MarriageEventsScreenState extends ConsumerState<MarriageEventsScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final primaryOrange = const Color(0xFFE67E22);
     final primaryBlue = const Color(0xFF1B4F72);
-
+//generates colour schema for marraige events screen
     return Scaffold(
       backgroundColor: isDark ? const Color(0xFF121212) : const Color(0xFFFAFAFA),
       appBar: AppBar(

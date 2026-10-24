@@ -1,5 +1,17 @@
 const mongoose = require('mongoose');
 
+/**
+ * @typedef {Object} PostRequestSchema
+ * @property {mongoose.Schema.Types.ObjectId} userId - Submitting user ID
+ * @property {string} userName - Submitting user display name
+ * @property {'General Post'|'Marriage Announcement'|'Birthday Wish'|'Samaj News / Event'|'Achievement'} purpose - Purpose
+ * @property {'post'|'reel'} contentType - Media format
+ * @property {string} description - Text message or caption
+ * @property {string} [mediaUrl] - Attached image or video
+ * @property {'pending'|'approved'|'rejected'} status - Moderation workflow status
+ * @property {string} [adminNotes] - Feedback or rejection reason from moderators
+ * @property {mongoose.Schema.Types.ObjectId|null} [publishedId] - Link to created Post/Reel upon approval
+ */
 const postRequestSchema = new mongoose.Schema({
   userId: {
     type: mongoose.Schema.Types.ObjectId,

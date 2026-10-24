@@ -390,6 +390,8 @@ class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
     return const Color(0xFF2C3E50); // Black
   }
 
+  /// Displays an informative popup dialog with the member's photo, name, relation badge,
+  /// and an option to attach/add a new relation to this member.
   void _showNodeDetailsDialog(FamilyTreeNode node) {
     showDialog(
       context: context,

@@ -10,11 +10,16 @@ import '../constants/app_colors.dart';
 import '../models/campaign_registration_model.dart';
 import '../providers/campaign_providers.dart';
 import '../widgets/campaign_status_badge.dart';
-/*this is the main widget that is used for fetching the data of the 
-registrations and updating them from the admin side*/
-
+/// Administrator Event & Campaign Registrations Management Screen.
+/// Displays attendee rosters for single or all campaigns with:
+/// 1. Status lifecycle filter tabs: All, Registered, Pending, Approved, Rejected, Cancelled, Attended.
+/// 2. Search filtering across attendee names, phone numbers, and registration IDs.
+/// 3. Registration detail modal inspecting submitted dynamic question responses.
+/// 4. Inline status updater calling PATCH /api/campaign-registrations/:id/status.
 class AdminRegistrationsScreen extends ConsumerStatefulWidget {
+  /// Target campaign ID, or 'all' to inspect registrations across every active event.
   final String campaignId;
+  /// Flag to omit scaffold AppBar when embedded as a tab inside AdminDashboardScreen.
   final bool hideAppBar;
 
   const AdminRegistrationsScreen({

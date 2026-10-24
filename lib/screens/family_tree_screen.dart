@@ -7,15 +7,17 @@ import '../api_config.dart';
 import '../providers/auth_provider.dart';
 import 'profile_completion_screen.dart';
 
+/// Represents a single person/node in the Family Tree hierarchy.
+/// Supports recursive nested children to form a multi-generational tree.
 class FamilyTreeNode {
-  final String id;
-  final String name;
-  final String photo;
-  final String relation;
-  final String? parentId;
-  final bool isDeceased;
-  final bool isSelf;
-  final List<FamilyTreeNode> children;
+  final String id; // Unique identifier for the node (Member ID or generated fallback ID)
+  final String name; // Full display name of the family member
+  final String photo; // Profile photo (can be a base64 string, URL, or asset key)
+  final String relation; // Relationship tag relative to the family perspective (e.g. 'Father', 'Mother', 'Self')
+  final String? parentId; // ID of the parent node in the tree hierarchy
+  final bool isDeceased; // True if the member has passed away (displayed with a marker)
+  final bool isSelf; // True if this node represents the currently logged-in user
+  final List<FamilyTreeNode> children; // List of child nodes belonging to this member
 
   FamilyTreeNode({
     required this.id,
@@ -28,11 +30,14 @@ class FamilyTreeNode {
     required this.children,
   });
 
+  /// Factory constructor to deserialize JSON received from GET /api/family/my-tree
   factory FamilyTreeNode.fromJson(Map<String, dynamic> json) {
     var childrenJson = json['children'] as List? ?? [];
-    List<FamilyTreeNode> childrenList = childrenJson//in one node many objects
+    // Recursively parse all children into FamilyTreeNode instances
+    List<FamilyTreeNode> childrenList = childrenJson
         .map((c) => FamilyTreeNode.fromJson(c as Map<String, dynamic>))
         .toList();
+
     return FamilyTreeNode(
       id: json['id'] as String? ?? '',
       name: json['name'] as String? ?? '',
@@ -46,6 +51,8 @@ class FamilyTreeNode {
   }
 }
 
+/// Interactive Family Tree (Vanshavali) Screen.
+/// Provides an interactive 3-generation canvas with zoom, pan, and lineage navigation.
 class FamilyTreeScreen extends ConsumerStatefulWidget {
   const FamilyTreeScreen({super.key});
 
@@ -54,20 +61,26 @@ class FamilyTreeScreen extends ConsumerStatefulWidget {
 }
 
 class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
-  bool _isLoading = false;
-  bool _isProfileIncomplete = false;
-  String? _errorMessage;
-  FamilyTreeNode? _rootNode;
-  FamilyTreeNode? _focalNode;
-  List<FamilyTreeNode> _focusPath = [];
-  Map<String, Offset> _positions = {};
-  final Map<String, FamilyTreeNode> _nodesMap = {};
-  final Map<String, String> _parentMap = {};
+  // Screen state flags
+  bool _isLoading = false; // Indicates if API fetch is currently in progress
+  bool _isProfileIncomplete = false; // True if backend flags that user must fill profile fields first
+  String? _errorMessage; // Stores any error message to display in error view
+
+  // Tree data structures
+  FamilyTreeNode? _rootNode; // The top-level root node received from backend
+  FamilyTreeNode? _focalNode; // The currently focused child node in the 3-generation canvas
+  List<FamilyTreeNode> _focusPath = []; // Navigation stack: [child] for base view, [child, parent] for grandparent view
+  Map<String, Offset> _positions = {}; // Mapping of node IDs to (x, y) coordinates on the canvas
+  final Map<String, FamilyTreeNode> _nodesMap = {}; // Fast lookup map of all nodes by their unique ID
+  final Map<String, String> _parentMap = {}; // Lookup map of childId -> parentId
+
+  // Controller for pinch-to-zoom and panning inside the InteractiveViewer
   final TransformationController _transformationController = TransformationController();
 
   @override
   void initState() {
     super.initState();
+    // Fetch family tree immediately after the first frame renders
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _fetchFamilyTree();
     });
@@ -79,6 +92,8 @@ class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
     super.dispose();
   }
 
+  /// Fetches the user's family tree from the backend API: GET /api/family/my-tree
+  /// Sends the user's phone number and email in custom authentication headers.
   Future<void> _fetchFamilyTree() async {
     final user = ref.read(currentUserProvider);
     if (user == null) {
@@ -113,6 +128,7 @@ class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
               _rootNode = root;
               _nodesMap.clear();
               _parentMap.clear();
+              // Flatten the nested hierarchy into _nodesMap for O(1) instant lookups
               _mapNodes(root, null);
               
               // Find the focal child node for the 3-generation canvas (Son/Daughter/Child)
@@ -124,6 +140,7 @@ class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
                   break;
                 }
               }
+              // Fallback to Self node if there are no registered children in this family
               if (focalChildNode == null) {
                 for (var n in _nodesMap.values) {
                   if (n.relation.toLowerCase().trim() == 'self' || n.isSelf) {
@@ -137,11 +154,11 @@ class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
               _isLoading = false;
             });
             
-            // Auto-center the tree on startup
+            // Auto-center the virtual 1600-width canvas on startup
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (mounted) {
                 final screenWidth = MediaQuery.of(context).size.width;
-                // Canvas width is 1600, center is 800. Center the view on 800.
+                // Virtual canvas width is 1600, center is 800.
                 final double xTranslation = (screenWidth / 2) - 800;
                 _transformationController.value = Matrix4.identity()..setTranslationRaw(xTranslation, 100.0, 0.0);
               }
@@ -183,6 +200,8 @@ class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
     }
   }
 
+  /// Recursively walks the tree and flattens every node into `_nodesMap` and `_parentMap`.
+  /// This enables fast O(1) random access to any family member by ID, regardless of depth.
   void _mapNodes(FamilyTreeNode node, String? parentId) {
     _nodesMap[node.id] = node;
     if (parentId != null) {

@@ -1,5 +1,17 @@
 const mongoose = require('mongoose');
 
+/**
+ * @typedef {Object} ReelSchema
+ * @property {mongoose.Schema.Types.ObjectId} userId - Creator user account ID
+ * @property {string} authorName - Author display name
+ * @property {string} caption - Video caption description
+ * @property {string} videoUrl - Video streaming asset URL
+ * @property {string} [audioTrack] - Audio label or track name
+ * @property {mongoose.Schema.Types.ObjectId[]} likes - Array of user IDs who liked the reel
+ * @property {Object[]} comments - Comments on the reel with likes and replies
+ * @property {number} sharesCount - Number of times shared
+ * @property {Date} createdAt - Reel publication timestamp
+ */
 const reelSchema = new mongoose.Schema({
   userId: {
     type: mongoose.Schema.Types.ObjectId,

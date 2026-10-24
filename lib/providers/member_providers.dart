@@ -4,18 +4,18 @@ import '../api_config.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/member_model.dart';
 import '../repository/member_repository.dart';
-
-enum SortOption {
-  nameAZ,
-  nameZA,
-  profession,
-  city,
-  village,
-  newestJoined,
-  oldestJoined,
-  verifiedFirst,
-}
-
+//provides fixed set of constant options
+  enum SortOption {
+    nameAZ,
+    nameZA,
+    profession,
+    city,
+    village,
+    newestJoined,
+    oldestJoined,
+    verifiedFirst,
+  }
+//allows to add custom features and methods
 extension SortOptionExtension on SortOption {
   String get label {
     switch (this) {

@@ -29,9 +29,10 @@ import '../screens/reel_detail_screen.dart';
 import '../screens/admin_dashboard_screen.dart';
 
 final appRouter = GoRouter(
+  //tells first which page shall load//
   initialLocation: '/',
   routes: [
-    GoRoute(
+    GoRoute(//routes to admin panel
       path: '/admin',
       builder: (context, state) => const AdminDashboardScreen(),
     ),

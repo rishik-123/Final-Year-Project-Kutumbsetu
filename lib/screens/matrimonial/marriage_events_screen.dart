@@ -4,7 +4,12 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../models/campaign_model.dart';
 import '../../providers/matrimonial_providers.dart';
-//maariage events screen on matrimnoail feature//
+/// Matrimonial Events, Samuh Lagna & Community Meetups Screen.
+/// Displays community marriage conventions, youth intro sessions, and mass wedding events.
+/// Supports temporal filtering:
+/// - 'All': Every registered matrimonial event.
+/// - 'Current': Events scheduled today or in the future.
+/// - 'Past': Archived previous conventions and ceremonies.
 class MarriageEventsScreen extends ConsumerStatefulWidget {
   const MarriageEventsScreen({super.key});
 
@@ -13,7 +18,8 @@ class MarriageEventsScreen extends ConsumerStatefulWidget {
 }
 
 class _MarriageEventsScreenState extends ConsumerState<MarriageEventsScreen> {
-  String _selectedFilter = 'All'; // 'All', 'Current', 'Past'
+  // Active filter state: 'All', 'Current', or 'Past'
+  String _selectedFilter = 'All';
 
   @override
   Widget build(BuildContext context) {

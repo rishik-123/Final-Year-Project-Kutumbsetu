@@ -3,7 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../providers/matrimonial_providers.dart';
-//requests for matrimonial
+/// Screen managing candidate marriage connection proposals.
+/// Divided into two tabs:
+/// 1. Received Interests: Proposals sent by other candidates to the logged-in user,
+///    featuring Accept and Reject decision buttons.
+/// 2. Sent Interests: Proposals initiated by the logged-in user with status tracking
+///    ('Pending', 'Accepted', 'Rejected').
 class MatrimonialRequestsScreen extends ConsumerStatefulWidget {
   const MatrimonialRequestsScreen({super.key});
   @override

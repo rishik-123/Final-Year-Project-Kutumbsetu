@@ -225,7 +225,7 @@ class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
     traverse(root, 0);
 
     const double centerX = 800.0; // 1600 total width virtual canvas
-    
+
     for (int lvl = 0; lvl < 5; lvl++) {
       final list = levels[lvl];
       if (list.isEmpty) continue;

@@ -1,5 +1,16 @@
 const mongoose = require('mongoose');
 
+/**
+ * @typedef {Object} DirectoryRequestSchema
+ * @property {string} senderId - ID of member sending connection request
+ * @property {string} receiverId - ID of member receiving connection request
+ * @property {string} senderName - Sender full display name
+ * @property {string} receiverName - Receiver full display name
+ * @property {'pending'|'accepted'|'rejected'} status - Request lifecycle state
+ * @property {boolean} isPendingAlertSeenByReceiver - Flag for pending request modal on receiver home screen
+ * @property {boolean} isAcceptedAlertSeenBySender - Flag for accepted celebration modal on sender home screen
+ * @property {Date} createdAt - Request creation timestamp
+ */
 const directoryRequestSchema = new mongoose.Schema({
   senderId: {
     type: String,

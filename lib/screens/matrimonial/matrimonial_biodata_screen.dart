@@ -9,6 +9,12 @@ import '../../providers/auth_provider.dart';
 import '../../providers/matrimonial_providers.dart';
 import '../../api_config.dart';
 
+/// Multi-Step Matrimonial Biodata Builder & Editor Screen.
+/// Provides a 4-tab wizard for community members to create and edit their marriage profile:
+/// 1. Tab 1: Personal & Physical Details (Height, Weight, Blood Group, Marital Status, DOB).
+/// 2. Tab 2: Education & Career (Qualifications, Company, Annual Income, Work Location).
+/// 3. Tab 3: Family Background & Lineage (Father, Mother, Dada/Dadi, Nana/Nani, Gam/Village).
+/// 4. Tab 4: Partner Preferences & Gallery (Expected age/height, Hobbies tags, Photos, Privacy toggles).
 class MatrimonialBiodataScreen extends ConsumerStatefulWidget {
   const MatrimonialBiodataScreen({super.key});
 

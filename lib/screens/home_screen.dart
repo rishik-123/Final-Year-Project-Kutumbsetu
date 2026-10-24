@@ -837,6 +837,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ),
                   const Divider(),
                   Expanded(
+                    // Display empty state placeholder when user has zero unread notifications
                     child: _notifications.isEmpty
                         ? Center(
                             child: Column(

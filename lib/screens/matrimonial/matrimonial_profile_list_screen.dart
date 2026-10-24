@@ -5,10 +5,17 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/matrimonial_providers.dart';
-import '../../models/matrimonial_profile_model.dart';
-//lists the profiles
+/// Matrimonial Candidate Profiles Exploration & Filter Screen.
+/// Provides:
+/// 1. Real-time search across candidate names, native gam/villages, and professions.
+/// 2. Multi-parametric slider filters: Age Range, Height Range, Weight Range, and Annual Income Range.
+/// 3. Demographic dropdown filters: Marital Status, Current City, Native Village, Education, and Work Location.
+/// 4. Intelligent defaults matching opposite gender, with override capability.
+/// 5. Filtered modes for "Shortlisted Profiles Only" and "Smart Recommendations".
 class MatrimonialProfileListScreen extends ConsumerStatefulWidget {
+  /// If true, displays only profiles favorited/shortlisted by the logged-in user.
   final bool showShortlistedOnly;
+  /// If true, applies AI matching score recommendations based on partner preferences.
   final bool showRecommendationsOnly;
 
   const MatrimonialProfileListScreen({

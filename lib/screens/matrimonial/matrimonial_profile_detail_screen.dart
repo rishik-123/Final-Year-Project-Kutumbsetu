@@ -7,7 +7,19 @@ import '../../providers/auth_provider.dart';
 import '../../providers/matrimonial_providers.dart';
 import '../../models/matrimonial_profile_model.dart';
 
+/// In-Depth Matrimonial Candidate Profile View Screen.
+/// Displays full samaj biodata with privacy and access controls:
+/// 1. Dynamic privacy locks: Phone number and private gallery photos are protected until
+///    mutual proposal acceptance (`isUnlocked = isOwnProfile || connectionStatus == 'Accepted'`).
+/// 2. Comprehensive biodata sections:
+///    - Basic Demographics & Physical Stats (Height, Weight, Blood Group).
+///    - Kundali / Astrological Details (Rashi, Nakshatra, Manglik status).
+///    - Education & Employment (Degrees, College, Company, Income).
+///    - Family Lineage (Father, Mother, Paternal & Maternal Grandparents).
+///    - Partner Expectations & Lifestyle preferences.
+/// 3. Interaction toolbar: Send Interest Proposal, Add to Shortlist, and Call/WhatsApp triggers.
 class MatrimonialProfileDetailScreen extends ConsumerStatefulWidget {
+  /// The unique User ID of the candidate whose biodata is being viewed.
   final String userId;
 
   const MatrimonialProfileDetailScreen({super.key, required this.userId});

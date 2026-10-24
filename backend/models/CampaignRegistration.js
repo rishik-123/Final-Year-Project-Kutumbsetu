@@ -1,5 +1,20 @@
 const mongoose = require('mongoose');
 
+/**
+ * @typedef {Object} CampaignRegistrationSchema
+ * @property {mongoose.Schema.Types.ObjectId} campaignId - Reference to associated Campaign
+ * @property {mongoose.Schema.Types.ObjectId} userId - Reference to registering User
+ * @property {string} registrationNumber - Formatted ticket ID (e.g. REG-2026-00042)
+ * @property {'Participant'|'Volunteer'} participationType - Role of registrant
+ * @property {number} numberOfParticipants - Headcount attending under this ticket
+ * @property {string} [specialRequirements] - Dietary, medical, or accessibility notes
+ * @property {string} [emergencyContactName] - Emergency contact person
+ * @property {string} [emergencyContactNumber] - Emergency contact phone number
+ * @property {Map<string, *>} submittedData - Responses to organizer-defined dynamic questions
+ * @property {'Registered'|'Pending'|'Approved'|'Rejected'|'Cancelled'|'Attended'} registrationStatus - Status
+ * @property {Date} registeredAt - Initial registration timestamp
+ * @property {Date|null} cancellationTimestamp - Cancellation timestamp if revoked
+ */
 const campaignRegistrationSchema = new mongoose.Schema(
   {
     campaignId: {

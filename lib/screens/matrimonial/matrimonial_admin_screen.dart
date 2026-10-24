@@ -2,7 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-//site for admin panel to see the matrimonial matches
+/// Administrator Moderation & Verification Board for Matrimonial Biodatas.
+/// Allows community trust admins to:
+/// 1. Inspect submitted marriage biodatas, education, and family claims.
+/// 2. Approve genuine profiles, granting the verified blue badge.
+/// 3. Reject incomplete or unverified submissions to keep the directory authentic.
 class MatrimonialAdminScreen extends ConsumerStatefulWidget {
   const MatrimonialAdminScreen({super.key});
 

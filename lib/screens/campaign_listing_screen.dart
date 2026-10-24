@@ -17,6 +17,7 @@ class CampaignListingScreen extends ConsumerStatefulWidget {
 
 class _CampaignListingScreenState extends ConsumerState<CampaignListingScreen> {
   final TextEditingController _searchController = TextEditingController();
+// Frees up device memory by destroying the controller when this screen is closed
 
   @override
   void dispose() {

@@ -21,17 +21,17 @@ void main() async {
     ),
   );
 }
-
+//CONSUMER WIDGET USES RIVERPOD STATE MANAGEMENT LIBRARY
 class KutumbSetuApp extends ConsumerWidget {
   const KutumbSetuApp({super.key});
-
+// super.key automatically passes this widget's unique ID to the parent ConsumerWidget class
   @override
+  //REF COMPONENT TO WATCH APPLICATION STATE
   Widget build(BuildContext context, WidgetRef ref) {
     final themeMode = ref.watch(themeModeProvider);
-
-    return MaterialApp.router(
+    return MaterialApp.router(//bcoz we use gorouter
       title: 'KutumbSetu',
-      debugShowCheckedModeBanner: false,
+      debugShowCheckedModeBanner: false,//removes the red banner
       theme: KutumbSetuTheme.lightTheme,
       darkTheme: KutumbSetuTheme.darkTheme,
       themeMode: themeMode,

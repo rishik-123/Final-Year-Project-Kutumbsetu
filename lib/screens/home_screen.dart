@@ -42,7 +42,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   final ScrollController _birthdayScrollController = ScrollController();
   // Timer for background polling of connection requests
   Timer? _approvalPollTimer;
-
+//this code for te home screen
   // Dynamic Home Feed State Lists
   List<dynamic> _dynamicBirthdays = [];
   List<dynamic> _dynamicEvents = [];

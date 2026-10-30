@@ -437,6 +437,8 @@ final filteredMembersProvider = Provider<AsyncValue<List<Member>>>((ref) {
 
     return result;
   });
+});
+
 /// Groups the filtered members by their primary uppercase initial character for fast alphabetical navigation.
 final groupedMembersProvider =
     Provider<AsyncValue<Map<String, List<Member>>>>((ref) {

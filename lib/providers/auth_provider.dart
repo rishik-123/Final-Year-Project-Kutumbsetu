@@ -1,29 +1,15 @@
-/// ============================================================================
-/// KutumbSetu - Authentication & User State Providers
-/// ============================================================================
-/// Handles user authentication, persistent session tracking, role-based
-/// authorization (Admin vs. Community Member), and global user profile caching.
-///
-/// Features:
-/// - Synchronized dual-provider architecture (`currentUserProvider` & `authProvider`).
-/// - Real-time role switching and patching for administration features.
-/// - REST API integration for phone-based profile resolution.
-/// ============================================================================
-
 import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import '../api_config.dart';
 import '../models/user_model.dart';
 
-/// Global [StateProvider] holding the currently active [UserModel].
-/// Used directly across Member Directory, Matrimonial, and Family Tree modules.
+/// Holds the currently logged-in user's profile across the app.
 final currentUserProvider = StateProvider<UserModel?>((ref) => null);
 
-/// Service providing helper methods for fetching and resolving user profiles over HTTP.
+/// Service for authentication-related network calls.
 class AuthService {
-  /// Fetches a user's complete profile by their registered phone number.
-  /// Cleanses phone formatting and decodes the backend JSON response.
+  /// Fetches a user's profile from the backend using their phone number.
   static Future<UserModel?> fetchUserProfile(String phoneNumber) async {
     try {
       final sanitizedPhone = phoneNumber.replaceAll(' ', '').trim();
@@ -44,15 +30,10 @@ class AuthService {
   }
 }
 
-/// Immutable state model representing authentication status, active user data, and errors.
+/// Authentication state including current user, loading status, and error message.
 class AuthState {
-  /// Currently authenticated user, or null if unauthenticated.
   final UserModel? user;
-
-  /// True during active background authentication or profile loading operations.
   final bool isLoading;
-
-  /// Human-readable error message if the last operation failed.
   final String? error;
 
   const AuthState({
@@ -61,13 +42,13 @@ class AuthState {
     this.error,
   });
 
-  /// Quick helper checking if a valid session exists.
+  /// True if a user is currently authenticated.
   bool get isAuthenticated => user != null;
 
-  /// Quick helper verifying administrator privileges.
+  /// True if the authenticated user has admin privileges.
   bool get isAdmin => user?.isAdmin ?? false;
 
-  /// Creates a copy of [AuthState] with optional overrides.
+  /// Returns a copy of this state with updated values.
   AuthState copyWith({
     UserModel? user,
     bool? isLoading,
@@ -82,19 +63,18 @@ class AuthState {
   }
 }
 
-/// State notifier managing login state, profile updates, and role toggles.
+/// Manages authentication lifecycle, profile retrieval, and role switching.
 class AuthNotifier extends StateNotifier<AuthState> {
   final Ref ref;
 
   AuthNotifier(this.ref) : super(const AuthState()) {
-    // Synchronize initial state with currentUserProvider if already populated
     final current = ref.read(currentUserProvider);
     if (current != null) {
       state = state.copyWith(user: current);
     }
   }
 
-  /// Asynchronously fetches a user record by phone number and updates global state.
+  /// Fetches user profile by phone number and updates the authentication state.
   Future<void> fetchUserByPhone(String phone) async {
     state = state.copyWith(isLoading: true, error: null);
     try {
@@ -118,14 +98,14 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  /// Manually assigns a new active [UserModel] to the authentication state.
+  /// Updates the currently active user profile.
   void setUser(UserModel user) {
     if (state.user != user) {
       state = state.copyWith(user: user);
     }
   }
 
-  /// Toggles between Admin/Organizer and regular User roles for testing/administration.
+  /// Toggles between Admin and User roles and persists changes to the backend.
   void toggleAdminRole() async {
     if (state.user == null) return;
     final currentRole = state.user!.role;
@@ -144,18 +124,18 @@ class AuthNotifier extends StateNotifier<AuthState> {
     } catch (_) {}
   }
 
-  /// Clears the authentication session and resets both providers.
+  /// Clears user session and logs out.
   void logout() {
     state = state.copyWith(clearUser: true);
     ref.read(currentUserProvider.notifier).state = null;
   }
 }
 
-/// [StateNotifierProvider] managing authentication state, listening for external updates.
+/// Provider managing authentication state and keeping it in sync with [currentUserProvider].
 final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
   final notifier = AuthNotifier(ref);
 
-  // Sync authProvider state when currentUserProvider is mutated directly (e.g. at login screen)
+  // Sync authProvider state when currentUserProvider is updated externally
   ref.listen<UserModel?>(currentUserProvider, (previous, next) {
     if (next != null) {
       notifier.setUser(next);
@@ -166,4 +146,3 @@ final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
 
   return notifier;
 });
-

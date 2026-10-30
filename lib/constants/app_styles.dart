@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'app_colors.dart';
 
+//provides fonts for dark mode//
 class AppStyles {
   static List<BoxShadow> cardShadow(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -21,7 +22,7 @@ class AppStyles {
             ),
           ];
   }
-
+//used for creating app bars//
   static BoxDecoration glassDecoration(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return BoxDecoration(

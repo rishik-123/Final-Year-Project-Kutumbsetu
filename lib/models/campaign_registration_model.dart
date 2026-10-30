@@ -40,18 +40,19 @@ class CampaignRegistration {
 
   bool get isCancelled => registrationStatus == 'Cancelled';
 
-//factory keyword is used so that claass doesn't create brand new instance evreytime
+/*factory keywrod is sued bcoz we verify first that all data is verfied and parsed successfully
+and once the data is ready we create object and send the data*/
   factory CampaignRegistration.fromJson(Map<String, dynamic> json) {
     Campaign? c;
     if (json['campaignId'] is Map) {
       c = Campaign.fromJson(json['campaignId'] as Map<String, dynamic>);
     }
-
+//here ?means that the value can be null//
     UserModel? u;
     if (json['userId'] is Map) {
       u = UserModel.fromJson(json['userId'] as Map<String, dynamic>);
     }
-
+// Handles campaignId whether it arrives as a Object or a plain String ID.
     final cId = json['campaignId'] is Map
         ? (json['campaignId']['_id'] as String? ?? '')
         : (json['campaignId'] as String? ?? '');

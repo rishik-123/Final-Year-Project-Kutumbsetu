@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../providers/auth_provider.dart';
+import '../../models/matrimonial_profile_model.dart';
 import '../../providers/matrimonial_providers.dart';
 /// Matrimonial Candidate Profiles Exploration & Filter Screen.
 /// Provides:

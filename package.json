@@ -1,5 +1,9 @@
 {
   "devDependencies": {
     "webdriverio": "^9.31.5"
+  },
+  "dependencies": {
+    "appium": "^3.9.0",
+    "appium-uiautomator2-driver": "^8.7.3"
   }
 }

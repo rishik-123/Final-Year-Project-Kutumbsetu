@@ -93,7 +93,7 @@ final appRouter = GoRouter(
           showRecommendationsOnly: recommendations,
         );
       },
-    ),
+    ),//ROUTE FOR THE NAVIGATION
     GoRoute(
       path: '/matrimonial/profile/:id',
       builder: (context, state) {

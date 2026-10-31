@@ -71,10 +71,14 @@ class _MatrimonialProfileListScreenState extends ConsumerState<MatrimonialProfil
 
     // Default filters
     final oppositeGender = (user?.gender == 'Male') ? 'Female' : 'Male';
-    final hasSearch = _searchController.text.trim().isNotEmpty;
-    final String? queryGender = _selectedGender != 'Any'
-        ? _selectedGender
-        : (hasSearch ? null : oppositeGender);
+    String? queryGender;
+    if (_selectedGender != 'Any') {
+      queryGender = _selectedGender;
+    } else if (widget.showRecommendationsOnly) {
+      queryGender = oppositeGender;
+    } else {
+      queryGender = null; // Show all profiles when Any is chosen
+    }
 
     final res = await service.fetchProfiles(
       search: _searchController.text.trim(),
@@ -94,6 +98,7 @@ class _MatrimonialProfileListScreenState extends ConsumerState<MatrimonialProfil
       weightMin: _weightRange.start.toInt(),
       weightMax: _weightRange.end.toInt(),
       workLocation: _filterWorkLocation.isEmpty ? null : _filterWorkLocation,
+      limit: 100,
     );
 
     setState(() {
@@ -586,6 +591,45 @@ class _MatrimonialProfileListScreenState extends ConsumerState<MatrimonialProfil
     }
   }
 
+  Widget _buildQuickFilterChip(String label, bool isSelected, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? const Color(0xFFE67E22)
+              : (Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E293B) : Colors.white),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected ? const Color(0xFFE67E22) : Colors.grey.withValues(alpha: 0.3),
+            width: 1.2,
+          ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: const Color(0xFFE67E22).withValues(alpha: 0.3),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  )
+                ]
+              : null,
+        ),
+        child: Text(
+          label,
+          style: GoogleFonts.inter(
+            fontSize: 12.5,
+            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+            color: isSelected
+                ? Colors.white
+                : (Theme.of(context).brightness == Brightness.dark ? Colors.white70 : Colors.black87),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -652,6 +696,33 @@ class _MatrimonialProfileListScreenState extends ConsumerState<MatrimonialProfil
                         ),
                     ],
                   ),
+                ),
+              ),
+            ),
+
+          // Quick Filter Chips (All, Brides, Grooms)
+          if (!widget.showShortlistedOnly)
+            Padding(
+              padding: const EdgeInsets.only(left: 12.0, right: 12.0, bottom: 8.0),
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    _buildQuickFilterChip('All Profiles', _selectedGender == 'Any', () {
+                      setState(() => _selectedGender = 'Any');
+                      _loadProfiles();
+                    }),
+                    const SizedBox(width: 8),
+                    _buildQuickFilterChip('Brides (Female)', _selectedGender == 'Female', () {
+                      setState(() => _selectedGender = 'Female');
+                      _loadProfiles();
+                    }),
+                    const SizedBox(width: 8),
+                    _buildQuickFilterChip('Grooms (Male)', _selectedGender == 'Male', () {
+                      setState(() => _selectedGender = 'Male');
+                      _loadProfiles();
+                    }),
+                  ],
                 ),
               ),
             ),

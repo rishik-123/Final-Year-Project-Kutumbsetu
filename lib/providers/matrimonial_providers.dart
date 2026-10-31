@@ -28,7 +28,7 @@ class MatrimonialService {
     int? weightMax,
     String? workLocation,
     int page = 1,
-    int limit = 20,
+    int limit = 100,
   }) async {
     final queryParams = <String, String>{
       'page': page.toString(),

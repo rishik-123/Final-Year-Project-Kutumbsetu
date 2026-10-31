@@ -8,6 +8,8 @@ import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import '../api_config.dart';
+import '../models/user_model.dart';
+import '../providers/auth_provider.dart';
 import '../providers/theme_provider.dart';
 
 /// Member Registration Screen for KutumbSetu.
@@ -54,7 +56,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   bool _isOtpSent = false;
   bool _isSendingOtp = false;
   bool _isSubmitting = false;
-  String? _developmentOtp;
 
   @override
   void dispose() {
@@ -250,73 +251,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     );
   }
 
-  void _showOtpDevelopmentDialog(String otp) {
-    showDialog(
-      context: context,
-      barrierDismissible: true,
-      builder: (BuildContext dialogContext) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: Row(
-            children: [
-              const Icon(Icons.developer_mode_rounded, color: Colors.orange),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'Development Mode',
-                  style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
-                ),
-              ),
-            ],
-          ),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Use the following OTP to verify your email:',
-                  style: GoogleFonts.inter(fontSize: 14),
-                ),
-                const SizedBox(height: 12),
-                Center(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                    decoration: BoxDecoration(
-                      color: Colors.orange.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.orange, width: 2),
-                    ),
-                    child: Text(
-                      otp,
-                      style: GoogleFonts.poppins(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 4,
-                        color: Colors.orange,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  'Development OTP: $otp',
-                  style: GoogleFonts.inter(fontSize: 12, color: Colors.grey),
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('OK'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
   // OTP Sending Handler
   Future<void> _sendOtp() async {
     final email = _emailController.text.trim();
@@ -350,7 +284,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         setState(() {
           _isOtpSent = true;
           _isSendingOtp = false;
-          _developmentOtp = data['otp'];
         });
 
         if (mounted) {
@@ -363,9 +296,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             ),
           );
 
-          if (_developmentOtp != null) {
-            _showOtpDevelopmentDialog(_developmentOtp!);
-          }
         }
       } else {
         setState(() {
@@ -466,11 +396,21 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           _emailController.clear();
           _addressController.clear();
           _otpController.clear();
+          if (registerData['user'] != null) {
+            try {
+              final userMap = registerData['user'] as Map<String, dynamic>;
+              final registeredUser = UserModel.fromJson(userMap);
+              ref.read(currentUserProvider.notifier).state = registeredUser;
+              ref.read(authProvider.notifier).setUser(registeredUser);
+            } catch (e) {
+              print('Error setting registered user session: ' + e.toString());
+            }
+          }
           setState(() {
             _profileImage = null;
             _profilePhotoBase64 = null;
           });
-          context.go('/');
+          context.go('/home');
         }
       } else {
         setState(() {

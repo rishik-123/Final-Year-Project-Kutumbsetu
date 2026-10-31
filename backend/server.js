@@ -241,11 +241,12 @@ const fileFilter = (req, file, cb) => {
 
 const upload = multer({
   storage: storage,
+  //5->number of MBs wanted,1024->convert M=MB to KB,1024->KB->B
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
   fileFilter: fileFilter,
 });
 
-// Seed Initial Categories if Database is Empty
+// Seed Initial Categories if Database is Empty for campaigns
 const seedDefaultCategories = async () => {
   try {
     const count = await CampaignCategory.countDocuments();

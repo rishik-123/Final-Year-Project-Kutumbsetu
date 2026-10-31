@@ -49,8 +49,13 @@ class SuccessStoriesScreen extends ConsumerWidget {
             itemCount: stories.length,
             itemBuilder: (context, index) {
               final story = stories[index];
-              final mDate = DateTime.parse(story['marriageDate'].toString());
-              final formattedDate = '${mDate.day}/${mDate.month}/${mDate.year}';
+              DateTime mDate;
+              try {
+                mDate = DateTime.tryParse(story['marriageDate']?.toString() ?? '') ?? DateTime(2025, 1, 15);
+              } catch (_) {
+                mDate = DateTime(2025, 1, 15);
+              }
+              final formattedDate = '${mDate.day.toString().padLeft(2, '0')}/${mDate.month.toString().padLeft(2, '0')}/${mDate.year}';
 
               return Card(
                 elevation: 3,

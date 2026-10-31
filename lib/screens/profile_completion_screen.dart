@@ -8,6 +8,7 @@ import 'package:http/http.dart' as http;
 import '../api_config.dart';
 import '../providers/auth_provider.dart';
 import '../providers/theme_provider.dart';
+import '../providers/matrimonial_providers.dart';
 import 'package:image_picker/image_picker.dart';
 
 /// Screen responsible for comprehensive profile completion and editing.
@@ -443,6 +444,8 @@ class _ProfileCompletionScreenState extends ConsumerState<ProfileCompletionScree
           if (updatedUser != null) {
             ref.read(currentUserProvider.notifier).state = updatedUser;
           }
+          ref.invalidate(myMatrimonialProfileProvider);
+          ref.invalidate(matrimonialProfilesProvider);
           if (mounted) {
             final isCompleted = user.phoneNumber.isNotEmpty && user.city.isNotEmpty;
             ScaffoldMessenger.of(context).showSnackBar(

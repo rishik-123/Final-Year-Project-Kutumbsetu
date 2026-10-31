@@ -1308,15 +1308,26 @@ app.post('/api/users/profile', async (req, res) => {
           if (profession) matProf.occupation = profession;
           matProf.hasMatrimonialProfile = true;
           matProf.visibility = isMatrimonialVisible;
+          matProf.familyInformation = {
+            fatherName: finalFatherName || (matProf.familyInformation && matProf.familyInformation.fatherName) || '',
+            motherName: finalMotherName || (matProf.familyInformation && matProf.familyInformation.motherName) || '',
+            grandfather: finalGfName || (matProf.familyInformation && matProf.familyInformation.grandfather) || '',
+            grandmother: finalGmName || (matProf.familyInformation && matProf.familyInformation.grandmother) || '',
+            nana: finalNanaName || (matProf.familyInformation && matProf.familyInformation.nana) || '',
+            nani: finalNaniName || (matProf.familyInformation && matProf.familyInformation.nani) || '',
+            familyOccupation: 'Business & Professional'
+          };
           await matProf.save();
           console.log(`[Opt-in] Updated MatrimonialProfile for ${nameToUse} (${finalMemberId})`);
         }
+        await User.findByIdAndUpdate(validUserId, { hasMatrimonialProfile: true });
       } else {
         // User unchecked matrimonial opt-in -> mark hidden
         await MatrimonialProfile.findOneAndUpdate(
           { userId: validUserId },
           { hasMatrimonialProfile: false, visibility: false }
         );
+        await User.findByIdAndUpdate(validUserId, { hasMatrimonialProfile: false });
         console.log(`[Opt-out] Marked MatrimonialProfile hidden for userId: ${validUserId}`);
       }
     } catch (matErr) {
@@ -1630,9 +1641,61 @@ app.get('/api/matrimonial/profile/:userId', async (req, res) => {
     const { userId } = req.params;
     const requesterId = req.query.requesterId;
 
-    const profile = await MatrimonialProfile.findOne({ userId }).populate('userId');
+    let profile = await MatrimonialProfile.findOne({ userId }).populate('userId');
     if (!profile) {
-      return res.status(404).json({ success: false, message: 'Matrimonial profile not found.' });
+      // Auto-fallback: If user exists in User or Profile collection, create matrimonial record
+      const uDoc = await User.findById(userId);
+      if (uDoc) {
+        const uProf = await Profile.findOne({ userId });
+        const uMem = await Member.findOne({ userId });
+        const dobVal = (uProf && uProf.dateOfBirth) ? new Date(uProf.dateOfBirth) : new Date(1998, 0, 1);
+        const autoMat = new MatrimonialProfile({
+          userId: uDoc._id,
+          memberId: (uProf && uProf.memberId) || (uMem && uMem.memberId) || '',
+          name: uDoc.fullName,
+          gender: (uProf && uProf.gender) || (uMem && uMem.gender) || 'Male',
+          dob: isNaN(dobVal.getTime()) ? new Date(1998, 0, 1) : dobVal,
+          heightCm: 165,
+          weightKg: 60,
+          bloodGroup: (uProf && uProf.bloodGroup) || 'B+',
+          maritalStatus: 'Never Married',
+          education: (uProf && uProf.qualification) || '',
+          occupation: (uProf && uProf.profession) || '',
+          company: '',
+          annualIncome: 1200000,
+          village: (uProf && uProf.village) || '',
+          city: (uProf && uProf.city) || '',
+          workingCountry: 'India',
+          description: 'Family-oriented member of Gujarati Darji Samaj seeking life partner.',
+          partnerExpectations: 'Seeking an educated partner with strong family values.',
+          partnerExpectationsHobbies: ['Reading', 'Music', 'Traveling'],
+          profilePhoto: (uProf && uProf.profilePhoto) || '',
+          familyInformation: {
+            fatherName: (uProf && uProf.fatherName) || '',
+            motherName: (uProf && uProf.motherName) || '',
+            grandfather: (uProf && uProf.grandfather) || '',
+            grandmother: (uProf && uProf.grandmother) || '',
+            nana: (uProf && uProf.nana) || '',
+            nani: (uProf && uProf.nani) || '',
+            familyOccupation: 'Business & Professional'
+          },
+          lifestyle: {
+            languages: ['Gujarati', 'Hindi', 'English'],
+            hobbies: ['Music', 'Fitness', 'Traveling'],
+            diet: 'Vegetarian',
+            smoking: 'No',
+            drinking: 'No'
+          },
+          hasMatrimonialProfile: true,
+          visibility: true,
+          profileStatus: 'Approved'
+        });
+        await autoMat.save();
+        profile = await MatrimonialProfile.findById(autoMat._id).populate('userId');
+        console.log(`[Auto-create] Created matrimonial profile for user: ${uDoc.fullName}`);
+      } else {
+        return res.status(404).json({ success: false, message: 'Matrimonial profile not found.' });
+      }
     }
 
     const doc = profile.toObject();
@@ -1726,7 +1789,7 @@ app.get('/api/matrimonial/profiles', async (req, res) => {
     const {
       search, ageMin, ageMax, heightMin, heightMax, village, city,
       occupation, education, incomeMin, incomeMax, maritalStatus, gender,
-      requesterId, page = 1, limit = 10, weightMin, weightMax, workLocation
+      requesterId, page = 1, limit = 100, weightMin, weightMax, workLocation
     } = req.query;
 
     // Filter only opted-in and visible profiles

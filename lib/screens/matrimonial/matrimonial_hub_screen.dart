@@ -319,7 +319,7 @@ class _MatrimonialHubScreenState extends ConsumerState<MatrimonialHubScreen> {
   Widget _buildExploreGrid(BuildContext context, Color orange, Color blue) {
     final List<Map<String, dynamic>> items = [
       {'label': 'Browse Profiles', 'icon': Icons.people_outline_rounded, 'color': blue, 'path': '/matrimonial/profiles'},
-      {'label': 'My Biodata', 'icon': Icons.description_outlined, 'color': orange, 'path': '/matrimonial/biodata'},
+      {'label': 'My Profile / Biodata', 'icon': Icons.badge_outlined, 'color': orange, 'path': '/matrimonial/biodata'},
       {'label': 'Shortlists', 'icon': Icons.star_border_rounded, 'color': Colors.amber.shade700, 'path': '/matrimonial/profiles?shortlisted=true'},
       {'label': 'Marriage Events', 'icon': Icons.celebration_outlined, 'color': Colors.teal, 'path': '/matrimonial/events'},
       {'label': 'Success Stories', 'icon': Icons.auto_stories_outlined, 'color': Colors.pink, 'path': '/matrimonial/stories'},

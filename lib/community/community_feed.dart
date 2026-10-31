@@ -26,8 +26,15 @@ const Color kTextColor = Color(0xFF212121);
 const Color kTextSoft = Color(0xFF6B6B6B);
 const Color kDivider = Color(0xFFECE7DE);
 
+enum CommunityHubMode {
+  all,
+  eventsOnly,
+  newsOnly,
+}
+
 class CommunityFeedScreen extends ConsumerStatefulWidget {
-  const CommunityFeedScreen({super.key});
+  final CommunityHubMode mode;
+  const CommunityFeedScreen({super.key, this.mode = CommunityHubMode.all});
 
   @override
   ConsumerState<CommunityFeedScreen> createState() => _CommunityFeedScreenState();
@@ -42,8 +49,12 @@ class _CommunityFeedScreenState extends ConsumerState<CommunityFeedScreen> {
   @override
   void initState() {
     super.initState();
-    _fetchPosts();
-    _fetchEvents();
+    if (widget.mode == CommunityHubMode.all || widget.mode == CommunityHubMode.newsOnly) {
+      _fetchPosts();
+    }
+    if (widget.mode == CommunityHubMode.all || widget.mode == CommunityHubMode.eventsOnly) {
+      _fetchEvents();
+    }
   }
 
   Future<void> _fetchPosts() async {
@@ -412,42 +423,7 @@ class _CommunityFeedScreenState extends ConsumerState<CommunityFeedScreen> {
             },
           ];
 
-    return DefaultTabController(
-      length: 2,
-      child: Scaffold(
-        backgroundColor: isDark ? const Color(0xFF121212) : kBgColor,
-        appBar: AppBar(
-          backgroundColor: isDark ? const Color(0xFF1E293B) : kCardColor,
-          elevation: 1,
-          title: Text(
-            "Community Hub",
-            style: GoogleFonts.poppins(
-              color: isDark ? Colors.white : kTextColor,
-              fontWeight: FontWeight.bold,
-              fontSize: 18,
-            ),
-          ),
-          bottom: TabBar(
-            indicatorColor: kSaffron,
-            indicatorWeight: 3,
-            labelColor: kSaffron,
-            unselectedLabelColor: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
-            labelStyle: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 13),
-            tabs: const [
-              Tab(
-                icon: Icon(Icons.calendar_month_rounded, size: 20),
-                text: "Samaj Events",
-              ),
-              Tab(
-                icon: Icon(Icons.newspaper_rounded, size: 20),
-                text: "News & Posts",
-              ),
-            ],
-          ),
-        ),
-        body: TabBarView(
-          children: [
-            // --- TAB 1: SAMAJ EVENTS ---
+    final eventsWidget = // --- TAB 1: SAMAJ EVENTS ---
             RefreshIndicator(
               onRefresh: _fetchEvents,
               color: kSaffron,
@@ -684,9 +660,9 @@ class _CommunityFeedScreenState extends ConsumerState<CommunityFeedScreen> {
                         }),
                       ],
                     ),
-            ),
+            );
 
-            // --- TAB 2: SAMAJ NEWS & POSTS ---
+    final newsWidget = // --- TAB 2: SAMAJ NEWS & POSTS ---
             RefreshIndicator(
               onRefresh: () async {
                 await _fetchPosts();
@@ -777,7 +753,104 @@ class _CommunityFeedScreenState extends ConsumerState<CommunityFeedScreen> {
                     }),
                 ],
               ),
+            );
+
+    if (widget.mode == CommunityHubMode.eventsOnly) {
+      return Scaffold(
+        backgroundColor: isDark ? const Color(0xFF121212) : kBgColor,
+        appBar: AppBar(
+          backgroundColor: isDark ? const Color(0xFF1E293B) : kCardColor,
+          elevation: 1,
+          iconTheme: IconThemeData(color: isDark ? Colors.white : kTextColor),
+          title: Text(
+            "Samaj Events",
+            style: GoogleFonts.poppins(
+              color: isDark ? Colors.white : kTextColor,
+              fontWeight: FontWeight.bold,
+              fontSize: 18,
             ),
+          ),
+        ),
+        body: eventsWidget,
+        floatingActionButton: FloatingActionButton.extended(
+          onPressed: () => _showCreatePostBottomSheet(context),
+          backgroundColor: kSaffron,
+          icon: const Icon(Icons.event_available_rounded, color: Colors.white),
+          label: Text(
+            ref.watch(currentUserProvider)?.role == 'admin' ? 'Create Event' : 'Submit Event Request',
+            style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
+        ),
+      );
+    }
+
+    if (widget.mode == CommunityHubMode.newsOnly) {
+      return Scaffold(
+        backgroundColor: isDark ? const Color(0xFF121212) : kBgColor,
+        appBar: AppBar(
+          backgroundColor: isDark ? const Color(0xFF1E293B) : kCardColor,
+          elevation: 1,
+          iconTheme: IconThemeData(color: isDark ? Colors.white : kTextColor),
+          title: Text(
+            "News & Posts",
+            style: GoogleFonts.poppins(
+              color: isDark ? Colors.white : kTextColor,
+              fontWeight: FontWeight.bold,
+              fontSize: 18,
+            ),
+          ),
+        ),
+        body: newsWidget,
+        floatingActionButton: FloatingActionButton.extended(
+          onPressed: () => _showCreatePostBottomSheet(context),
+          backgroundColor: kSaffron,
+          icon: const Icon(Icons.post_add_rounded, color: Colors.white),
+          label: Text(
+            ref.watch(currentUserProvider)?.role == 'admin' ? 'Create Post' : 'Submit Post Request',
+            style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
+        ),
+      );
+    }
+
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        backgroundColor: isDark ? const Color(0xFF121212) : kBgColor,
+        appBar: AppBar(
+          backgroundColor: isDark ? const Color(0xFF1E293B) : kCardColor,
+          elevation: 1,
+          iconTheme: IconThemeData(color: isDark ? Colors.white : kTextColor),
+          title: Text(
+            "Community Hub",
+            style: GoogleFonts.poppins(
+              color: isDark ? Colors.white : kTextColor,
+              fontWeight: FontWeight.bold,
+              fontSize: 18,
+            ),
+          ),
+          bottom: TabBar(
+            indicatorColor: kSaffron,
+            indicatorWeight: 3,
+            labelColor: kSaffron,
+            unselectedLabelColor: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+            labelStyle: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 13),
+            tabs: const [
+              Tab(
+                icon: Icon(Icons.calendar_month_rounded, size: 20),
+                text: "Samaj Events",
+              ),
+              Tab(
+                icon: Icon(Icons.newspaper_rounded, size: 20),
+                text: "News & Posts",
+              ),
+            ],
+          ),
+        ),
+        body: TabBarView(
+          children: [
+            eventsWidget,
+            newsWidget,
           ],
         ),
         floatingActionButton: FloatingActionButton.extended(

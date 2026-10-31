@@ -27,6 +27,7 @@ import '../screens/registration_success_screen.dart';
 import '../screens/post_detail_screen.dart';
 import '../screens/reel_detail_screen.dart';
 import '../screens/admin_dashboard_screen.dart';
+import '../community/community_feed.dart';
 
 final appRouter = GoRouter(
   //tells first which page shall load//
@@ -167,6 +168,18 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/my-registrations',
       builder: (context, state) => const MyRegistrationsScreen(),
+    ),
+    GoRoute(
+      path: '/events',
+      builder: (context, state) => const CommunityFeedScreen(mode: CommunityHubMode.eventsOnly),
+    ),
+    GoRoute(
+      path: '/news',
+      builder: (context, state) => const CommunityFeedScreen(mode: CommunityHubMode.newsOnly),
+    ),
+    GoRoute(
+      path: '/community-hub',
+      builder: (context, state) => const CommunityFeedScreen(mode: CommunityHubMode.all),
     ),
   ],
   errorBuilder: (context, state) => Scaffold(

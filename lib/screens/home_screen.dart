@@ -1566,7 +1566,11 @@ Contact: ${user.phoneNumber}
               });
             } else if (item['label'] == 'Matrimony') {
               context.push('/matrimonial');
-            } else if (item['action'] == 'events' || item['action'] == 'news' || item['action'] == 'hub') {
+            } else if (item['action'] == 'events') {
+              context.push('/events');
+            } else if (item['action'] == 'news') {
+              context.push('/news');
+            } else if (item['action'] == 'hub') {
               setState(() {
                 _currentIndex = 3;
               });
@@ -2149,7 +2153,7 @@ Contact: ${user.phoneNumber}
                 ),
               ),
               GestureDetector(
-                onTap: () => _showSendRequestToAdminModal(context),
+                onTap: () => context.push('/news'),
                 child: Text(
                   _translate('See all'),
                   style: GoogleFonts.poppins(
@@ -2259,7 +2263,7 @@ Contact: ${user.phoneNumber}
                 ),
               ),
               GestureDetector(
-                onTap: () => context.push('/matrimonial/events'),
+                onTap: () => context.push('/events'),
                 child: Text(
                   _translate('See all'),
                   style: GoogleFonts.poppins(

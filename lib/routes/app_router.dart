@@ -64,6 +64,10 @@ final appRouter = GoRouter(
       builder: (context, state) => const ProfileCompletionScreen(),
     ),
     GoRoute(
+      path: '/profile-completion',
+      builder: (context, state) => const ProfileCompletionScreen(),
+    ),
+    GoRoute(
       path: '/home',
       builder: (context, state) => const HomeScreen(),
     ),

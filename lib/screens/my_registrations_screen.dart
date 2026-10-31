@@ -298,24 +298,32 @@ class MyRegistrationsScreen extends ConsumerWidget {
                         const SizedBox(height: 10),
 
                         // Bottom Action Buttons (View Details & Cancel Registration)
-                        Row(
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          alignment: WrapAlignment.spaceBetween,
+                          crossAxisAlignment: WrapCrossAlignment.center,
                           children: [
                             OutlinedButton.icon(
                               onPressed: () => _showRegistrationDetailsModal(context, reg),
-                              icon: const Icon(Icons.info_outline_rounded, size: 16),
-                              label: const Text('View Details'),
+                              icon: const Icon(Icons.info_outline_rounded, size: 15),
+                              label: const Text('View Details', style: TextStyle(fontSize: 13)),
                               style: OutlinedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                visualDensity: VisualDensity.compact,
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                               ),
                             ),
-                            const Spacer(),
                             // Only show cancel action if the registration is currently active
                             if (!reg.isCancelled)
                               TextButton.icon(
                                 onPressed: () => _cancelRegistration(context, ref, reg),
-                                icon: const Icon(Icons.cancel_outlined, size: 16, color: Colors.redAccent),
-                                label: const Text('Cancel Registration', style: TextStyle(color: Colors.redAccent)),
+                                icon: const Icon(Icons.cancel_outlined, size: 15, color: Colors.redAccent),
+                                label: const Text('Cancel Registration', style: TextStyle(color: Colors.redAccent, fontSize: 13)),
+                                style: TextButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                                  visualDensity: VisualDensity.compact,
+                                ),
                               ),
                           ],
                         ),

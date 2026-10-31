@@ -699,24 +699,28 @@ class _CampaignRegistrationScreenState extends ConsumerState<CampaignRegistratio
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Number of Participants *',
-                              style: GoogleFonts.inter(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                color: isDark ? Colors.white : Colors.black87,
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Number of Participants *',
+                                style: GoogleFonts.inter(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: isDark ? Colors.white : Colors.black87,
+                                ),
                               ),
-                            ),
-                            Text(
-                              'Family members or group count',
-                              style: GoogleFonts.inter(fontSize: 11, color: Colors.grey),
-                            ),
-                          ],
+                              Text(
+                                'Family members or group count',
+                                style: GoogleFonts.inter(fontSize: 11, color: Colors.grey),
+                              ),
+                            ],
+                          ),
                         ),
+                        const SizedBox(width: 8),
                         Row(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
                             IconButton(
                               onPressed: _numberOfParticipants > 1
@@ -724,10 +728,13 @@ class _CampaignRegistrationScreenState extends ConsumerState<CampaignRegistratio
                                   : null,
                               icon: const Icon(Icons.remove_circle_outline_rounded),
                               color: saffronColor,
-                              iconSize: 28,
+                              iconSize: 26,
+                              padding: const EdgeInsets.all(4),
+                              constraints: const BoxConstraints(),
                             ),
+                            const SizedBox(width: 4),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                               decoration: BoxDecoration(
                                 color: saffronColor.withValues(alpha: 0.12),
                                 borderRadius: BorderRadius.circular(8),
@@ -735,19 +742,22 @@ class _CampaignRegistrationScreenState extends ConsumerState<CampaignRegistratio
                               child: Text(
                                 '$_numberOfParticipants',
                                 style: GoogleFonts.poppins(
-                                  fontSize: 16,
+                                  fontSize: 15,
                                   fontWeight: FontWeight.bold,
                                   color: saffronColor,
                                 ),
                               ),
                             ),
+                            const SizedBox(width: 4),
                             IconButton(
                               onPressed: _numberOfParticipants < 20
                                   ? () => setState(() => _numberOfParticipants++)
                                   : null,
                               icon: const Icon(Icons.add_circle_outline_rounded),
                               color: saffronColor,
-                              iconSize: 28,
+                              iconSize: 26,
+                              padding: const EdgeInsets.all(4),
+                              constraints: const BoxConstraints(),
                             ),
                           ],
                         ),

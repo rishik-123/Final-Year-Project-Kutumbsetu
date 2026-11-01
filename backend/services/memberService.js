@@ -289,18 +289,29 @@ async function syncMembersAndBackfill() {
     }
 
     // 2. Initial Populated Family Data (Rishik Jariwala's family)
-    let rishikMember = await Member.findOne({ memberId: canonicalRishikId });
+    const canonicalRishikId = 'MEM001';
+    let rishikMember = await Member.findOne({
+      $or: [
+        { memberId: canonicalRishikId },
+        { email: 'rishikjariwala54@gmail.com' }
+      ]
+    });
     if (!rishikMember) {
-      rishikMember = await resolveOrCreateMember({
-        knownId: canonicalRishikId,
-        name: 'Rishik Jariwala',
-        gender: 'Male',
-        phoneNumber: '+919136091620',
-        email: 'rishikjariwala54@gmail.com',
-        city: 'Surat',
-        village: 'Surat',
-        familyId: 'JARIWALA-01',
-      });
+      // Check if user exists in User collection before creating
+      const uExists = await User.findOne({ email: 'rishikjariwala54@gmail.com' });
+      if (uExists) {
+        rishikMember = await resolveOrCreateMember({
+          knownId: canonicalRishikId,
+          name: uExists.fullName || 'Rishik Jariwala',
+          gender: 'Male',
+          phoneNumber: uExists.phoneNumber || '+919136091620',
+          email: uExists.email,
+          city: 'Surat',
+          village: 'Surat',
+          familyId: 'JARIWALA-01',
+          userId: uExists._id,
+        });
+      }
     }
 
     // Paternal Grandfather: Dinesh Jariwala
@@ -388,21 +399,23 @@ async function syncMembersAndBackfill() {
     arunaMember.spouseName = dilipMember.fullName;
     await arunaMember.save();
 
-    // Establish ID links on canonical Rishik
-    rishikMember.fullName = 'Rishik Jariwala';
-    rishikMember.fatherId = alakMember.memberId;
-    rishikMember.fatherName = alakMember.fullName;
-    rishikMember.motherId = payalMember.memberId;
-    rishikMember.motherName = payalMember.fullName;
-    rishikMember.paternalGrandfatherId = dineshMember.memberId;
-    rishikMember.grandfather = dineshMember.fullName;
-    rishikMember.paternalGrandmotherId = urmiMember.memberId;
-    rishikMember.grandmother = urmiMember.fullName;
-    rishikMember.maternalGrandfatherId = dilipMember.memberId;
-    rishikMember.nana = dilipMember.fullName;
-    rishikMember.maternalGrandmotherId = arunaMember.memberId;
-    rishikMember.nani = arunaMember.fullName;
-    await rishikMember.save();
+    // Establish ID links on canonical Rishik (if present)
+    if (rishikMember) {
+      rishikMember.fullName = rishikMember.fullName || 'Rishik Jariwala';
+      rishikMember.fatherId = alakMember.memberId;
+      rishikMember.fatherName = alakMember.fullName;
+      rishikMember.motherId = payalMember.memberId;
+      rishikMember.motherName = payalMember.fullName;
+      rishikMember.paternalGrandfatherId = dineshMember.memberId;
+      rishikMember.grandfather = dineshMember.fullName;
+      rishikMember.paternalGrandmotherId = urmiMember.memberId;
+      rishikMember.grandmother = urmiMember.fullName;
+      rishikMember.maternalGrandfatherId = dilipMember.memberId;
+      rishikMember.nana = dilipMember.fullName;
+      rishikMember.maternalGrandmotherId = arunaMember.memberId;
+      rishikMember.nani = arunaMember.fullName;
+      await rishikMember.save();
+    }
 
     // Sync all of Rishik's Profile documents
     const allRishikUsers = await User.find({
@@ -576,7 +589,7 @@ async function syncMembersAndBackfill() {
       await rishikMat.save();
     }
 
-    console.log(`[MemberService] Synced Rishik's family hierarchy: Rishik (${rishikMember.memberId}) -> Alak (${alakMember.memberId}) & Payal (${payalMember.memberId}) -> Dinesh (${dineshMember.memberId}), Urmi (${urmiMember.memberId}), Dilip (${dilipMember.memberId}), Aruna (${arunaMember.memberId})`);
+    console.log(`[MemberService] Synced Rishik's family hierarchy: Rishik (${rishikMember ? rishikMember.memberId : 'N/A'}) -> Alak (${alakMember.memberId}) & Payal (${payalMember.memberId}) -> Dinesh (${dineshMember.memberId}), Urmi (${urmiMember.memberId}), Dilip (${dilipMember.memberId}), Aruna (${arunaMember.memberId})`);
     console.log('[MemberService] Synced Matrimonial Profiles for Payal and Rishik.');
     console.log('[MemberService] Sync and ID backfill completed successfully.');
   } catch (err) {

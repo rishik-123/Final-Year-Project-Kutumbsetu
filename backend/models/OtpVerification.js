@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 /**
- * @typedef {Object} OtpVerificationSchema
+ * @typedef {Object} OtpVerificationSchema //JSBlock defining Schema
  * @property {string} [email] - Target email address receiving the OTP code
  * @property {string} [phone] - Target phone number receiving the SMS OTP
  * @property {string} otp - 6-digit one-time password code

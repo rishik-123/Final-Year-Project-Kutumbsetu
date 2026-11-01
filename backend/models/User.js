@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
-
+//JSBlock
 /**
- * @typedef {Object} UserSchema
+ * @typedef {Object} UserSchema //creates documentation for model and is used for type checking//
  * @property {string} fullName - Full legal name of the community member
  * @property {string} [email] - Unique email address used for OTP authentication
  * @property {string} [phoneNumber] - Unique contact mobile number

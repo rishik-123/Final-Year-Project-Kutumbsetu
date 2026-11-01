@@ -240,6 +240,13 @@ class MatrimonialService {
 
 final matrimonialServiceProvider = Provider((ref) => MatrimonialService());
 
+// All Profiles Provider
+final matrimonialProfilesProvider = FutureProvider.autoDispose<List<MatrimonialProfileModel>>((ref) async {
+  final user = ref.watch(currentUserProvider);
+  final service = ref.watch(matrimonialServiceProvider);
+  return service.fetchProfiles(requesterId: user?.id, limit: 100);
+});
+
 // Own Profile Provider
 final myMatrimonialProfileProvider = FutureProvider.autoDispose<MatrimonialProfileModel?>((ref) async {
   final user = ref.watch(currentUserProvider);

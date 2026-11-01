@@ -688,7 +688,7 @@ class _CampaignRegistrationScreenState extends ConsumerState<CampaignRegistratio
 
                   // Number of Participants Counter
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
                     decoration: BoxDecoration(
                       color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
                       borderRadius: BorderRadius.circular(12),
@@ -710,15 +710,19 @@ class _CampaignRegistrationScreenState extends ConsumerState<CampaignRegistratio
                                   fontWeight: FontWeight.w600,
                                   color: isDark ? Colors.white : Colors.black87,
                                 ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
                               Text(
                                 'Family members or group count',
                                 style: GoogleFonts.inter(fontSize: 11, color: Colors.grey),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ],
                           ),
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 6),
                         Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
@@ -728,13 +732,13 @@ class _CampaignRegistrationScreenState extends ConsumerState<CampaignRegistratio
                                   : null,
                               icon: const Icon(Icons.remove_circle_outline_rounded),
                               color: saffronColor,
-                              iconSize: 26,
-                              padding: const EdgeInsets.all(4),
+                              iconSize: 22,
+                              padding: const EdgeInsets.all(2),
                               constraints: const BoxConstraints(),
                             ),
                             const SizedBox(width: 4),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                               decoration: BoxDecoration(
                                 color: saffronColor.withValues(alpha: 0.12),
                                 borderRadius: BorderRadius.circular(8),
@@ -742,7 +746,7 @@ class _CampaignRegistrationScreenState extends ConsumerState<CampaignRegistratio
                               child: Text(
                                 '$_numberOfParticipants',
                                 style: GoogleFonts.poppins(
-                                  fontSize: 15,
+                                  fontSize: 14,
                                   fontWeight: FontWeight.bold,
                                   color: saffronColor,
                                 ),
@@ -755,8 +759,8 @@ class _CampaignRegistrationScreenState extends ConsumerState<CampaignRegistratio
                                   : null,
                               icon: const Icon(Icons.add_circle_outline_rounded),
                               color: saffronColor,
-                              iconSize: 26,
-                              padding: const EdgeInsets.all(4),
+                              iconSize: 22,
+                              padding: const EdgeInsets.all(2),
                               constraints: const BoxConstraints(),
                             ),
                           ],

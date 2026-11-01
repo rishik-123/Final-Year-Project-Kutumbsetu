@@ -131,12 +131,16 @@ class _MatrimonialProfileDetailScreenState extends ConsumerState<MatrimonialProf
                           children: [
                             Row(
                               children: [
-                                Text(
-                                  p.name,
-                                  style: GoogleFonts.poppins(
-                                    color: Colors.white,
-                                    fontSize: 22,
-                                    fontWeight: FontWeight.bold,
+                                Flexible(
+                                  child: Text(
+                                    p.name,
+                                    style: GoogleFonts.poppins(
+                                      color: Colors.white,
+                                      fontSize: 22,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
                                 const SizedBox(width: 6),
@@ -584,7 +588,7 @@ class _MatrimonialProfileDetailScreenState extends ConsumerState<MatrimonialProf
                       children: [
                         _buildInfoRow('Native Village', p.village),
                         _buildInfoRow('Current City', p.city),
-                        _buildInfoRow('Current Working Country', p.workingCountry.isNotEmpty ? p.workingCountry : 'India'),
+                        _buildInfoRow('Current Working Country', p.workingCountry.isNotEmpty ? p.workingCountry : 'Not Specified'),
                         _buildInfoRow('Gender', p.gender),
                         _buildInfoRow('Weight', '${p.weightKg} Kg'),
                         _buildInfoRow('Blood Group', p.bloodGroup),
@@ -642,33 +646,48 @@ class _MatrimonialProfileDetailScreenState extends ConsumerState<MatrimonialProf
                     ],
                   ),
                   child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
-                      ElevatedButton.icon(
-                        icon: const Icon(Icons.phone, color: Colors.white, size: 18),
-                        label: const Text('Call Candidate', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: primaryBlue,
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          icon: const Icon(Icons.phone, color: Colors.white, size: 16),
+                          label: const Text(
+                            'Call Candidate',
+                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: primaryBlue,
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          onPressed: () => _triggerCall(p.mobileNumber, p.name),
                         ),
-                        onPressed: () => _triggerCall(p.mobileNumber, p.name),
                       ),
-                      ElevatedButton.icon(
-                        icon: const Icon(Icons.sms_outlined, color: Colors.white, size: 18),
-                        label: const Text('Send SMS', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: primaryOrange,
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          icon: const Icon(Icons.sms_outlined, color: Colors.white, size: 16),
+                          label: const Text(
+                            'Send SMS',
+                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: primaryOrange,
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          onPressed: () => _triggerSMS(p.mobileNumber, p.name),
                         ),
-                        onPressed: () => _triggerSMS(p.mobileNumber, p.name),
                       ),
+                      const SizedBox(width: 4),
                       IconButton(
                         icon: Icon(
                           _isShortlisted ? Icons.star_rounded : Icons.star_outline_rounded,
                           color: Colors.amber.shade700,
-                          size: 28,
+                          size: 26,
                         ),
                         onPressed: () async {
                           if (requester != null) {

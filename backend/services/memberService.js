@@ -235,45 +235,7 @@ async function syncMembersAndBackfill() {
   try {
     console.log('[MemberService] Starting sync and ID backfill...');
 
-    // 0. Auto-consolidate Rishik Jariwala records into single permanent canonical ID MEM001
-    const canonicalRishikId = 'MEM001';
-    const duplicateRishikMembers = await Member.find({
-      $or: [
-        { fullName: /^rishik(\s+alak)?\s+jariwala$/i },
-        { fullName: /^rishik$/i },
-        { email: 'rishikjariwala54@gmail.com' },
-        { email: 'rishikjariwala271@gmail.com' },
-      ],
-      fullName: { $not: /rishi ketan soni/i }
-    });
-
-    if (duplicateRishikMembers.length > 0) {
-      let canonicalRishik = duplicateRishikMembers.find(m => m.memberId === canonicalRishikId) || duplicateRishikMembers[0];
-      canonicalRishik.memberId = canonicalRishikId;
-      canonicalRishik.fullName = 'Rishik Jariwala';
-      canonicalRishik.firstName = 'Rishik';
-      canonicalRishik.middleName = 'Alak';
-      canonicalRishik.lastName = 'Jariwala';
-      canonicalRishik.gender = 'Male';
-      canonicalRishik.email = 'rishikjariwala54@gmail.com';
-      canonicalRishik.phoneNumber = '+919136091620';
-      canonicalRishik.city = 'Surat';
-      canonicalRishik.village = 'Surat';
-      canonicalRishik.familyId = 'JARIWALA-01';
-      await canonicalRishik.save();
-
-      const dupIds = duplicateRishikMembers
-        .map(m => m.memberId)
-        .filter(id => id !== canonicalRishikId);
-
-      if (dupIds.length > 0) {
-        await Member.deleteMany({ memberId: { $in: dupIds } });
-        await Member.updateMany({ fatherId: { $in: dupIds } }, { $set: { fatherId: canonicalRishikId, fatherName: 'Rishik Jariwala' } });
-        await Member.updateMany({ motherId: { $in: dupIds } }, { $set: { motherId: canonicalRishikId } });
-        await Profile.updateMany({ fatherId: { $in: dupIds } }, { $set: { fatherId: canonicalRishikId, fatherName: 'Rishik Jariwala' } });
-        await Profile.updateMany({ memberId: { $in: dupIds } }, { $set: { memberId: canonicalRishikId } });
-      }
-    }
+    // 0. Rishik Jariwala consolidation removed to honor account deletion
 
     // 1. Backfill Member record for every existing registered User without creating duplicates
     const allUsers = await User.find({});
@@ -723,9 +685,18 @@ async function buildFamilyTree(profile, userEmail, userPhone) {
       photo = m.gender === 'Female' ? 'avatar_female_1' : 'avatar_male_1';
     }
     const isSelf = forcedSelf || Boolean(currentMemberId && m.memberId === currentMemberId);
+    let displayName = (m.fullName || '').trim();
+    if (!displayName || displayName.toLowerCase() === (relation || '').toLowerCase()) {
+      if (relation === 'Father' && profile && profile.fatherName) displayName = profile.fatherName.trim();
+      else if (relation === 'Mother' && profile && profile.motherName) displayName = profile.motherName.trim();
+      else if (relation === 'Grandfather' && profile && profile.grandfather) displayName = profile.grandfather.trim();
+      else if (relation === 'Grandmother' && profile && profile.grandmother) displayName = profile.grandmother.trim();
+      else if (relation === 'Nana' && profile && profile.nana) displayName = profile.nana.trim();
+      else if (relation === 'Nani' && profile && profile.nani) displayName = profile.nani.trim();
+    }
     return {
       id: m.memberId || (m._id ? m._id.toString() : `node-${Math.random()}`),
-      name: m.fullName || '',
+      name: displayName,
       photo: photo,
       relation: relation || m.relationshipToHead || 'Self',
       isDeceased: m.isDeceased || false,

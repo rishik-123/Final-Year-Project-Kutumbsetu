@@ -51,7 +51,7 @@ class _MatrimonialBiodataScreenState extends ConsumerState<MatrimonialBiodataScr
   String _familyOccupation = '';
 
   // New Fields
-  String _workingCountry = 'India';
+  String _workingCountry = '';
   String _description = '';
   String _partnerExpectations = '';
   List<String> _partnerExpectationsHobbies = [];
@@ -148,7 +148,7 @@ class _MatrimonialBiodataScreenState extends ConsumerState<MatrimonialBiodataScr
       _introVideo = myProfile.introductionVideoUrl;
 
       // New fields prefill
-      _workingCountry = myProfile.workingCountry.isNotEmpty ? myProfile.workingCountry : 'India';
+      _workingCountry = myProfile.workingCountry;
       _description = myProfile.description;
       _partnerExpectations = myProfile.partnerExpectations;
       _partnerExpectationsHobbies = List<String>.from(myProfile.partnerExpectationsHobbies);

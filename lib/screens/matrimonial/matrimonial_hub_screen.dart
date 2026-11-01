@@ -25,16 +25,18 @@ class _MatrimonialHubScreenState extends ConsumerState<MatrimonialHubScreen> {
   int calculateCompletionPercentage(MatrimonialProfileModel? profile) {
     if (profile == null) return 0;
     int score = 0;
-    // Personal fields
-    if (profile.name.isNotEmpty) score += 20;
-    // Education & Career
-    if (profile.education.isNotEmpty || profile.occupation.isNotEmpty) score += 20;
-    // Family information
-    if (profile.family.isNotEmpty && profile.family['fatherName'] != '') score += 20;
-    // Lifestyle details
-    if (profile.lifestyle.isNotEmpty && profile.lifestyle['diet'] != null) score += 20;
-    // Partner Preferences
-    if (profile.partnerPreferences.isNotEmpty && profile.partnerPreferences['ageMin'] != null) score += 20;
+    // 1. About Me / Description (Filled in Manage Biodata)
+    if (profile.description.trim().isNotEmpty) score += 20;
+    // 2. Expectations from Partner (Filled in Manage Biodata)
+    if (profile.partnerExpectations.trim().isNotEmpty) score += 20;
+    // 3. Partner Preferred Hobbies / Activities (Selected in Manage Biodata)
+    if (profile.partnerExpectationsHobbies.isNotEmpty) score += 20;
+    // 4. Current Working Country / Work Details (Filled in Manage Biodata)
+    if (profile.workingCountry.trim().isNotEmpty || profile.company.trim().isNotEmpty) score += 20;
+    // 5. Additional Photos / Social Links / Annual Income (Filled in Manage Biodata)
+    final hasSocial = profile.socialLinks['instagramUrl']?.toString().isNotEmpty == true ||
+        profile.socialLinks['facebookUrl']?.toString().isNotEmpty == true;
+    if (profile.additionalPhotos.isNotEmpty || hasSocial || profile.annualIncome > 0) score += 20;
     return score;
   }
 

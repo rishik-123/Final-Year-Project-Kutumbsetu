@@ -1045,7 +1045,7 @@ app.post('/api/users/profile', async (req, res) => {
     // Resolve or link related family members dynamically with duplicate prevention
     let finalFatherId = fatherId || '';
     let finalFatherName = fatherName || '';
-    if (fatherName && fatherName.trim()) {
+    if ((fatherName && fatherName.trim()) || (fatherId && fatherId.trim())) {
       const fMem = await resolveOrCreateMember({
         knownId: fatherId,
         name: fatherName,
@@ -1062,7 +1062,7 @@ app.post('/api/users/profile', async (req, res) => {
 
     let finalMotherId = motherId || '';
     let finalMotherName = motherName || '';
-    if (motherName && motherName.trim()) {
+    if ((motherName && motherName.trim()) || (motherId && motherId.trim())) {
       const mMem = await resolveOrCreateMember({
         knownId: motherId,
         name: motherName,
@@ -1080,7 +1080,7 @@ app.post('/api/users/profile', async (req, res) => {
 
     let finalGfId = paternalGrandfatherId || '';
     let finalGfName = grandfather || '';
-    if (grandfather && grandfather.trim()) {
+    if ((grandfather && grandfather.trim()) || (paternalGrandfatherId && paternalGrandfatherId.trim())) {
       const gfMem = await resolveOrCreateMember({
         knownId: paternalGrandfatherId,
         name: grandfather,
@@ -1097,7 +1097,7 @@ app.post('/api/users/profile', async (req, res) => {
 
     let finalGmId = paternalGrandmotherId || '';
     let finalGmName = grandmother || '';
-    if (grandmother && grandmother.trim()) {
+    if ((grandmother && grandmother.trim()) || (paternalGrandmotherId && paternalGrandmotherId.trim())) {
       const gmMem = await resolveOrCreateMember({
         knownId: paternalGrandmotherId,
         name: grandmother,
@@ -1114,7 +1114,7 @@ app.post('/api/users/profile', async (req, res) => {
 
     let finalNanaId = maternalGrandfatherId || '';
     let finalNanaName = nana || '';
-    if (nana && nana.trim()) {
+    if ((nana && nana.trim()) || (maternalGrandfatherId && maternalGrandfatherId.trim())) {
       const nanaMem = await resolveOrCreateMember({
         knownId: maternalGrandfatherId,
         name: nana,
@@ -1131,7 +1131,7 @@ app.post('/api/users/profile', async (req, res) => {
 
     let finalNaniId = maternalGrandmotherId || '';
     let finalNaniName = nani || '';
-    if (nani && nani.trim()) {
+    if ((nani && nani.trim()) || (maternalGrandmotherId && maternalGrandmotherId.trim())) {
       const naniMem = await resolveOrCreateMember({
         knownId: maternalGrandmotherId,
         name: nani,
@@ -1665,10 +1665,10 @@ app.get('/api/matrimonial/profile/:userId', async (req, res) => {
           annualIncome: 1200000,
           village: (uProf && uProf.village) || '',
           city: (uProf && uProf.city) || '',
-          workingCountry: 'India',
-          description: 'Family-oriented member of Gujarati Darji Samaj seeking life partner.',
-          partnerExpectations: 'Seeking an educated partner with strong family values.',
-          partnerExpectationsHobbies: ['Reading', 'Music', 'Traveling'],
+          workingCountry: '',
+          description: '',
+          partnerExpectations: '',
+          partnerExpectationsHobbies: [],
           profilePhoto: (uProf && uProf.profilePhoto) || '',
           familyInformation: {
             fatherName: (uProf && uProf.fatherName) || '',
@@ -1677,12 +1677,12 @@ app.get('/api/matrimonial/profile/:userId', async (req, res) => {
             grandmother: (uProf && uProf.grandmother) || '',
             nana: (uProf && uProf.nana) || '',
             nani: (uProf && uProf.nani) || '',
-            familyOccupation: 'Business & Professional'
+            familyOccupation: ''
           },
           lifestyle: {
-            languages: ['Gujarati', 'Hindi', 'English'],
-            hobbies: ['Music', 'Fitness', 'Traveling'],
-            diet: 'Vegetarian',
+            languages: [],
+            hobbies: [],
+            diet: '',
             smoking: 'No',
             drinking: 'No'
           },
@@ -1762,8 +1762,8 @@ app.get('/api/matrimonial/profile/:userId', async (req, res) => {
       doc.familyInformation = {};
     } else {
       doc.isDetailsLocked = false;
-      // Mask fields based on visibility settings
-      if (!isOwnProfile) {
+      // Mask fields based on visibility settings ONLY IF connection is NOT accepted and not own profile
+      if (!isOwnProfile && connectionStatus !== 'Accepted') {
         if (!doc.visibilitySettings || !doc.visibilitySettings.showPhone) {
           doc.mobileNumber = doc.mobileNumber ? doc.mobileNumber.substring(0, 6) + '••••' : '';
         }

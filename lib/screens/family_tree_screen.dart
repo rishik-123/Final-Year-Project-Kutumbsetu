@@ -654,6 +654,29 @@ class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
   Widget _buildFocalNodeCard(FamilyTreeNode node, Offset pos, {required bool isFocal}) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final relColor = _getRelationColor(node.relation);
+    final user = ref.read(currentUserProvider);
+
+    // Resolve accurate display name from user profile if node has generic relation name
+    String displayName = node.name.trim();
+    final rLower = node.relation.toLowerCase().trim();
+    if (displayName.isEmpty || displayName.toLowerCase() == rLower) {
+      if (rLower == 'father' && user != null && user.fatherName.trim().isNotEmpty) {
+        displayName = user.fatherName.trim();
+      } else if (rLower == 'mother' && user != null && user.motherName.trim().isNotEmpty) {
+        displayName = user.motherName.trim();
+      } else if (rLower == 'grandfather' && user != null && user.grandfather.trim().isNotEmpty && user.grandfather.toLowerCase() != 'none') {
+        displayName = user.grandfather.trim();
+      } else if (rLower == 'grandmother' && user != null && user.grandmother.trim().isNotEmpty && user.grandmother.toLowerCase() != 'none') {
+        displayName = user.grandmother.trim();
+      } else if (rLower == 'nana' && user != null && user.nana.trim().isNotEmpty && user.nana.toLowerCase() != 'none') {
+        displayName = user.nana.trim();
+      } else if (rLower == 'nani' && user != null && user.nani.trim().isNotEmpty && user.nani.toLowerCase() != 'none') {
+        displayName = user.nani.trim();
+      }
+    }
+    if (displayName.isEmpty) {
+      displayName = node.relation;
+    }
 
     final avatarWidget = _buildAvatarWidget(node, 22);
 
@@ -695,7 +718,7 @@ class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      node.isDeceased ? '⚫ ${node.name}' : node.name,
+                      node.isDeceased ? '⚫ $displayName' : displayName,
                       style: GoogleFonts.poppins(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
@@ -817,6 +840,7 @@ class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
   /// - If [node] is the Father: returns Paternal Grandfather ('Grandfather').
   /// - If [node] is the Mother: returns Maternal Grandfather ('Nana').
   FamilyTreeNode getFatherOf(FamilyTreeNode node) {
+    final user = ref.read(currentUserProvider);
     final rel = node.relation.toLowerCase().trim();
     final father = _findFatherInTree();
     final mother = _findMotherInTree();
@@ -829,12 +853,15 @@ class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
       for (var n in _nodesMap.values) {
         if (n.relation.toLowerCase().trim() == 'grandfather') return n;
       }
+      final gfName = (user != null && user.grandfather.trim().isNotEmpty && user.grandfather.toLowerCase() != 'none')
+          ? user.grandfather.trim()
+          : (node.name.isNotEmpty && node.name.toLowerCase() != 'father' ? "${node.name}'s Father" : 'Grandfather');
       return FamilyTreeNode(
         id: '${node.id}-grandfather',
-        name: node.name.isNotEmpty ? "${node.name}'s Father" : 'Grandfather',
+        name: gfName,
         photo: '',
         relation: 'Grandfather',
-        isDeceased: true,
+        isDeceased: false,
         children: [],
       );
     } else if (isMother) {
@@ -842,24 +869,30 @@ class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
       for (var n in _nodesMap.values) {
         if (n.relation.toLowerCase().trim() == 'nana') return n;
       }
+      final nanaName = (user != null && user.nana.trim().isNotEmpty && user.nana.toLowerCase() != 'none')
+          ? user.nana.trim()
+          : (node.name.isNotEmpty && node.name.toLowerCase() != 'mother' ? "${node.name}'s Father" : 'Nana');
       return FamilyTreeNode(
         id: '${node.id}-nana',
-        name: node.name.isNotEmpty ? "${node.name}'s Father" : 'Nana',
+        name: nanaName,
         photo: '',
         relation: 'Nana',
-        isDeceased: true,
+        isDeceased: false,
         children: [],
       );
     } else {
       // Base view navigation -> Father of the Child
-      if (father != null) return father;
+      if (father != null && father.name.isNotEmpty && father.name.toLowerCase() != 'father') return father;
+      final fName = (user != null && user.fatherName.trim().isNotEmpty)
+          ? user.fatherName.trim()
+          : (father?.name.isNotEmpty == true ? father!.name : 'Father');
       return FamilyTreeNode(
-        id: '${node.id}-father',
-        name: 'Father',
-        photo: '',
+        id: father?.id ?? '${node.id}-father',
+        name: fName,
+        photo: father?.photo ?? '',
         relation: 'Father',
-        isDeceased: false,
-        children: [],
+        isDeceased: father?.isDeceased ?? false,
+        children: father?.children ?? [],
       );
     }
   }
@@ -869,6 +902,7 @@ class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
   /// - If [node] is the Father: returns Paternal Grandmother ('Grandmother').
   /// - If [node] is the Mother: returns Maternal Grandmother ('Nani').
   FamilyTreeNode getMotherOf(FamilyTreeNode node) {
+    final user = ref.read(currentUserProvider);
     final rel = node.relation.toLowerCase().trim();
     final father = _findFatherInTree();
     final mother = _findMotherInTree();
@@ -881,12 +915,15 @@ class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
       for (var n in _nodesMap.values) {
         if (n.relation.toLowerCase().trim() == 'grandmother') return n;
       }
+      final gmName = (user != null && user.grandmother.trim().isNotEmpty && user.grandmother.toLowerCase() != 'none')
+          ? user.grandmother.trim()
+          : (node.name.isNotEmpty && node.name.toLowerCase() != 'father' ? "${node.name}'s Mother" : 'Grandmother');
       return FamilyTreeNode(
         id: '${node.id}-grandmother',
-        name: node.name.isNotEmpty ? "${node.name}'s Mother" : 'Grandmother',
+        name: gmName,
         photo: '',
         relation: 'Grandmother',
-        isDeceased: true,
+        isDeceased: false,
         children: [],
       );
     } else if (isMother) {
@@ -894,24 +931,30 @@ class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
       for (var n in _nodesMap.values) {
         if (n.relation.toLowerCase().trim() == 'nani') return n;
       }
+      final naniName = (user != null && user.nani.trim().isNotEmpty && user.nani.toLowerCase() != 'none')
+          ? user.nani.trim()
+          : (node.name.isNotEmpty && node.name.toLowerCase() != 'mother' ? "${node.name}'s Mother" : 'Nani');
       return FamilyTreeNode(
         id: '${node.id}-nani',
-        name: node.name.isNotEmpty ? "${node.name}'s Mother" : 'Nani',
+        name: naniName,
         photo: '',
         relation: 'Nani',
-        isDeceased: true,
+        isDeceased: false,
         children: [],
       );
     } else {
       // Base view navigation -> Mother of the Child
-      if (mother != null) return mother;
+      if (mother != null && mother.name.isNotEmpty && mother.name.toLowerCase() != 'mother') return mother;
+      final mName = (user != null && user.motherName.trim().isNotEmpty)
+          ? user.motherName.trim()
+          : (mother?.name.isNotEmpty == true ? mother!.name : 'Mother');
       return FamilyTreeNode(
-        id: '${node.id}-mother',
-        name: 'Mother',
-        photo: '',
+        id: mother?.id ?? '${node.id}-mother',
+        name: mName,
+        photo: mother?.photo ?? '',
         relation: 'Mother',
-        isDeceased: false,
-        children: [],
+        isDeceased: mother?.isDeceased ?? false,
+        children: mother?.children ?? [],
       );
     }
   }

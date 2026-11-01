@@ -141,6 +141,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           });
         }
       }
+
+      if (mounted) {
+        _syncNotificationsFromDynamicData();
+      }
     } catch (e) {
       debugPrint('Error loading dynamic home feeds: $e');
     }
@@ -700,23 +704,50 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return _transliterateToGujarati(text);
   }
 
-  // Stateful list of notifications
-  final List<Map<String, String>> _notifications = [
-    {
-      'id': '1',
-      'title': 'New Event Registered',
-      'body': 'Samuh Lagna Sammelan registration is now open.',
-      'time': 'Just now',
-      'icon': 'event'
-    },
-    {
-      'id': '2',
-      'title': 'Birthday Today',
-      'body': 'Hansaben K. is turning 58 today. Wish her!',
-      'time': '2 hours ago',
-      'icon': 'cake'
-    },
-  ];
+  // Dynamic notifications populated from admin published events and birthdays
+  final List<Map<String, String>> _notifications = [];
+
+  void _syncNotificationsFromDynamicData() {
+    final List<Map<String, String>> dynamicNotifs = [];
+
+    // 1. Events published by Admin
+    for (int i = 0; i < _dynamicEvents.length; i++) {
+      final ev = _dynamicEvents[i];
+      final title = ev['title']?.toString() ?? 'Community Event';
+      final loc = ev['location']?.toString() ?? '';
+      final date = ev['date']?.toString() ?? '';
+      final body = loc.isNotEmpty ? '$title at $loc' : title;
+      dynamicNotifs.add({
+        'id': ev['_id']?.toString() ?? 'event-$i',
+        'title': 'New Event: $title',
+        'body': body,
+        'time': date.isNotEmpty ? date : 'Published by Admin',
+        'icon': 'event',
+      });
+    }
+
+    // 2. Dynamic Birthdays
+    for (int i = 0; i < _dynamicBirthdays.length; i++) {
+      final b = _dynamicBirthdays[i];
+      final name = b['name']?.toString() ?? b['fullName']?.toString() ?? 'Member';
+      final age = b['age']?.toString() ?? '';
+      dynamicNotifs.add({
+        'id': 'bday-$i',
+        'title': 'Birthday Today',
+        'body': age.isNotEmpty ? '$name is turning $age today. Wish them!' : 'Today is $name\'s birthday! Wish them!',
+        'time': 'Today',
+        'icon': 'cake',
+      });
+    }
+
+    if (dynamicNotifs.isNotEmpty && mounted) {
+      setState(() {
+        _notifications.clear();
+        _notifications.addAll(dynamicNotifs);
+        _hasUnreadNotifications = true;
+      });
+    }
+  }
 
   bool _hasUnreadNotifications = true;
 

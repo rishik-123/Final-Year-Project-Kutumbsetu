@@ -333,9 +333,9 @@ class _MatrimonialHubScreenState extends ConsumerState<MatrimonialHubScreen> {
       itemCount: items.length,
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
-        mainAxisSpacing: 14,
-        crossAxisSpacing: 14,
-        childAspectRatio: 1.4,
+        mainAxisSpacing: 12,
+        crossAxisSpacing: 12,
+        childAspectRatio: 1.22,
       ),
       itemBuilder: (context, index) {
         final item = items[index];
@@ -360,22 +360,27 @@ class _MatrimonialHubScreenState extends ConsumerState<MatrimonialHubScreen> {
                 ),
                 border: Border.all(color: item['color'].withValues(alpha: 0.2), width: 1),
               ),
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   CircleAvatar(
                     backgroundColor: item['color'].withValues(alpha: 0.15),
-                    radius: 20,
-                    child: Icon(item['icon'], color: item['color'], size: 22),
+                    radius: 17,
+                    child: Icon(item['icon'], color: item['color'], size: 20),
                   ),
-                  Text(
-                    item['label'],
-                    style: GoogleFonts.poppins(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13,
-                      color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black87,
+                  const SizedBox(height: 6),
+                  Flexible(
+                    child: Text(
+                      item['label'],
+                      style: GoogleFonts.poppins(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12.5,
+                        color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black87,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ],

@@ -130,19 +130,20 @@ class _FamilyTreeScreenState extends ConsumerState<FamilyTreeScreen> {
               // Flatten the nested hierarchy into _nodesMap for O(1) instant lookups
               _mapNodes(root, null);
               
-              // Find the focal child node for the 3-generation canvas (Son/Daughter/Child)
+              // Find the focal child node for the 3-generation canvas:
+              // 1. ALWAYS prioritize the currently logged-in user (isSelf / 'self')
               FamilyTreeNode? focalChildNode;
               for (var n in _nodesMap.values) {
-                final rel = n.relation.toLowerCase().trim();
-                if (rel == 'son' || rel == 'daughter' || rel == 'child') {
+                if (n.isSelf || n.relation.toLowerCase().trim() == 'self') {
                   focalChildNode = n;
                   break;
                 }
               }
-              // Fallback to Self node if there are no registered children in this family
+              // 2. Fallback to child node if a parent logged in to view their descendants
               if (focalChildNode == null) {
                 for (var n in _nodesMap.values) {
-                  if (n.relation.toLowerCase().trim() == 'self' || n.isSelf) {
+                  final rel = n.relation.toLowerCase().trim();
+                  if (rel == 'son' || rel == 'daughter' || rel == 'child') {
                     focalChildNode = n;
                     break;
                   }

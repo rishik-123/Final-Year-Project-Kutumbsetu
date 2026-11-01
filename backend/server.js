@@ -1547,14 +1547,17 @@ app.post('/api/matrimonial/profile', async (req, res) => {
       maritalStatus, education, occupation, company, annualIncome,
       village, city, familyInformation, lifestyle, partnerPreferences,
       visibilitySettings, profilePhoto, introductionVideo,
-      profilePhotoBase64, introductionVideoBase64
+      profilePhotoBase64, introductionVideoBase64,
+      workingCountry, description, partnerExpectations,
+      partnerExpectationsHobbies, socialLinks, additionalPhotos,
+      additionalPhotosBase64
     } = req.body;
 
-    if (!userId || !name || !gender || !dob || !heightCm || !weightKg) {
+    if (!userId || !name || !gender) {
       return res.status(400).json({ success: false, message: 'Missing required profile fields.' });
     }
 
-    // Handle base64 uploads
+    // Handle base64 uploads for profile photo
     let finalProfilePhoto = profilePhoto;
     if (profilePhotoBase64 && profilePhotoBase64.trim().length > 0) {
       try {
@@ -1574,6 +1577,7 @@ app.post('/api/matrimonial/profile', async (req, res) => {
       }
     }
 
+    // Handle base64 uploads for intro video
     let finalIntroductionVideo = introductionVideo;
     if (introductionVideoBase64 && introductionVideoBase64.trim().length > 0) {
       try {
@@ -1593,40 +1597,81 @@ app.post('/api/matrimonial/profile', async (req, res) => {
       }
     }
 
-    let profile = await MatrimonialProfile.findOne({ userId });
+    // Handle base64 uploads for additional photos
+    let finalAdditionalPhotos = Array.isArray(additionalPhotos) ? [...additionalPhotos] : [];
+    if (Array.isArray(additionalPhotosBase64) && additionalPhotosBase64.length > 0) {
+      try {
+        const uploadsDir = path.join(__dirname, 'uploads');
+        if (!fs.existsSync(uploadsDir)) {
+          fs.mkdirSync(uploadsDir, { recursive: true });
+        }
+        for (let i = 0; i < additionalPhotosBase64.length; i++) {
+          const rawB64 = additionalPhotosBase64[i];
+          if (!rawB64 || typeof rawB64 !== 'string') continue;
+          const cleanB64 = rawB64.replace(/^data:image\/\w+;base64,/, "");
+          const buffer = Buffer.from(cleanB64, 'base64');
+          const filename = `matrimony-addphoto-${userId}-${Date.now()}-${i}.jpg`;
+          const filepath = path.join(uploadsDir, filename);
+          fs.writeFileSync(filepath, buffer);
+          finalAdditionalPhotos.push(`/uploads/${filename}`);
+        }
+      } catch (err) {
+        console.error('Error writing additional photos:', err);
+      }
+    }
+
+    let parsedDob = dob ? new Date(dob) : null;
+    if (!parsedDob || isNaN(parsedDob.getTime())) {
+      parsedDob = new Date(1998, 0, 1);
+    }
 
     const profileData = {
       userId,
       name,
       gender,
-      dob: new Date(dob),
-      heightCm,
-      weightKg,
-      bloodGroup,
-      maritalStatus,
-      education,
-      occupation,
-      company,
-      annualIncome,
-      village,
-      city,
-      familyInformation,
-      lifestyle,
-      partnerPreferences,
-      visibilitySettings,
-      profilePhoto: finalProfilePhoto,
-      introductionVideo: finalIntroductionVideo,
+      dob: parsedDob,
+      heightCm: Number(heightCm) || 165,
+      weightKg: Number(weightKg) || 60,
+      bloodGroup: bloodGroup || '',
+      maritalStatus: maritalStatus || 'Never Married',
+      education: education || '',
+      occupation: occupation || '',
+      company: company || '',
+      annualIncome: Number(annualIncome) || 0,
+      village: village || '',
+      city: city || '',
+      workingCountry: (workingCountry !== undefined && workingCountry !== null) ? workingCountry.toString().trim() : '',
+      description: (description !== undefined && description !== null) ? description.toString().trim() : '',
+      partnerExpectations: (partnerExpectations !== undefined && partnerExpectations !== null) ? partnerExpectations.toString().trim() : '',
+      partnerExpectationsHobbies: Array.isArray(partnerExpectationsHobbies) ? partnerExpectationsHobbies : [],
+      socialLinks: socialLinks || { showSocialLinks: false, instagramUrl: '', facebookUrl: '' },
+      additionalPhotos: finalAdditionalPhotos,
+      familyInformation: familyInformation || {},
+      lifestyle: lifestyle || {},
+      partnerPreferences: partnerPreferences || {},
+      visibilitySettings: visibilitySettings || {},
+      profilePhoto: finalProfilePhoto || '',
+      introductionVideo: finalIntroductionVideo || '',
+      hasMatrimonialProfile: true,
+      visibility: true,
+      profileStatus: 'Approved',
       updatedDate: new Date()
     };
 
+    let profile = await MatrimonialProfile.findOne({ userId });
     if (profile) {
-      profile = await MatrimonialProfile.findOneAndUpdate({ userId }, profileData, { new: true });
-      console.log(`Updated matrimonial profile for user ID: ${userId}`);
+      profile = await MatrimonialProfile.findOneAndUpdate({ userId }, profileData, { new: true, runValidators: false });
+      console.log(`[Matrimony] Successfully updated biodata for user ID: ${userId}, description len: ${profileData.description.length}, country: "${profileData.workingCountry}"`);
     } else {
       profile = new MatrimonialProfile(profileData);
       await profile.save();
-      console.log(`Created matrimonial profile for user ID: ${userId}`);
+      console.log(`[Matrimony] Successfully created biodata for user ID: ${userId}`);
     }
+
+    // Sync user flags
+    await User.findByIdAndUpdate(userId, { hasMatrimonialProfile: true });
+    await Profile.findOneAndUpdate({ userId }, { hasMatrimonialProfile: true, matrimonialVisibility: true });
+    await Member.findOneAndUpdate({ userId }, { hasMatrimonialProfile: true, matrimonialVisibility: true });
 
     return res.status(200).json({ success: true, profile });
   } catch (error) {
@@ -1662,7 +1707,7 @@ app.get('/api/matrimonial/profile/:userId', async (req, res) => {
           education: (uProf && uProf.qualification) || '',
           occupation: (uProf && uProf.profession) || '',
           company: '',
-          annualIncome: 1200000,
+          annualIncome: (uProf && uProf.annualIncome) ? Number(uProf.annualIncome) : 0,
           village: (uProf && uProf.village) || '',
           city: (uProf && uProf.city) || '',
           workingCountry: '',

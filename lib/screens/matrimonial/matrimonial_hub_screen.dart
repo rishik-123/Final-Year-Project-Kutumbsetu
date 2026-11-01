@@ -32,11 +32,11 @@ class _MatrimonialHubScreenState extends ConsumerState<MatrimonialHubScreen> {
     // 3. Partner Preferred Hobbies / Activities (Selected in Manage Biodata)
     if (profile.partnerExpectationsHobbies.isNotEmpty) score += 20;
     // 4. Current Working Country / Work Details (Filled in Manage Biodata)
-    if (profile.workingCountry.trim().isNotEmpty || profile.company.trim().isNotEmpty) score += 20;
+    if (profile.workingCountry.trim().isNotEmpty) score += 20;
     // 5. Additional Photos / Social Links / Annual Income (Filled in Manage Biodata)
     final hasSocial = profile.socialLinks['instagramUrl']?.toString().isNotEmpty == true ||
         profile.socialLinks['facebookUrl']?.toString().isNotEmpty == true;
-    if (profile.additionalPhotos.isNotEmpty || hasSocial || profile.annualIncome > 0) score += 20;
+    if (profile.additionalPhotos.isNotEmpty || hasSocial) score += 20;
     return score;
   }
 

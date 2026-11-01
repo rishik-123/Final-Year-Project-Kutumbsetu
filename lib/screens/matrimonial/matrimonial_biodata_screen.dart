@@ -215,13 +215,29 @@ class _MatrimonialBiodataScreenState extends ConsumerState<MatrimonialBiodataScr
   }
 
   Future<void> _saveBiodata() async {
-    if (!_formKey.currentState!.validate()) {
+    _formKey.currentState?.save();
+
+    if (_name.trim().isEmpty) {
+      _tabController.animateTo(0);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please resolve validation errors first.')),
+        const SnackBar(content: Text('Please enter Full Name in Personal tab.')),
       );
       return;
     }
-    _formKey.currentState!.save();
+    if (_village.trim().isEmpty) {
+      _tabController.animateTo(0);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter Native Village in Personal tab.')),
+      );
+      return;
+    }
+    if (_city.trim().isEmpty) {
+      _tabController.animateTo(0);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter Current City in Personal tab.')),
+      );
+      return;
+    }
 
     final user = ref.read(currentUserProvider);
     if (user == null) return;
@@ -349,6 +365,7 @@ class _MatrimonialBiodataScreenState extends ConsumerState<MatrimonialBiodataScr
         const SnackBar(content: Text('Matrimonial biodata published successfully!')),
       );
       ref.invalidate(myMatrimonialProfileProvider);
+      ref.invalidate(matrimonialProfilesProvider);
       context.pop();
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -472,6 +489,7 @@ class _MatrimonialBiodataScreenState extends ConsumerState<MatrimonialBiodataScr
             initialValue: _name,
             decoration: const InputDecoration(labelText: 'Full Name *'),
             validator: (v) => v!.isEmpty ? 'Name is required' : null,
+            onChanged: (v) => _name = v,
             onSaved: (v) => _name = v ?? '',
           ),
           const SizedBox(height: 14),
@@ -510,7 +528,8 @@ class _MatrimonialBiodataScreenState extends ConsumerState<MatrimonialBiodataScr
                   decoration: const InputDecoration(labelText: 'Height (cm) *'),
                   keyboardType: TextInputType.number,
                   validator: (v) => int.tryParse(v ?? '') == null ? 'Invalid height' : null,
-                  onSaved: (v) => _heightCm = int.parse(v!),
+                  onChanged: (v) => _heightCm = int.tryParse(v) ?? _heightCm,
+                  onSaved: (v) => _heightCm = int.tryParse(v ?? '') ?? _heightCm,
                 ),
               ),
               const SizedBox(width: 14),
@@ -520,7 +539,8 @@ class _MatrimonialBiodataScreenState extends ConsumerState<MatrimonialBiodataScr
                   decoration: const InputDecoration(labelText: 'Weight (kg) *'),
                   keyboardType: TextInputType.number,
                   validator: (v) => int.tryParse(v ?? '') == null ? 'Invalid weight' : null,
-                  onSaved: (v) => _weightKg = int.parse(v!),
+                  onChanged: (v) => _weightKg = int.tryParse(v) ?? _weightKg,
+                  onSaved: (v) => _weightKg = int.tryParse(v ?? '') ?? _weightKg,
                 ),
               ),
             ],
@@ -548,6 +568,7 @@ class _MatrimonialBiodataScreenState extends ConsumerState<MatrimonialBiodataScr
             initialValue: _village,
             decoration: const InputDecoration(labelText: 'Native Village *'),
             validator: (v) => v!.isEmpty ? 'Native village is required' : null,
+            onChanged: (v) => _village = v,
             onSaved: (v) => _village = v ?? '',
           ),
           const SizedBox(height: 14),
@@ -555,6 +576,7 @@ class _MatrimonialBiodataScreenState extends ConsumerState<MatrimonialBiodataScr
             initialValue: _city,
             decoration: const InputDecoration(labelText: 'Current City *'),
             validator: (v) => v!.isEmpty ? 'Current city is required' : null,
+            onChanged: (v) => _city = v,
             onSaved: (v) => _city = v ?? '',
           ),
         ],
@@ -569,28 +591,30 @@ class _MatrimonialBiodataScreenState extends ConsumerState<MatrimonialBiodataScr
         children: [
           TextFormField(
             initialValue: _education,
-            decoration: const InputDecoration(labelText: 'Highest Qualification *', hintText: 'e.g. B.Tech / MBA'),
-            validator: (v) => v!.isEmpty ? 'Education is required' : null,
+            decoration: const InputDecoration(labelText: 'Highest Qualification', hintText: 'e.g. B.Tech / MBA'),
+            onChanged: (v) => _education = v,
             onSaved: (v) => _education = v ?? '',
           ),
           const SizedBox(height: 14),
           TextFormField(
             initialValue: _occupation,
-            decoration: const InputDecoration(labelText: 'Profession *', hintText: 'e.g. Software Engineer'),
-            validator: (v) => v!.isEmpty ? 'Profession is required' : null,
+            decoration: const InputDecoration(labelText: 'Profession', hintText: 'e.g. Software Engineer'),
+            onChanged: (v) => _occupation = v,
             onSaved: (v) => _occupation = v ?? '',
           ),
           const SizedBox(height: 14),
           TextFormField(
             initialValue: _company,
             decoration: const InputDecoration(labelText: 'Company Name', hintText: 'e.g. Google'),
+            onChanged: (v) => _company = v,
             onSaved: (v) => _company = v ?? '',
           ),
           const SizedBox(height: 14),
           TextFormField(
-            initialValue: _annualIncome.toString(),
+            initialValue: _annualIncome > 0 ? _annualIncome.toInt().toString() : '',
             decoration: const InputDecoration(labelText: 'Annual Income (INR)', hintText: 'e.g. 800000'),
             keyboardType: TextInputType.number,
+            onChanged: (v) => _annualIncome = double.tryParse(v) ?? 0,
             onSaved: (v) => _annualIncome = double.tryParse(v ?? '') ?? 0,
           ),
         ],
@@ -606,42 +630,49 @@ class _MatrimonialBiodataScreenState extends ConsumerState<MatrimonialBiodataScr
           TextFormField(
             initialValue: _fatherName,
             decoration: const InputDecoration(labelText: 'Father\'s Name'),
+            onChanged: (v) => _fatherName = v,
             onSaved: (v) => _fatherName = v ?? '',
           ),
           const SizedBox(height: 14),
           TextFormField(
             initialValue: _motherName,
             decoration: const InputDecoration(labelText: 'Mother\'s Name'),
+            onChanged: (v) => _motherName = v,
             onSaved: (v) => _motherName = v ?? '',
           ),
           const SizedBox(height: 14),
           TextFormField(
             initialValue: _grandfather,
             decoration: const InputDecoration(labelText: 'Paternal Grandfather'),
+            onChanged: (v) => _grandfather = v,
             onSaved: (v) => _grandfather = v ?? '',
           ),
           const SizedBox(height: 14),
           TextFormField(
             initialValue: _grandmother,
             decoration: const InputDecoration(labelText: 'Paternal Grandmother'),
+            onChanged: (v) => _grandmother = v,
             onSaved: (v) => _grandmother = v ?? '',
           ),
           const SizedBox(height: 14),
           TextFormField(
             initialValue: _nana,
             decoration: const InputDecoration(labelText: 'Maternal Grandfather (Nana)'),
+            onChanged: (v) => _nana = v,
             onSaved: (v) => _nana = v ?? '',
           ),
           const SizedBox(height: 14),
           TextFormField(
             initialValue: _nani,
             decoration: const InputDecoration(labelText: 'Maternal Grandmother (Nani)'),
+            onChanged: (v) => _nani = v,
             onSaved: (v) => _nani = v ?? '',
           ),
           const SizedBox(height: 14),
           TextFormField(
             initialValue: _familyOccupation,
             decoration: const InputDecoration(labelText: 'Family Occupation / Business'),
+            onChanged: (v) => _familyOccupation = v,
             onSaved: (v) => _familyOccupation = v ?? '',
           ),
         ],
@@ -661,17 +692,18 @@ class _MatrimonialBiodataScreenState extends ConsumerState<MatrimonialBiodataScr
               labelText: 'Current Working Country',
               hintText: 'e.g. India, USA, Canada',
             ),
-            onSaved: (v) => _workingCountry = v ?? 'India',
+            onChanged: (v) => _workingCountry = v,
+            onSaved: (v) => _workingCountry = v ?? '',
           ),
           const SizedBox(height: 14),
           TextFormField(
             initialValue: _description,
             maxLines: 3,
             decoration: const InputDecoration(
-              labelText: 'About Me (Description) *',
+              labelText: 'About Me (Description)',
               hintText: 'Describe your personality, values, hobbies...',
             ),
-            validator: (v) => v!.isEmpty ? 'Description is required' : null,
+            onChanged: (v) => _description = v,
             onSaved: (v) => _description = v ?? '',
           ),
           const SizedBox(height: 14),
@@ -679,10 +711,10 @@ class _MatrimonialBiodataScreenState extends ConsumerState<MatrimonialBiodataScr
             initialValue: _partnerExpectations,
             maxLines: 3,
             decoration: const InputDecoration(
-              labelText: 'Expectations from Partner *',
+              labelText: 'Expectations from Partner',
               hintText: 'Describe what you expect from your life partner...',
             ),
-            validator: (v) => v!.isEmpty ? 'Expectations is required' : null,
+            onChanged: (v) => _partnerExpectations = v,
             onSaved: (v) => _partnerExpectations = v ?? '',
           ),
           const SizedBox(height: 20),
@@ -723,12 +755,14 @@ class _MatrimonialBiodataScreenState extends ConsumerState<MatrimonialBiodataScr
             TextFormField(
               initialValue: _instagramUrl,
               decoration: const InputDecoration(labelText: 'Instagram Profile URL'),
+              onChanged: (v) => _instagramUrl = v,
               onSaved: (v) => _instagramUrl = v ?? '',
             ),
             const SizedBox(height: 12),
             TextFormField(
               initialValue: _facebookUrl,
               decoration: const InputDecoration(labelText: 'Facebook Profile URL'),
+              onChanged: (v) => _facebookUrl = v,
               onSaved: (v) => _facebookUrl = v ?? '',
             ),
           ],
